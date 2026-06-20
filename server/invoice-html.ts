@@ -55,8 +55,8 @@ function fmtDate(d: Date): string {
 
 export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promise<string> {
   const settings: any = (await storage.getStoreSettings?.().catch(() => null)) || {};
-  const sellerName = settings.storeNameAr || "RF Perfume";
-  const sellerNameEn = settings.storeNameEn || "RF Perfume";
+  const sellerName = settings.storeNameAr || "Myla";
+  const sellerNameEn = settings.storeNameEn || "Myla";
   const vatNumber = settings.vatNumber || "";
   const crNumber = settings.crNumber || "7042488606";
   const nationalUnifiedNumber = settings.nationalUnifiedNumber || settings.crNumber || "7042488606";

@@ -168,8 +168,8 @@ export default function AdminEmail() {
           <p className="text-xs font-black text-amber-900 mb-2">💡 نصائح للإرسال</p>
           <ul className="text-xs text-amber-800 space-y-1 list-disc list-inside">
             <li>تحقق من مجلد الرسائل غير المرغوب بها (Spam) إذا لم يصل البريد</li>
-            <li>البريد المُرسَل من <span className="font-mono font-bold">support@rfperfume.sa</span> — أضِفه لجهات الاتصال</li>
-            <li>القوالب تحمل تصميم RF Perfume الفاخر (RTL + ألوان العلامة)</li>
+            <li>البريد المُرسَل من <span className="font-mono font-bold">support@myla.sa</span> — أضِفه لجهات الاتصال</li>
+            <li>القوالب تحمل تصميم Myla الفاخر (RTL + ألوان العلامة)</li>
             <li>لا تستخدم هذه الصفحة لإرسال رسائل جماعية — هي للاختبار فقط</li>
           </ul>
         </CardContent>
@@ -189,8 +189,8 @@ function OutlookSetupGuide() {
   const { toast } = useToast();
   const [open, setOpen] = useState(true);
 
-  const ACCOUNT_EMAIL = "support@rfperfume.sa";
-  const SENDER_DOMAIN = "noreply@rfperfume.sa";
+  const ACCOUNT_EMAIL = "support@myla.sa";
+  const SENDER_DOMAIN = "noreply@myla.sa";
 
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -251,7 +251,7 @@ function OutlookSetupGuide() {
             <p className="text-[10px] font-black text-[#E8637A] uppercase tracking-widest mb-3">بيانات الحساب</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <InfoRow label="البريد الإلكتروني" value={ACCOUNT_EMAIL} />
-              <InfoRow label="اسم العرض" value="RF Perfume — RF Perfume" />
+              <InfoRow label="اسم العرض" value="Myla — Myla" />
               <InfoRow label="IMAP Server" value="outlook.office365.com" />
               <InfoRow label="IMAP Port" value="993 (SSL/TLS)" />
               <InfoRow label="SMTP Server" value="smtp.office365.com" />
@@ -357,7 +357,7 @@ function OutlookSetupGuide() {
               </li>
               <li className="flex gap-2">
                 <span className="text-emerald-600 font-black mt-0.5">✓</span>
-                <span>من Outlook: <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">Settings → Mail → Junk email → Safe senders → Add</span> ثم أدخل النطاق <span className="font-mono">@rfperfume.sa</span>.</span>
+                <span>من Outlook: <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">Settings → Mail → Junk email → Safe senders → Add</span> ثم أدخل النطاق <span className="font-mono">@myla.sa</span>.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-emerald-600 font-black mt-0.5">✓</span>
@@ -365,7 +365,7 @@ function OutlookSetupGuide() {
               </li>
               <li className="flex gap-2">
                 <span className="text-emerald-600 font-black mt-0.5">✓</span>
-                <span>أنشئ قاعدة (Rule): <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">Settings → Rules → Add new rule</span> — كل رسالة من <span className="font-mono">@rfperfume.sa</span> تُنقل تلقائياً إلى مجلد "طلبات RF" مميّز.</span>
+                <span>أنشئ قاعدة (Rule): <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">Settings → Rules → Add new rule</span> — كل رسالة من <span className="font-mono">@myla.sa</span> تُنقل تلقائياً إلى مجلد "طلبات RF" مميّز.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-emerald-600 font-black mt-0.5">✓</span>

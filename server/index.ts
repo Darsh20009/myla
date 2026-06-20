@@ -150,14 +150,14 @@ process.on('uncaughtException', (err: any) => {
     console.warn("[Migration] Could not update store legal data:", e?.message);
   }
 
-  // ─── Seed: RF Perfume Riyadh pickup branch ──────────────────────────────────
+  // ─── Seed: Myla Riyadh pickup branch ──────────────────────────────────
   try {
     const { BranchModel } = await import("./models");
     const exists = await BranchModel.findOne({ slug: "suwaidi" });
     if (!exists) {
       await BranchModel.create({
-        name: "رفيف العود الرياض",
-        nameEn: "RF Perfume Riyadh",
+        name: "Myla الرياض",
+        nameEn: "Myla Riyadh",
         slug: "suwaidi",
         city: "الرياض",
         address: "حي السويدي، الرياض",
@@ -172,7 +172,7 @@ process.on('uncaughtException', (err: any) => {
         image: "",
         sortOrder: 0,
       });
-      console.log("[Seed] RF Perfume Riyadh branch created");
+      console.log("[Seed] Myla Riyadh branch created");
     }
   } catch (e: any) {
     console.warn("[Seed] Could not create Al-Suwaidi branch:", e?.message);

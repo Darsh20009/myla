@@ -12,11 +12,11 @@ async function main() {
   const PASS = "ASDqwe@12345678";
 
   const accounts = [
-    { email: "m.alzaeaqi@rfperfume.sa", displayName: "المدير - م. الزعاقي", color: "#1a2744", userId: adminId },
-    { email: "e-mgr@rfperfume.sa",      displayName: "مدير التشغيل",        color: "#c9a96e", userId: "" },
-    { email: "fin-de@rfperfume.sa",     displayName: "القسم المالي",         color: "#10b981", userId: "" },
-    { email: "hr@rfperfume.sa",         displayName: "الموارد البشرية",       color: "#8b5cf6", userId: "" },
-    { email: "info@rfperfume.sa",       displayName: "الاستفسارات العامة",    color: "#3b82f6", userId: "" },
+    { email: "m.alzaeaqi@myla.sa", displayName: "المدير - م. الزعاقي", color: "#1a2744", userId: adminId },
+    { email: "e-mgr@myla.sa",      displayName: "مدير التشغيل",        color: "#c9a96e", userId: "" },
+    { email: "fin-de@myla.sa",     displayName: "القسم المالي",         color: "#10b981", userId: "" },
+    { email: "hr@myla.sa",         displayName: "الموارد البشرية",       color: "#8b5cf6", userId: "" },
+    { email: "info@myla.sa",       displayName: "الاستفسارات العامة",    color: "#3b82f6", userId: "" },
   ];
 
   for (const a of accounts) {

@@ -89,7 +89,7 @@ export default function PosSystem() {
   const PAYMENT_METHOD_LABELS: Record<string, string> = {
     cash: tc("نقدي","Cash"),
     card: tc("شبكة","Network"),
-    "qahwa-card": tc("بطاقة RF Perfume","RF Perfume Card"),
+    "qahwa-card": tc("بطاقة Myla","Myla Card"),
     split: tc("نقدي + شبكة","Cash + Network"),
   };
   const dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
@@ -400,8 +400,8 @@ export default function PosSystem() {
         variant: 'destructive',
       });
     };
-    window.addEventListener('rf perfume:print-error', handler);
-    return () => window.removeEventListener('rf perfume:print-error', handler);
+    window.addEventListener('myla:print-error', handler);
+    return () => window.removeEventListener('myla:print-error', handler);
   }, [toast]);
 
   useEffect(() => { localStorage.setItem("pos-show-vat-label", String(showVatLabel)); }, [showVatLabel]);
@@ -525,7 +525,7 @@ export default function PosSystem() {
       // Ctrl+P → print receipt (via print queue, not window.print)
       if ((e.ctrlKey || e.metaKey) && e.key === 'p' && orderItems.length > 0) {
         e.preventDefault();
-        const printEvent = new CustomEvent('rf perfume:pos-print-shortcut');
+        const printEvent = new CustomEvent('myla:pos-print-shortcut');
         window.dispatchEvent(printEvent);
         return;
       }
@@ -1820,7 +1820,7 @@ export default function PosSystem() {
       <header className="flex flex-col sm:flex-row items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b bg-card gap-2 sm:gap-0">
         <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
           <div className="flex items-center gap-2">
-            <img src="/rf-logo.png" alt="RF Perfume" className="h-9 sm:h-11 w-auto object-contain" />
+            <img src="/rf-logo.png" alt="Myla" className="h-9 sm:h-11 w-auto object-contain" />
           </div>
           
           <div className="flex items-center gap-2 sm:hidden">

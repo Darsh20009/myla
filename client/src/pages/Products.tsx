@@ -242,7 +242,7 @@ export default function Products() {
       <SEO
         title="تسوق العبايات الفاخرة — Myla"
         description="تصفح أرقى تشكيلة عبايات فاخرة في السعودية من متجر Myla — عبايات، قفاطين، أطقم نسائية. تصاميم حصرية وشحن سريع لجميع مدن السعودية."
-        keywords="عبايات, Myla, رفيف العود, عبايات فاخرة, عبايات سعودية, عبايات الرياض, قفاطين, أطقم نسائية, تسوق عبايات, عبايات راقية, luxury abayas, Saudi abayas, abaya store"
+        keywords="عبايات, Myla, Myla, عبايات فاخرة, عبايات سعودية, عبايات الرياض, قفاطين, أطقم نسائية, تسوق عبايات, عبايات راقية, luxury abayas, Saudi abayas, abaya store"
         canonical="/products"
         ogType="website"
       />

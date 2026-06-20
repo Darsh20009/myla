@@ -21,16 +21,16 @@ export async function seed() {
   await UserModel.deleteMany({ phone: "0552469643", role: "admin" });
   await UserModel.deleteMany({ phone: "0507378047", role: "admin" });
 
-  // Create RF Perfume admin user
-  console.log("Seeding RF Perfume admin user...");
+  // Create Myla admin user
+  console.log("Seeding Myla admin user...");
   const password = await hashPassword("1234567890");
   await storage.createUser({
     phone: "0507378047",
     password,
     role: "admin",
-    name: "RF Perfume",
+    name: "Myla",
     username: "0507378047",
-    email: "info@rfperfume.sa",
+    email: "info@myla.sa",
     walletBalance: "0",
     addresses: [],
     permissions: [
@@ -69,7 +69,7 @@ export async function seed() {
       { name: "New Season",  slug: "newseason",   nameAr: "تشكيلة الموسم", image: defaultCategoryData.newseason.image },
       { name: "Exclusive",   slug: "exclusive",   nameAr: "حصري",           image: defaultCategoryData.exclusive.image },
     ]);
-    console.log("RF Perfume abaya categories seeded");
+    console.log("Myla abaya categories seeded");
   } else {
     for (const cat of categories) {
       const def = defaultCategoryData[cat.slug];
@@ -87,14 +87,14 @@ export async function seed() {
   if (branches.length === 0) {
     await BranchModel.insertMany([
       {
-        name: "الفرع الرئيسي - RF Perfume",
-        nameEn: "RF Perfume Main Branch",
+        name: "الفرع الرئيسي - Myla",
+        nameEn: "Myla Main Branch",
         address: "الرياض، المملكة العربية السعودية",
         phone: "",
         isActive: true,
         location: { lat: 24.7136, lng: 46.6753 },
       },
     ]);
-    console.log("Default RF Perfume branch seeded");
+    console.log("Default Myla branch seeded");
   }
 }

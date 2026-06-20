@@ -374,7 +374,7 @@ export default function AdminBranches() {
             render={({ field }) => (
               <FormItem className="text-right">
                 <FormLabel className="font-black">البريد الإلكتروني</FormLabel>
-                <FormControl><Input {...field} value={field.value || ""} type="email" placeholder="branch@rfperfume.sa" dir="ltr" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ""} type="email" placeholder="branch@myla.sa" dir="ltr" /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

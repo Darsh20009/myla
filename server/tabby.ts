@@ -69,7 +69,7 @@ export async function createTabbyCheckout(input: TabbyCheckoutInput): Promise<Ta
       description: `Order ${input.orderId}`,
       buyer: {
         phone: normalizePhone(input.customer.phone) || "966500000000",
-        email: input.customer.email || "info@rfperfume.sa",
+        email: input.customer.email || "info@myla.sa",
         name: input.customer.name || "Customer",
       },
       buyer_history: {

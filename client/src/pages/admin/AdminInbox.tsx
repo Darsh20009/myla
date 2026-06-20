@@ -398,7 +398,7 @@ export default function AdminInbox() {
             </div>
             <h2 className="text-2xl font-black text-[#6B3F2A] mb-2">صندوق بريد الموظفين</h2>
             <p className="text-sm text-slate-500 max-w-md mx-auto mb-3 leading-relaxed">
-              أضف صناديق بريد الموظفين (مثل <span className="font-mono font-bold text-[#E8637A]">sales@rfperfume.sa</span>) لقراءة وإرسال الرسائل من داخل لوحة التحكم مباشرة.
+              أضف صناديق بريد الموظفين (مثل <span className="font-mono font-bold text-[#E8637A]">sales@myla.sa</span>) لقراءة وإرسال الرسائل من داخل لوحة التحكم مباشرة.
             </p>
             <div className="max-w-md mx-auto mb-6 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-right">
               <p className="text-[12px] text-emerald-800 leading-relaxed">
@@ -1261,7 +1261,7 @@ function AccountDialog({ open, onOpenChange, accounts = [] }: { open: boolean; o
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs font-bold">البريد الإلكتروني *</Label>
-                <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="sales@rfperfume.sa" dir="ltr" className="h-10 rounded-lg" data-testid="input-account-email" />
+                <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="sales@myla.sa" dir="ltr" className="h-10 rounded-lg" data-testid="input-account-email" />
               </div>
               <div>
                 <Label className="text-xs font-bold">الاسم المعروض</Label>

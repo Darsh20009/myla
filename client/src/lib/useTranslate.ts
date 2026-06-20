@@ -1,5 +1,5 @@
 /**
- * useTranslate — RF Perfume (Arabic-first, always returns Arabic)
+ * useTranslate — Myla (Arabic-first, always returns Arabic)
  * Since the store is Arabic-only, tc always returns the Arabic string.
  */
 

@@ -1,11 +1,11 @@
 /**
- * k6 load test — RF Perfume checkout pipeline.
+ * k6 load test — Myla checkout pipeline.
  *
  * Goal: validate that the system can sustain 100k orders/hour
  *       (≈28 RPS sustained, with bursts up to ~120 RPS).
  *
  * Run:
- *   k6 run --env BASE=https://rfperfume.sa load-tests/checkout.js
+ *   k6 run --env BASE=https://myla.sa load-tests/checkout.js
  *
  * Stages:
  *   1. ramp 0 → 30 VU in 1m   (warm up cache + connection pool)

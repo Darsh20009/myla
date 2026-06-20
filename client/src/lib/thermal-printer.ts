@@ -97,8 +97,8 @@ const DEFAULT_SETTINGS: PrinterSettings = {
   networkPort: 9100,           // ← Default printer port
 };
 
-const SETTINGS_KEY = 'rf perfume-printer-settings';
-const DEVICE_KEY   = 'rf perfume-printer-device';
+const SETTINGS_KEY = 'myla-printer-settings';
+const DEVICE_KEY   = 'myla-printer-device';
 
 // ─── Settings persistence ────────────────────────────────────────────────────
 
@@ -143,7 +143,7 @@ export interface PrinterProfile {
   relayAgentUrl?: string;
 }
 
-const PROFILES_KEY = 'rf perfume-printer-profiles';
+const PROFILES_KEY = 'myla-printer-profiles';
 
 export function loadPrinterProfiles(): PrinterProfile[] {
   try {
@@ -539,7 +539,7 @@ export function buildEscPosReceipt(data: EscPosReceiptData): Uint8Array {
     if (m === 'rajhi') return 'بنك الراجحي';
     if (m === 'alinma') return 'Alinma Pay';
     if (m === 'split') return 'نقدي + شبكة';
-    if (m === 'loyalty' || m === 'qahwa-card' || m === 'rf perfume-card') return 'بطاقة ولاء';
+    if (m === 'loyalty' || m === 'myla-card' || m === 'myla-card') return 'بطاقة ولاء';
     return data.paymentMethod;
   })();
   buf.push(...line(`طريقة الدفع : ${_pmLabel}`));
@@ -558,7 +558,7 @@ export function buildEscPosReceipt(data: EscPosReceiptData): Uint8Array {
   buf.push(...textBytes('** شكراً لزيارتكم **'), 0x0a);
   buf.push(...CMD.BOLD_OFF);
   buf.push(...textBytes('الاسعار شاملة ضريبة القيمة المضافة'), 0x0a);
-  buf.push(...textBytes('RF Perfume'), 0x0a);
+  buf.push(...textBytes('Myla'), 0x0a);
 
   if (data.skipCut) {
     // Caller will append more data (e.g. QR raster) before cutting
@@ -778,7 +778,7 @@ export async function buildReceiptCanvas(opts: ReceiptBitmapOpts): Promise<HTMLC
     if (m === 'rajhi') return 'بنك الراجحي';
     if (m === 'alinma') return 'Alinma Pay';
     if (m === 'split') return 'نقدي + شبكة';
-    if (m === 'loyalty' || m === 'qahwa-card' || m === 'rf perfume-card') return 'بطاقة ولاء';
+    if (m === 'loyalty' || m === 'myla-card' || m === 'myla-card') return 'بطاقة ولاء';
     return opts.paymentMethod;
   })();
   addRow('طريقة الدفع:', _receiptPayLabel, Math.round(FS * 0.88));
@@ -1264,7 +1264,7 @@ export async function buildShiftReportCanvas(opts: ShiftReportOpts): Promise<HTM
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
   drawDash();
-  drawCenter(`RF Perfume — ${new Date().toLocaleString('ar-SA')}`, Math.round(FS * 0.8), false, '#666');
+  drawCenter(`Myla — ${new Date().toLocaleString('ar-SA')}`, Math.round(FS * 0.8), false, '#666');
 
   y += 40; // feed before cut
 
@@ -1941,7 +1941,7 @@ const BT_CHAR_UUIDS = [
   '0000ff01-0000-1000-8000-00805f9b34fb', // FF00 write alt
 ];
 
-const BT_DEVICE_KEY = 'rf perfume-bt-printer';
+const BT_DEVICE_KEY = 'myla-bt-printer';
 
 /** Cache connected BLE device & write characteristic */
 let _btDevice: BluetoothDevice | null = null;
@@ -2482,7 +2482,7 @@ export async function buildRefundCanvas(opts: RefundReceiptOpts): Promise<HTMLCa
     if (m === 'mada') return 'مدى';
     if (m === 'geidea' || m === 'paymob' || m === 'paymob-card') return 'بطاقة ائتمان';
     if (m === 'split') return 'نقدي + شبكة';
-    if (m === 'loyalty' || m === 'qahwa-card' || m === 'rf perfume-card' || m === 'loyalty-card') return 'بطاقة ولاء';
+    if (m === 'loyalty' || m === 'myla-card' || m === 'myla-card' || m === 'loyalty-card') return 'بطاقة ولاء';
     return opts.paymentMethod || 'غير محدد';
   })();
   drawRow('طريقة الاسترجاع:', payLabel, FS);

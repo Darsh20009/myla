@@ -1,6 +1,6 @@
 {
-  "name": "RF Perfume — Abayas by HMBL",
-  "short_name": "رفيف العود",
+  "name": "Myla — Abayas by HMBL",
+  "short_name": "Myla",
   "description": "متجر العبايات الفاخرة في الرياض — تشكيلات راقية بتصاميم حصرية",
   "start_url": "/",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "lang": "ar",
   "dir": "rtl",
   "categories": ["shopping", "fashion", "lifestyle"],
-  "id": "rf-perfume-sa",
+  "id": "myla-abayas-sa",
   "scope": "/",
   "icons": [
     {

@@ -5,23 +5,23 @@
  * Override per-environment via `PUBLIC_SITE_URL` env var (e.g. for staging).
  */
 
-const RAW_URL = process.env.PUBLIC_SITE_URL || "https://rfperfume.sa";
+const RAW_URL = process.env.PUBLIC_SITE_URL || "https://myla.sa";
 
 export const SITE = {
   /** Primary canonical URL — no trailing slash */
   URL: RAW_URL.replace(/\/+$/, ""),
-  /** Bare domain, e.g. "rfperfume.sa" — used for display in footers and copy */
+  /** Bare domain, e.g. "myla.sa" — used for display in footers and copy */
   DOMAIN: RAW_URL.replace(/^https?:\/\//, "").replace(/\/.*$/, ""),
   /** Brand name (Arabic) */
-  BRAND_AR: "رفيف العود",
+  BRAND_AR: "Myla",
   /** Brand name (English) */
-  BRAND_EN: "RF Perfume",
+  BRAND_EN: "Myla",
   /** Support email shown to customers */
-  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || "info@rfperfume.sa",
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || "info@myla.sa",
   /** No-reply sender used by SMTP2GO */
-  NOREPLY_EMAIL: process.env.EMAIL_SENDER || "noreply@rfperfume.sa",
+  NOREPLY_EMAIL: process.env.EMAIL_SENDER || "noreply@myla.sa",
   /** Internal-only emails (auto-generated for phone-only signups) */
-  PHONE_EMAIL_DOMAIN: "rfperfume.sa",
+  PHONE_EMAIL_DOMAIN: "myla.sa",
 } as const;
 
 export const ASSETS = {

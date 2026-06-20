@@ -114,7 +114,7 @@ async function getPaymentKey(params: {
       order_id: params.orderId,
       billing_data: {
         apartment: "N/A",
-        email: params.billingData.email || "customer@rfperfume.sa",
+        email: params.billingData.email || "customer@myla.sa",
         floor: "N/A",
         first_name: params.billingData.first_name || "عميل",
         street: params.billingData.street || "N/A",
@@ -176,7 +176,7 @@ export async function initiatePaymobPayment(params: {
     billingData: {
       first_name: firstName,
       last_name: lastName,
-      email: params.customer.email || "customer@rfperfume.sa",
+      email: params.customer.email || "customer@myla.sa",
       phone_number: params.customer.phone || "",
       street: addressParts[0] || "N/A",
       city: params.customer.city || addressParts[1] || "الرياض",
@@ -324,7 +324,7 @@ export async function initiatePaymobIntention(params: {
       first_name: firstName,
       last_name: lastName,
       phone_number: params.customer.phone || "",
-      email: params.customer.email || "customer@rfperfume.sa",
+      email: params.customer.email || "customer@myla.sa",
       country: "SAU",
       city: params.customer.city || "الرياض",
       street: params.customer.address || "N/A",
@@ -336,7 +336,7 @@ export async function initiatePaymobIntention(params: {
     customer: {
       first_name: firstName,
       last_name: lastName,
-      email: params.customer.email || "customer@rfperfume.sa",
+      email: params.customer.email || "customer@myla.sa",
     },
     extras: { merchant_order_id: params.merchantOrderId },
     special_reference: params.merchantOrderId,

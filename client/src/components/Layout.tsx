@@ -320,10 +320,10 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1 mb-3">{t('connectWithUs')}</p>
                     <div className="grid grid-cols-4 gap-2 mb-4">
                       {[
-                        { href: "https://www.instagram.com/rfperfume", icon: Instagram, bg: "bg-gradient-to-br from-[#f09433] via-[#dc2743] to-[#bc1888]", label: "IG" },
-                        { href: "https://x.com/rfperfume", icon: SiX, bg: "bg-black", labelColor: "text-white", label: "X" },
-                        { href: "https://www.tiktok.com/@rfperfume", icon: SiTiktok, bg: "bg-black", labelColor: "text-white", label: "TK" },
-                        { href: "https://www.snapchat.com/add/rfperfume", icon: SiSnapchat, bg: "bg-[#FFFC00]", labelColor: "text-black", label: "SC" },
+                        { href: "https://www.instagram.com/myla.abayas", icon: Instagram, bg: "bg-gradient-to-br from-[#f09433] via-[#dc2743] to-[#bc1888]", label: "IG" },
+                        { href: "https://x.com/myla_abayas", icon: SiX, bg: "bg-black", labelColor: "text-white", label: "X" },
+                        { href: "https://www.tiktok.com/@myla.abayas", icon: SiTiktok, bg: "bg-black", labelColor: "text-white", label: "TK" },
+                        { href: "https://www.snapchat.com/add/myla.abayas", icon: SiSnapchat, bg: "bg-[#FFFC00]", labelColor: "text-black", label: "SC" },
                       ].map(({ href, icon: Icon, bg, labelColor, label }) => (
                         <a key={label} href={href} target="_blank" rel="noreferrer"
                           className={`flex flex-col items-center gap-1.5 py-3 rounded-xl ${bg} text-white  active:scale-95 transition-transform shadow-sm`}
@@ -634,10 +634,10 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
           <div className="flex justify-center flex-wrap gap-2 sm:gap-4 mt-4 sm:mt-8">
             {(() => {
               const fallback = [
-                { platform: 'instagram', url: 'https://www.instagram.com/rfperfume', isActive: true },
-                { platform: 'twitter',   url: 'https://x.com/rfperfume', isActive: true },
-                { platform: 'snapchat',  url: 'https://www.snapchat.com/add/rfperfume', isActive: true },
-                { platform: 'tiktok',    url: 'https://www.tiktok.com/@rfperfume', isActive: true },
+                { platform: 'instagram', url: 'https://www.instagram.com/myla.abayas', isActive: true },
+                { platform: 'twitter',   url: 'https://x.com/myla_abayas', isActive: true },
+                { platform: 'snapchat',  url: 'https://www.snapchat.com/add/myla.abayas', isActive: true },
+                { platform: 'tiktok',    url: 'https://www.tiktok.com/@myla.abayas', isActive: true },
               ];
               const list: any[] = (storeSettings?.socialAccounts && storeSettings.socialAccounts.length > 0)
                 ? storeSettings.socialAccounts

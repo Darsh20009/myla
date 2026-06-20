@@ -691,10 +691,10 @@ export const InvoiceModel = mongoose.model<Invoice>("Invoice", invoiceSchema);
 const storeSettingsSchema = new Schema(
   {
     key: { type: String, default: "main", unique: true },
-    storeName: { type: String, default: "RF Perfume" },
-    storeNameAr: { type: String, default: "RF Perfume" },
+    storeName: { type: String, default: "Myla" },
+    storeNameAr: { type: String, default: "Myla" },
     storePhone: { type: String, default: "" },
-    storeEmail: { type: String, default: "info@rfperfume.sa" },
+    storeEmail: { type: String, default: "info@myla.sa" },
     storeAddress: { type: String, default: "" },
     vatNumber: { type: String, default: "" },
     crNumber: { type: String, default: "" },
@@ -702,7 +702,7 @@ const storeSettingsSchema = new Schema(
     crLink: { type: String, default: "" },
     // Bank transfer details
     bankName: { type: String, default: "مصرف الراجحي" },
-    bankAccountHolder: { type: String, default: "RF Perfume" },
+    bankAccountHolder: { type: String, default: "Myla" },
     bankIBAN: { type: String, default: "SA6280000501608016226411" },
     bankAccountNumber: { type: String, default: "501000010006086226411" },
     bankLogo: { type: String, default: "" },

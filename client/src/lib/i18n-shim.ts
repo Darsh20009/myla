@@ -16,7 +16,7 @@ const AR_TRANSLATIONS: Record<string, string> = {
   "pos.payment_cash": "نقدي",
   "pos.payment_card": "شبكة",
   "pos.payment_split": "مختلط",
-  "pos.payment_qahwa_card": "بطاقة RF Perfume",
+  "pos.payment_qahwa_card": "بطاقة Myla",
   "pos.card_amount_note": "أدخل المبلغ على الجهاز ثم أكد",
   "pos.terminal_connected_status": "جهاز الشبكة متصل",
   "pos.terminal_disconnected_status": "جهاز الشبكة غير متصل",

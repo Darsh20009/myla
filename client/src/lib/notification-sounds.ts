@@ -1,5 +1,5 @@
 /**
- * Notification Sound System — RF Perfume
+ * Notification Sound System — Myla
  */
 
 export type NotificationSoundType =

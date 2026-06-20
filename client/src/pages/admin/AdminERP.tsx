@@ -458,7 +458,7 @@ function PLTab() {
           <div className="bg-[#2C1810] px-6 py-4 flex items-center justify-between">
             <div>
               <p className="text-[#C9A882] font-black text-lg">قائمة الدخل</p>
-              <p className="text-white/60 text-xs mt-0.5">RF Perfume — Abayas by HMBL · {periodLabel}</p>
+              <p className="text-white/60 text-xs mt-0.5">Myla — Abayas by HMBL · {periodLabel}</p>
             </div>
             <FileText className="w-8 h-8 text-[#C9A882]/60" />
           </div>
@@ -747,7 +747,7 @@ export default function AdminERP() {
         </div>
         <div>
           <h1 className="text-2xl font-black text-gray-900">نظام ERP والإدارة المالية</h1>
-          <p className="text-sm text-gray-500">مركز إدارة الأداء المالي والمحاسبي لـ RF Perfume</p>
+          <p className="text-sm text-gray-500">مركز إدارة الأداء المالي والمحاسبي لـ Myla</p>
         </div>
       </div>
 

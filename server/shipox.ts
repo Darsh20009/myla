@@ -148,7 +148,7 @@ export async function createShipoxOrder(
     service_type_id:   svc.id,
     packages_price_id: svc.packagePriceId,
 
-    sender_name:    sender.senderName    || "RF Perfume",
+    sender_name:    sender.senderName    || "Myla",
     sender_phone:   sender.senderPhone   || "0507378047",
     sender_address: sender.senderAddress || "الرياض",
     sender_city_name: sender.senderCity  || "Riyadh",
@@ -158,7 +158,7 @@ export async function createShipoxOrder(
     recipient_address:   street,
     recipient_city_name: city,
 
-    description:     `طلب RF Perfume #${orderRef}`,
+    description:     `طلب Myla #${orderRef}`,
     pieces_count:    piecesCount,
     weight:          0.5,
     cod_amount:      0,

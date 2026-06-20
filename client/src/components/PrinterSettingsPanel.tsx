@@ -349,7 +349,7 @@ export default function PrinterSettingsPanel() {
       const dateStr = now.toLocaleString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
       const pw = settings.paperWidth;
       const escData = await buildReceiptBitmapEscPos({
-        shopName: 'RF Perfume',
+        shopName: 'Myla',
         vatNumber: '---',
         branchName: 'اختبار الطباعة',
         orderNumber: 'TEST',

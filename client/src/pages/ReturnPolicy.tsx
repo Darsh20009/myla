@@ -100,7 +100,7 @@ export default function ReturnPolicy() {
 
           <div className="mt-10 p-6 bg-[#6B3F2A]/3 border border-[#E8637A]/20 rounded-2xl text-center">
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              تسري هذه السياسة على جميع مشتريات متجر رفيف العود الإلكتروني والفروع. نحتفظ بحق تعديل هذه السياسة في أي وقت.
+              تسري هذه السياسة على جميع مشتريات متجر Myla الإلكتروني والفروع. نحتفظ بحق تعديل هذه السياسة في أي وقت.
             </p>
             <p className="text-xs text-[#C9A882] font-bold mt-3 tracking-widest uppercase">Myla — Abayas by HMBL</p>
           </div>

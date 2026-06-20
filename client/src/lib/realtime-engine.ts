@@ -1,6 +1,6 @@
 /**
  * Real-time Engine — WebSocket with reconnection + event queue
- * Adapted for RF Perfume's /ws WebSocket server
+ * Adapted for Myla's /ws WebSocket server
  */
 
 type RTEventType = string;

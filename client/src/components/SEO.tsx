@@ -23,14 +23,14 @@ interface SEOProps {
   breadcrumbs?: { name: string; url: string }[];
 }
 
-const BASE_URL = "https://rfperfume.sa";
+const BASE_URL = "https://myla.sa";
 const BRAND = "Myla — Abayas by HMBL";
 const BRAND_AR = "Myla — عبايات HMBL";
 const DEFAULT_IMG = `${BASE_URL}/rf-logo.png`;
 const PHONE = "+966507378047";
 const ADDRESS = "الرياض، المملكة العربية السعودية";
-const INSTAGRAM = "https://www.instagram.com/rfperfume";
-const TWITTER = "https://twitter.com/rfperfume";
+const INSTAGRAM = "https://www.instagram.com/myla.abayas";
+const TWITTER = "https://twitter.com/myla_abayas";
 
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
   let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement;
@@ -76,7 +76,7 @@ export function SEO({
 }: SEOProps) {
   const fullTitle = title ? `${title} | ${BRAND_AR}` : `${BRAND_AR} — عبايات فاخرة من الرياض`;
   const fullDescription = description ||
-    "رفيف العود — متجر عبايات فاخرة من الرياض. تشكيلات راقية من العبايات والقفاطين والأطقم النسائية بتصاميم حصرية. شحن سريع داخل المملكة.";
+    "Myla — متجر عبايات فاخرة من الرياض. تشكيلات راقية من العبايات والقفاطين والأطقم النسائية بتصاميم حصرية. شحن سريع داخل المملكة.";
   const img = ogImage || DEFAULT_IMG;
   const url = canonical ? `${BASE_URL}${canonical}` : BASE_URL;
 
@@ -85,7 +85,7 @@ export function SEO({
 
     setMeta("description", fullDescription);
     setMeta("keywords", keywords ||
-      "رفيف العود, Myla, عبايات, عبايات فاخرة, عبايات سعودية, عبايات رياض, قفاطين, أطقم نسائية, عباية, HMBL, abayas, luxury abayas, Saudi Arabia, Riyadh, myla abayas");
+      "Myla, Myla, عبايات, عبايات فاخرة, عبايات سعودية, عبايات رياض, قفاطين, أطقم نسائية, عباية, HMBL, abayas, luxury abayas, Saudi Arabia, Riyadh, myla abayas");
     setLink("canonical", url);
     setMeta("robots", noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1", "name");
     setMeta("theme-color", "#2C1810", "name");
@@ -108,8 +108,8 @@ export function SEO({
     setMeta("twitter:title", fullTitle, "name");
     setMeta("twitter:description", fullDescription, "name");
     setMeta("twitter:image", img, "name");
-    setMeta("twitter:site", "@rfperfume", "name");
-    setMeta("twitter:creator", "@rfperfume", "name");
+    setMeta("twitter:site", "@myla.abayas", "name");
+    setMeta("twitter:creator", "@myla.abayas", "name");
 
     // ── Organization schema ──────────────────────────────────────────────────────
     setJsonLd("ld-org", {
@@ -117,7 +117,7 @@ export function SEO({
       "@type": "Organization",
       "@id": `${BASE_URL}/#organization`,
       "name": "Myla — Abayas by HMBL",
-      "alternateName": ["رفيف العود", "Myla Abayas", "Myla HMBL", "رفيف العود عبايات"],
+      "alternateName": ["Myla", "Myla Abayas", "Myla HMBL", "Myla عبايات"],
       "url": BASE_URL,
       "logo": {
         "@type": "ImageObject",
@@ -126,7 +126,7 @@ export function SEO({
         "height": 200,
       },
       "image": `${BASE_URL}/rf-logo.png`,
-      "email": "info@rfperfume.sa",
+      "email": "info@myla.sa",
       "telephone": PHONE,
       "address": {
         "@type": "PostalAddress",
@@ -135,9 +135,9 @@ export function SEO({
         "addressCountry": "SA",
       },
       "areaServed": "SA",
-      "description": "رفيف العود — متجر عبايات فاخرة من الرياض. تصاميم حصرية من HMBL للمرأة السعودية.",
+      "description": "Myla — متجر عبايات فاخرة من الرياض. تصاميم حصرية من HMBL للمرأة السعودية.",
       "foundingLocation": "الرياض، المملكة العربية السعودية",
-      "sameAs": [INSTAGRAM, TWITTER, `https://www.tiktok.com/@rfperfume`, `https://www.snapchat.com/add/rfperfume`],
+      "sameAs": [INSTAGRAM, TWITTER, `https://www.tiktok.com/@myla.abayas`, `https://www.snapchat.com/add/myla.abayas`],
       "contactPoint": {
         "@type": "ContactPoint",
         "telephone": PHONE,
@@ -176,7 +176,7 @@ export function SEO({
       "image": `${BASE_URL}/rf-logo.png`,
       "url": BASE_URL,
       "telephone": PHONE,
-      "email": "info@rfperfume.sa",
+      "email": "info@myla.sa",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "الرياض",

@@ -108,7 +108,7 @@ export async function getBusinessInsights(data: {
 }) {
   const lang = pickLang(data.lang);
   const prompt = lang === "ar"
-    ? `أنت محلل أعمال خبير. حلّل هذه البيانات لمتجر RF Perfume وقدم تقريراً مختصراً وقابلاً للتطبيق:
+    ? `أنت محلل أعمال خبير. حلّل هذه البيانات لمتجر Myla وقدم تقريراً مختصراً وقابلاً للتطبيق:
 
 البيانات (آخر ${data.periodDays || 30} يوم):
 - إجمالي الطلبات: ${data.totalOrders}
@@ -127,7 +127,7 @@ export async function getBusinessInsights(data: {
   ],
   "trend": "up|down|stable"
 }`
-    : `You are an expert business analyst. Analyze this data for RF Perfume store and provide a concise, actionable report:
+    : `You are an expert business analyst. Analyze this data for Myla store and provide a concise, actionable report:
 
 Data (last ${data.periodDays || 30} days):
 - Total orders: ${data.totalOrders}
@@ -159,7 +159,7 @@ export async function generateProductDescription(product: {
   targetAudience?: string;
   lang?: "ar" | "en" | "both";
 }) {
-  const prompt = `You are a professional Arabic copywriter for RF Perfume, a Saudi luxury perfume & oud brand based in Riyadh.
+  const prompt = `You are a professional Arabic copywriter for Myla, a Saudi luxury perfume & oud brand based in Riyadh.
 STRICT RULES:
 1. Write Arabic text ONLY in Arabic script — no Chinese, Japanese, Korean or any other language.
 2. Write English text ONLY in the Latin alphabet.
@@ -194,7 +194,7 @@ export async function getOutfitSuggestions(params: {
 }) {
   const lang = pickLang(params.lang, params.productName, params.occasion);
   const prompt = lang === "ar"
-    ? `أنت مستشار عطور وعود فاخر خبير في RF Perfume. اقترح كيفية الاستمتاع بهذا العطر:
+    ? `أنت مستشار عطور وعود فاخر خبير في Myla. اقترح كيفية الاستمتاع بهذا العطر:
 المنتج: ${params.productName} (${params.productCategory})
 ${params.occasion ? `المناسبة: ${params.occasion}` : ""}
 
@@ -207,7 +207,7 @@ ${params.occasion ? `المناسبة: ${params.occasion}` : ""}
   "style_tip": "نصيحة تنسيق أو إطلالة قيّمة",
   "avoid": "ما يجب تجنبه عند التنسيق"
 }`
-    : `You are an expert luxury perfume & oud advisor at RF Perfume. Suggest how to enjoy this fragrance:
+    : `You are an expert luxury perfume & oud advisor at Myla. Suggest how to enjoy this fragrance:
 Product: ${params.productName} (${params.productCategory})
 ${params.occasion ? `Occasion: ${params.occasion}` : ""}
 

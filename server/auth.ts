@@ -233,7 +233,7 @@ export function setupAuth(app: Express) {
         phone: cleanPhone,
         password: hashedPassword,
         username: cleanPhone,
-        email: req.body.email || `${cleanPhone}@rfperfume.sa`,
+        email: req.body.email || `${cleanPhone}@myla.sa`,
         role: "customer",
         walletBalance: "0",
         addresses: [],
@@ -247,7 +247,7 @@ export function setupAuth(app: Express) {
         phoneDiscountEligible: false
       });
 
-      if (user.email && !user.email.endsWith("@rfperfume.sa")) {
+      if (user.email && !user.email.endsWith("@myla.sa")) {
         sendWelcomeEmail({ to: user.email, customerName: user.name || "عزيزي العميل" })
           .catch(e => console.error("[EMAIL] Welcome email failed:", e?.message));
       }

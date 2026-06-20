@@ -1,5 +1,5 @@
 /**
- * Inbox Service — RF Perfume
+ * Inbox Service — Myla
  * IMAP fetch + SMTP send for employee mailboxes (Zoho / Gmail / any provider).
  * App-passwords are encrypted at rest with AES-256-GCM.
  */
@@ -35,7 +35,7 @@ function normalizeBody(html?: string, text?: string): string {
   return "";
 }
 
-/** Wrap any outgoing email body in the official RF Perfume branded HTML template. */
+/** Wrap any outgoing email body in the official Myla branded HTML template. */
 export function wrapInboxHtml(params: {
   senderName: string;
   senderEmail: string;
@@ -78,7 +78,7 @@ export function wrapInboxHtml(params: {
               <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto 12px;">
                 <tr>
                   <td align="center" valign="middle" bgcolor="#000000" style="background-color:#000000;border:1px solid #E8637A;border-radius:10px;padding:8px 16px;">
-                    <img src="${ASSETS.LOGO_SQUARE}" alt="RF Perfume" width="120" height="90" style="display:block;width:120px;height:90px;border:0;outline:none;" />
+                    <img src="${ASSETS.LOGO_SQUARE}" alt="Myla" width="120" height="90" style="display:block;width:120px;height:90px;border:0;outline:none;" />
                   </td>
                 </tr>
               </table>
@@ -150,7 +150,7 @@ if (!ENC_KEY_RAW) {
   }
   console.warn("[Inbox] ⚠️  No INBOX_ENC_KEY/SESSION_SECRET set — using insecure dev fallback. Set INBOX_ENC_KEY before adding any real mailbox.");
 }
-const ENC_KEY = crypto.createHash("sha256").update(ENC_KEY_RAW || "rf perfume-dev-only-DO-NOT-USE-IN-PROD").digest();
+const ENC_KEY = crypto.createHash("sha256").update(ENC_KEY_RAW || "myla-dev-only-DO-NOT-USE-IN-PROD").digest();
 
 export function encryptSecret(plain: string): string {
   const iv = crypto.randomBytes(12);
@@ -399,7 +399,7 @@ export async function sendFromAccount(accountId: string, params: {
     auth: { user: account.email, pass: password },
   });
 
-  // Always wrap outgoing emails in the official RF Perfume branded template
+  // Always wrap outgoing emails in the official Myla branded template
   // (logo, header, signature, footer) — unless content is already a full HTML doc.
   const senderName = account.displayName || account.email;
   const finalHtml = isAlreadyBranded(params.html)

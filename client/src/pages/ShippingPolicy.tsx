@@ -107,7 +107,7 @@ export default function ShippingPolicy() {
 
           <div className="mt-6 p-6 bg-[#6B3F2A]/3 border border-[#E8637A]/20 rounded-2xl text-center">
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              تُطبَّق هذه السياسة على جميع طلبات متجر رفيف العود الإلكتروني. نحتفظ بحق تعديلها في أي وقت.
+              تُطبَّق هذه السياسة على جميع طلبات متجر Myla الإلكتروني. نحتفظ بحق تعديلها في أي وقت.
             </p>
             <p className="text-xs text-[#C9A882] font-bold mt-3 tracking-widest uppercase">Myla — Abayas by HMBL</p>
           </div>

@@ -1,7 +1,7 @@
 const CACHE_VERSION = 'v8';
-const STATIC_CACHE  = `rf-perfume-static-${CACHE_VERSION}`;
-const API_CACHE     = `rf-perfume-api-${CACHE_VERSION}`;
-const IMAGE_CACHE   = `rf-perfume-images-${CACHE_VERSION}`;
+const STATIC_CACHE  = `myla-static-${CACHE_VERSION}`;
+const API_CACHE     = `myla-api-${CACHE_VERSION}`;
+const IMAGE_CACHE   = `myla-images-${CACHE_VERSION}`;
 
 // Static file extensions to cache
 const STATIC_EXTENSIONS = ['.js', '.css', '.woff2', '.woff', '.ttf', '.ico', '.webp', '.svg'];
@@ -130,14 +130,14 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
   if (!event.data) return;
   let data = {};
-  try { data = event.data.json(); } catch { data = { title: 'رفيف العود', body: event.data.text() }; }
+  try { data = event.data.json(); } catch { data = { title: 'Myla', body: event.data.text() }; }
 
-  const title = data.title || 'رفيف العود';
+  const title = data.title || 'Myla';
   event.waitUntil(self.registration.showNotification(title, {
     body: data.body || '',
     icon: data.icon || '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
-    tag: data.tag || 'rf-perfume-notif',
+    tag: data.tag || 'myla-notif',
     renotify: true,
     data: data.data || {},
     vibrate: [200, 100, 200],

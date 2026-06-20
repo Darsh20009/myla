@@ -385,7 +385,7 @@ export async function printShiftThermal(p: {
   openedAt?: string;
   closedAt?: string;
   reportTitle?: string;
-}, bizName = 'RF Perfume'): Promise<void> {
+}, bizName = 'Myla'): Promise<void> {
   const { loadPrinterSettings, buildShiftReportEscPos, buildShiftReportCanvas, thermalPrint } = await import('./thermal-printer');
   const ps = loadPrinterSettings();
 
@@ -517,7 +517,7 @@ export async function printEmployeeCard(data: EmployeePrintData): Promise<void> 
 <body>
   <div class="card">
     <div class="header">
-      <div class="company-name">RF Perfume</div>
+      <div class="company-name">Myla</div>
       <div class="employee-title">بطاقة تعريف الموظف</div>
     </div>
     <div class="employee-name">${data.employeeName}</div>
@@ -588,10 +588,10 @@ export async function printKitchenOrder(data: KitchenOrderData): Promise<void> {
 }
 
 const VAT_NUMBER = "312650651100003";
-const COMPANY_NAME = "RF Perfume";
-const COMPANY_NAME_EN = "RF Perfume";
+const COMPANY_NAME = "Myla";
+const COMPANY_NAME_EN = "Myla";
 const COMPANY_CR = "7042488606";
-const COMPANY_WEBSITE = "rfperfume.sa";
+const COMPANY_WEBSITE = "myla.sa";
 const DEFAULT_BRANCH = "";
 const DEFAULT_ADDRESS = "المملكة العربية السعودية";
 
@@ -1201,7 +1201,7 @@ body{font-family:Tahoma,Arial,'Segoe UI',sans-serif;direction:rtl;background:#e0
 
   <!-- Powered by -->
   <div style="text-align:center;font-size:11px;color:#aaa;padding:4px 0 6px;">
-    <strong style="color:#c8941a;">RF Perfume</strong>
+    <strong style="color:#c8941a;">Myla</strong>
   </div>
 
 
@@ -1609,7 +1609,7 @@ export async function printCustomerPickupReceipt(data: TaxInvoiceData & { delive
     <div class="footer">
       <p style="font-weight: 600;">شكراً لزيارتكم</p>
       <p>نتمنى لكم تجربة ممتعة</p>
-      <p style="margin-top: 8px;">@rfperfume</p>
+      <p style="margin-top: 8px;">@myla.abayas</p>
     </div>
   </div>
 </body>
@@ -1957,7 +1957,7 @@ export async function printSimpleReceipt(data: TaxInvoiceData): Promise<void> {
       <p>شكراً لزيارتكم</p>
       <p style="font-size: 12px; color: #666;">نتمنى لكم تجربة ممتعة</p>
       <p style="margin-top: 12px; font-size: 12px;">تابعونا على وسائل التواصل الاجتماعي</p>
-      <p style="font-family: monospace;">@rfperfume</p>
+      <p style="font-family: monospace;">@myla.abayas</p>
     </div>
   </div>
 

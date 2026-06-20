@@ -1,5 +1,5 @@
 /**
- * Payment Gateway Simulator — RF Perfume
+ * Payment Gateway Simulator — Myla
  * 100% realistic simulation with test cards, OTP flows, and transaction management
  */
 

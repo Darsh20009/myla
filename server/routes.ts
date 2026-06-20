@@ -389,7 +389,7 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
       enqueueJob("paid-shipox-create", async () => {
         try {
           const settings = await storage.getStoreSettings().catch(() => null);
-          const senderName    = (settings as any)?.storeName    || "RF Perfume";
+          const senderName    = (settings as any)?.storeName    || "Myla";
           const senderPhone   = (settings as any)?.storePhone   || "0500000000";
           const senderAddress = (settings as any)?.storeAddress || "الرياض";
 
@@ -549,7 +549,7 @@ export async function registerRoutes(
         storage.getProducts(),
         storage.getCategories(),
       ]);
-      const BASE = "https://rfperfume.sa";
+      const BASE = "https://myla.sa";
       const now = new Date().toISOString().split("T")[0];
 
       const staticUrls = [
@@ -1660,7 +1660,7 @@ ${allUrls.map(u => `  <url>
       }
 
       const isStaff = STAFF_ROLES.includes(user.role);
-      const hasEmail = !!(user.email && /^\S+@\S+\.\S+$/.test(user.email) && !user.email.endsWith("@rfperfume.sa"));
+      const hasEmail = !!(user.email && /^\S+@\S+\.\S+$/.test(user.email) && !user.email.endsWith("@myla.sa"));
 
       // Employees ALWAYS go through email — required for them
       if (isStaff) {
@@ -1838,8 +1838,8 @@ ${allUrls.map(u => `  <url>
   app.get("/api/admin/email/status", checkPermission("settings.manage"), (_req, res) => {
     res.json({
       configured: !!process.env.SMTP2GO_API_KEY,
-      sender: "info@rfperfume.sa",
-      senderName: "RF Perfume",
+      sender: "info@myla.sa",
+      senderName: "Myla",
       provider: "SMTP2GO",
     });
   });
@@ -2016,7 +2016,7 @@ ${allUrls.map(u => `  <url>
               name: managerName || `مسؤول ${branch.name}`,
               phone,
               username: phone,
-              email: branchData.email || `${phone}@rfperfume.sa`,
+              email: branchData.email || `${phone}@myla.sa`,
               password: hashed,
               role: "employee",
               branchId: branch.id,
@@ -2114,7 +2114,7 @@ ${allUrls.map(u => `  <url>
               } else {
                 manager = await storage.createUser({
                   ...update,
-                  email: branchData.email || `${phone}@rfperfume.sa`,
+                  email: branchData.email || `${phone}@myla.sa`,
                   walletBalance: "0",
                   addresses: [],
                   loyaltyPoints: 0,
@@ -3261,7 +3261,7 @@ ${allUrls.map(u => `  <url>
       const r = await storage.replyToReview(req.params.id, {
         text,
         byUserId: String(user.id),
-        byName: user.name || "إدارة RF Perfume",
+        byName: user.name || "إدارة Myla",
       });
       if (!r) return res.status(404).json({ message: "التقييم غير موجود" });
       res.json(r);
@@ -3745,7 +3745,7 @@ ${allUrls.map(u => `  <url>
           items: [{ name: "health-check", amount: 100, quantity: 1 }],
           billing_data: {
             first_name: "HealthCheck", last_name: ".",
-            phone_number: "0507378047", email: "info@rfperfume.sa",
+            phone_number: "0507378047", email: "info@myla.sa",
             country: "SAU", city: "Riyadh", street: "N/A", building: "N/A",
             floor: "N/A", apartment: "N/A", state: "Riyadh",
           },
@@ -4948,8 +4948,8 @@ ${allUrls.map(u => `  <url>
       // Always-safe defaults (used if AI fails or returns nothing usable)
       const defaultHighlightsAr = ["مكوّنات عطرية فاخرة مختارة بعناية", "تركيبة عطرية متقنة وثبات طويل", "تجربة عطرية استثنائية لا تُنسى"];
       const defaultHighlightsEn = ["Carefully selected fine ingredients", "Masterfully blended for long-lasting projection", "An unforgettable fragrance experience"];
-      const defaultTaglineAr = product.description || `${product.name} — عطر فاخر من RF Perfume`;
-      const defaultTaglineEn = product.descriptionEn || `${product.nameEn || product.name} — luxury perfume by RF Perfume`;
+      const defaultTaglineAr = product.description || `${product.name} — عطر فاخر من Myla`;
+      const defaultTaglineEn = product.descriptionEn || `${product.nameEn || product.name} — luxury perfume by Myla`;
 
       try {
         const { generateProductDescription } = await import("./ai");
@@ -5237,7 +5237,7 @@ ${allUrls.map(u => `  <url>
       const settings = await storage.getStoreSettings().catch(() => null);
 
       const result = await createShipoxOrder(order, serviceType, {
-        senderName:    req.body.senderName    || (settings as any)?.storeName    || "RF Perfume",
+        senderName:    req.body.senderName    || (settings as any)?.storeName    || "Myla",
         senderPhone:   req.body.senderPhone   || (settings as any)?.storePhone   || "0500000000",
         senderAddress: req.body.senderAddress || (settings as any)?.storeAddress || "الرياض",
         senderCity:    req.body.senderCity    || "Riyadh",
@@ -5280,7 +5280,7 @@ ${allUrls.map(u => `  <url>
 
       const settings = await storage.getStoreSettings().catch(() => null);
       const result = await createShipoxReturn(order, {
-        senderName:    (settings as any)?.storeName    || "RF Perfume",
+        senderName:    (settings as any)?.storeName    || "Myla",
         senderPhone:   (settings as any)?.storePhone   || "0500000000",
         senderAddress: (settings as any)?.storeAddress || "الرياض",
         senderCity:    "Riyadh",
@@ -5368,7 +5368,7 @@ ${allUrls.map(u => `  <url>
 
       const settings = await storage.getStoreSettings().catch(() => null);
       const result = await createShipoxOrder(order, serviceType as ShipoxServiceType, {
-        senderName:    (settings as any)?.storeName    || "RF Perfume",
+        senderName:    (settings as any)?.storeName    || "Myla",
         senderPhone:   (settings as any)?.storePhone   || "0500000000",
         senderAddress: (settings as any)?.storeAddress || "الرياض",
         senderCity:    "Riyadh",
@@ -6472,7 +6472,7 @@ ${allUrls.map(u => `  <url>
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
       const settings: any = await StoreSettingsModel.findOne({ key: "main" }).lean();
       const result = await buildZatcaQrDataUrl({
-        sellerName: settings?.storeNameAr || settings?.storeName || "RF Perfume",
+        sellerName: settings?.storeNameAr || settings?.storeName || "Myla",
         vatNumber: settings?.vatNumber || "",
         timestamp: new Date(order.createdAt || Date.now()),
         total: Number(order.total) || 0,
@@ -6481,7 +6481,7 @@ ${allUrls.map(u => `  <url>
       res.json({
         qr: result.dataUrl,
         base64: result.base64,
-        sellerName: settings?.storeNameAr || "RF Perfume",
+        sellerName: settings?.storeNameAr || "Myla",
         vatNumber: settings?.vatNumber || "",
         total: Number(order.total) || 0,
         vatAmount: Number(order.vatAmount) || 0,
@@ -6784,7 +6784,7 @@ ${allUrls.map(u => `  <url>
 
       const toneInstr = toneMap[tone] || toneMap.formal;
 
-      let systemPrompt = `أنت مساعد كتابة بريد إلكتروني محترف لشركة RF Perfume الفاخرة. 
+      let systemPrompt = `أنت مساعد كتابة بريد إلكتروني محترف لشركة Myla الفاخرة. 
 الأسلوب: ${toneInstr}. ${langInstr}
 لا تضف أي تفسيرات أو عناوين، أعد فقط نص البريد جاهزاً للإرسال.`;
 
@@ -6822,7 +6822,7 @@ ${allUrls.map(u => `  <url>
 
       const { groqChatFor } = await import("./groq");
 
-      const systemPrompt = `أنت مساعد ذكي لصندوق بريد شركة RF Perfume الفاخرة.
+      const systemPrompt = `أنت مساعد ذكي لصندوق بريد شركة Myla الفاخرة.
 لا تضف مقدمات أو شرحاً. أعد فقط ما طُلب منك بدقة.`;
 
       const contextHeader = [
@@ -7177,7 +7177,7 @@ ${allUrls.map(u => `  <url>
     try {
       const settings = await StoreSettingsModel.findOne().lean() as any;
       res.json({
-        storeName: settings?.storeName || "RF Perfume",
+        storeName: settings?.storeName || "Myla",
         vatNumber: settings?.vatNumber || "",
         commercialRegistration: settings?.commercialRegistration || "",
         address: settings?.address || "",
@@ -7185,7 +7185,7 @@ ${allUrls.map(u => `  <url>
         taxRate: 0.15,
       });
     } catch {
-      res.json({ storeName: "RF Perfume", taxRate: 0.15 });
+      res.json({ storeName: "Myla", taxRate: 0.15 });
     }
   });
 

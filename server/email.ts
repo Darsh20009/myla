@@ -1,7 +1,7 @@
 /**
- * Email Service — RF Perfume
+ * Email Service — Myla
  * Powered by SMTP2GO API
- * All templates are Arabic RTL with RF Perfume branding
+ * All templates are Arabic RTL with Myla branding
  */
 
 import { SITE, ASSETS } from "./site-config";
@@ -21,8 +21,8 @@ function getCredentials() {
   if (!apiKey) throw new Error("[Email] SMTP2GO_API_KEY env var is not set");
   return {
     apiKey,
-    sender: process.env.EMAIL_SENDER || "info@rfperfume.sa",
-    senderName: process.env.EMAIL_SENDER_NAME || "RF Perfume",
+    sender: process.env.EMAIL_SENDER || "info@myla.sa",
+    senderName: process.env.EMAIL_SENDER_NAME || "Myla",
   };
 }
 
@@ -121,7 +121,7 @@ function baseTemplate(title: string, content: string): string {
             <td align="center" bgcolor="#1a0f0a" style="background-color:#1a0f0a;padding:0;font-size:0;line-height:0;position:relative;">
               <!-- Hero image -->
               <div style="position:relative;font-size:0;line-height:0;">
-                <img src="${BANNER_URL}" alt="RF Perfume" width="600" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;border:0;outline:none;" />
+                <img src="${BANNER_URL}" alt="Myla" width="600" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;border:0;outline:none;" />
                 <!-- Dark overlay via a 1×1 stretched image technique — use a table overlay instead -->
               </div>
               <!-- Overlay bar at bottom of hero -->
@@ -132,11 +132,11 @@ function baseTemplate(title: string, content: string): string {
                     <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto 8px;">
                       <tr>
                         <td align="center" valign="middle" style="background:rgba(250,246,240,0.12);border:1px solid rgba(232,99,122,0.5);border-radius:12px;padding:6px 18px;">
-                          <img src="${LOGO_URL}" alt="RF Perfume" width="90" height="68" style="display:block;width:90px;height:68px;border:0;outline:none;object-fit:contain;" />
+                          <img src="${LOGO_URL}" alt="Myla" width="90" height="68" style="display:block;width:90px;height:68px;border:0;outline:none;object-fit:contain;" />
                         </td>
                       </tr>
                     </table>
-                    <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:0.12em;line-height:1.2;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">RF Perfume</div>
+                    <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:0.12em;line-height:1.2;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">Myla</div>
                     <div style="color:#E8637A;font-size:9px;font-weight:700;letter-spacing:0.45em;text-transform:uppercase;margin-top:5px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">LUXURY ABAYAS · ${SITE.DOMAIN}</div>
                   </td>
                 </tr>
@@ -157,7 +157,7 @@ function baseTemplate(title: string, content: string): string {
           <tr>
             <td align="center" style="background-color:#1A1A1A;padding:32px 40px;">
               <p style="margin:0 0 12px;color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;line-height:1.8;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
-                &copy; ${new Date().getFullYear()} RF Perfume &mdash; جميع الحقوق محفوظة
+                &copy; ${new Date().getFullYear()} Myla &mdash; جميع الحقوق محفوظة
               </p>
               <p style="margin:0 0 16px;font-size:11px;line-height:1.6;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
                 <a href="${SITE.URL}" style="color:#E8637A;text-decoration:none;font-weight:700;">${SITE.DOMAIN}</a>
@@ -168,7 +168,7 @@ function baseTemplate(title: string, content: string): string {
                   <td style="padding:0 10px;color:rgba(255,255,255,0.2);">|</td>
                   <td style="padding:0 10px;"><a href="${SITE.URL}/orders" style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:0.15em;text-decoration:none;">طلباتي</a></td>
                   <td style="padding:0 10px;color:rgba(255,255,255,0.2);">|</td>
-                  <td style="padding:0 10px;"><a href="mailto:info@rfperfume.sa" style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:0.15em;text-decoration:none;">الدعم</a></td>
+                  <td style="padding:0 10px;"><a href="mailto:info@myla.sa" style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:0.15em;text-decoration:none;">الدعم</a></td>
                 </tr>
               </table>
               <p style="margin:16px 0 0;color:rgba(255,255,255,0.3);font-size:10px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
@@ -296,7 +296,7 @@ export async function sendOrderConfirmationEmail(params: {
   invoiceHtml?: string;
 }) {
   const paymentLabels: Record<string, string> = {
-    wallet: "محفظة رفيف العود",
+    wallet: "محفظة Myla",
     bank_transfer: "تحويل بنكي",
     tap: "بطاقة بنكية",
     stc_pay: "STC Pay",
@@ -357,7 +357,7 @@ export async function sendOrderConfirmationEmail(params: {
     ${ctaButton(`${SITE.URL}/orders`, "متابعة طلبي")}
 
     <p style="margin:24px 0 0;padding-top:24px;border-top:1px solid rgba(0,0,0,0.06);font-size:12px;color:rgba(0,0,0,0.55);line-height:1.7;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
-      هل لديك استفسار؟ تواصل معنا على <a href="mailto:info@rfperfume.sa" style="color:#2d1a14;font-weight:800;text-decoration:none;">info@rfperfume.sa</a>
+      هل لديك استفسار؟ تواصل معنا على <a href="mailto:info@myla.sa" style="color:#2d1a14;font-weight:800;text-decoration:none;">info@myla.sa</a>
     </p>
   `;
 
@@ -382,9 +382,9 @@ export async function sendOrderConfirmationEmail(params: {
   return sendEmail({
     to: params.to,
     toName: params.customerName,
-    subject: `✅ تم استلام طلبك #${params.orderRef} | Order #${params.orderRef} Received — RF Perfume`,
+    subject: `✅ تم استلام طلبك #${params.orderRef} | Order #${params.orderRef} Received — Myla`,
     html: baseTemplate(`تأكيد الطلب #${params.orderRef} / Order Confirmation`, content + enMirror),
-    text: `تم استلام طلبك #${params.orderRef} بقيمة ${params.total} ر.س. شكراً لتسوقك مع RF Perfume.\n\nYour order #${params.orderRef} (${params.total} SAR) has been received. Thank you for shopping with RF Perfume.`,
+    text: `تم استلام طلبك #${params.orderRef} بقيمة ${params.total} ر.س. شكراً لتسوقك مع Myla.\n\nYour order #${params.orderRef} (${params.total} SAR) has been received. Thank you for shopping with Myla.`,
     attachments,
   });
 }
@@ -470,7 +470,7 @@ export async function sendOrderStatusEmail(params: {
       badgeText: "ملغي",
       message: `
         <p>تم إلغاء طلبك <span style="color:#2d1a14;font-weight:900;">#${params.orderRef}</span>.${params.reason ? ` السبب: ${params.reason}.` : ""}</p>
-        <p>إذا كنت قد دفعت ولم تتلقَّ استرداداً، يرجى التواصل معنا فوراً على <a href="mailto:info@rfperfume.sa" style="color:#000;font-weight:800">info@rfperfume.sa</a></p>
+        <p>إذا كنت قد دفعت ولم تتلقَّ استرداداً، يرجى التواصل معنا فوراً على <a href="mailto:info@myla.sa" style="color:#000;font-weight:800">info@myla.sa</a></p>
       `,
       cta: "تواصل معنا",
     },
@@ -600,7 +600,7 @@ export async function sendWelcomeEmail(params: {
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-size:48px;margin-bottom:12px;line-height:1;">👋</div>
       <h1 class="title-mobile" style="margin:0 0 8px;font-size:26px;font-weight:900;color:#000000;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">أهلاً وسهلاً ${params.customerName}!</h1>
-      <p style="margin:0;font-size:14px;color:rgba(0,0,0,0.55);font-weight:600;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">انضممت إلى عائلة RF Perfume</p>
+      <p style="margin:0;font-size:14px;color:rgba(0,0,0,0.55);font-weight:600;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">انضممت إلى عائلة Myla</p>
     </div>
 
     <p style="margin:0 0 24px;font-size:14px;color:rgba(0,0,0,0.7);line-height:1.8;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
@@ -623,7 +623,7 @@ export async function sendWelcomeEmail(params: {
 
   const enMirror = englishMirror(`
     <h2 style="margin:0 0 6px;font-size:20px;font-weight:900;color:#000000;">👋 Welcome ${params.customerName}!</h2>
-    <p style="margin:0 0 12px;font-size:13px;color:rgba(0,0,0,0.55);font-weight:600;">You've joined the RF Perfume family</p>
+    <p style="margin:0 0 12px;font-size:13px;color:rgba(0,0,0,0.55);font-weight:600;">You've joined the Myla family</p>
     <p style="margin:0 0 12px;font-size:13px;color:rgba(0,0,0,0.7);line-height:1.7;">We're delighted to have you. Your account is ready and you can now shop hundreds of luxury fragrances safely and easily.</p>
     <ul style="margin:0;padding:0 0 0 20px;font-size:12px;color:rgba(0,0,0,0.7);line-height:1.8;">
       <li>✅ <b>Secure account</b> — your data is protected with the highest encryption standards</li>
@@ -637,9 +637,9 @@ export async function sendWelcomeEmail(params: {
   return sendEmail({
     to: params.to,
     toName: params.customerName,
-    subject: `👋 أهلاً ${params.customerName}! مرحباً بك في RF Perfume | Welcome to RF Perfume`,
-    html: baseTemplate("مرحباً بك في RF Perfume / Welcome to RF Perfume", content + enMirror),
-    text: `أهلاً ${params.customerName}! مرحباً بك في RF Perfume.\nWelcome ${params.customerName}! Your RF Perfume account is ready.`,
+    subject: `👋 أهلاً ${params.customerName}! مرحباً بك في Myla | Welcome to Myla`,
+    html: baseTemplate("مرحباً بك في Myla / Welcome to Myla", content + enMirror),
+    text: `أهلاً ${params.customerName}! مرحباً بك في Myla.\nWelcome ${params.customerName}! Your Myla account is ready.`,
   });
 }
 
@@ -659,7 +659,7 @@ export async function sendPaymentConfirmationEmail(params: {
     apple_pay: "Apple Pay",
     tamara: "تمارة",
     tabby: "تابي",
-    wallet: "محفظة رفيف العود",
+    wallet: "محفظة Myla",
   };
 
   const greenAmount = `<span style="color:#16a34a;font-weight:900;">${params.amount.toLocaleString("ar-SA")} ر.س</span>`;
@@ -750,7 +750,7 @@ export async function sendPasswordResetEmail(params: {
   return sendEmail({
     to: params.to,
     toName: params.customerName,
-    subject: `🔐 استعادة كلمة المرور | Password Reset — RF Perfume`,
+    subject: `🔐 استعادة كلمة المرور | Password Reset — Myla`,
     html: baseTemplate("استعادة كلمة المرور / Password Reset", content + enMirror),
     text: `رمز استعادة كلمة المرور: ${params.otp || ""}\nPassword reset code: ${params.otp || ""}`,
   });
@@ -771,7 +771,7 @@ export async function sendAdminAlertEmail(params: {
 
   const content = `
     <h1 class="title-mobile" style="margin:0 0 8px;font-size:26px;font-weight:900;color:#000000;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">${params.title}</h1>
-    <p style="margin:0 0 24px;font-size:13px;color:rgba(0,0,0,0.55);font-weight:600;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">تنبيه إداري — RF Perfume</p>
+    <p style="margin:0 0 24px;font-size:13px;color:rgba(0,0,0,0.55);font-weight:600;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">تنبيه إداري — Myla</p>
 
     <p style="margin:0 0 16px;font-size:14px;color:rgba(0,0,0,0.75);line-height:1.8;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">${params.message}</p>
 
@@ -783,7 +783,7 @@ export async function sendAdminAlertEmail(params: {
   // Admin alerts can also include an English mirror by passing data with `_en_*` keys; otherwise just the original
   return sendEmail({
     to: params.to,
-    subject: params.subject.includes("|") ? params.subject : `${params.subject} | RF Perfume Admin Alert`,
+    subject: params.subject.includes("|") ? params.subject : `${params.subject} | Myla Admin Alert`,
     html: baseTemplate(params.title, content),
     text: `${params.title}\n${params.message}`,
   });
@@ -812,13 +812,13 @@ export async function sendActivationEmail(params: {
   const content = `
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-size:48px;margin-bottom:12px;line-height:1;">🎉</div>
-      <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#000;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">مرحباً بك في فريق RF Perfume</h1>
+      <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#000;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">مرحباً بك في فريق Myla</h1>
       <p style="margin:0;font-size:14px;color:rgba(0,0,0,0.55);font-weight:600;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">تم إنشاء حسابك كـ ${roleLabel}</p>
     </div>
 
     <p style="margin:0 0 16px;font-size:14px;color:rgba(0,0,0,0.75);line-height:1.8;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
       مرحباً ${params.name},<br/>
-      تم إنشاء حسابك في نظام RF Perfume. لتفعيل حسابك وتعيين كلمة المرور الخاصة بك، اضغط على الزر أدناه:
+      تم إنشاء حسابك في نظام Myla. لتفعيل حسابك وتعيين كلمة المرور الخاصة بك، اضغط على الزر أدناه:
     </p>
 
     ${ctaButton(params.activationLink, "تفعيل الحساب وتعيين كلمة المرور")}
@@ -839,9 +839,9 @@ export async function sendActivationEmail(params: {
   };
   const enRole = enRoleLabels[params.role] || "Team Member";
   const enMirror = englishMirror(`
-    <h2 style="margin:0 0 6px;font-size:20px;font-weight:900;color:#000000;">🎉 Welcome to the RF Perfume Team</h2>
+    <h2 style="margin:0 0 6px;font-size:20px;font-weight:900;color:#000000;">🎉 Welcome to the Myla Team</h2>
     <p style="margin:0 0 12px;font-size:13px;color:rgba(0,0,0,0.55);font-weight:600;">Your account has been created as ${enRole}</p>
-    <p style="margin:0 0 12px;font-size:13px;color:rgba(0,0,0,0.7);line-height:1.7;">Hi ${params.name},<br/>Your RF Perfume staff account has been created. To activate it and set your password, click the link below:</p>
+    <p style="margin:0 0 12px;font-size:13px;color:rgba(0,0,0,0.7);line-height:1.7;">Hi ${params.name},<br/>Your Myla staff account has been created. To activate it and set your password, click the link below:</p>
     <p style="margin:8px 0;font-size:12px;"><a href="${params.activationLink}" style="color:#2d1a14;font-weight:800;text-decoration:none;">Activate Account & Set Password →</a></p>
     <p style="margin:12px 0;padding:12px 14px;background:#fff8ec;border:1px solid #f0c674;border-radius:8px;font-size:12px;color:#5a4400;line-height:1.6;">⏰ This link is valid for <b>${params.expiresInHours} hours</b> only. After expiry, ask your manager to send a new activation link.</p>
     <p style="margin:12px 0 0;font-size:11px;color:rgba(0,0,0,0.5);line-height:1.6;">If you weren't expecting this email, ignore it and no account will be activated.</p>
@@ -850,7 +850,7 @@ export async function sendActivationEmail(params: {
   return sendEmail({
     to: params.to,
     toName: params.name,
-    subject: `🎉 تفعيل حسابك في RF Perfume | Activate your RF Perfume account`,
+    subject: `🎉 تفعيل حسابك في Myla | Activate your Myla account`,
     html: baseTemplate("تفعيل الحساب / Account Activation", content + enMirror),
     text: `مرحباً ${params.name}, لتفعيل حسابك: ${params.activationLink}\nHi ${params.name}, activate your account: ${params.activationLink}`,
   });
@@ -860,7 +860,7 @@ export async function sendActivationEmail(params: {
 
 /**
  * Sends a detailed admin notification email for every new or paid order.
- * From: info@rfperfume.sa  →  To: firstrafiff@gmail.com
+ * From: info@myla.sa  →  To: firstrafiff@gmail.com
  */
 export async function sendAdminNewOrderEmail(params: {
   orderRef: string;
@@ -885,7 +885,7 @@ export async function sendAdminNewOrderEmail(params: {
   createdAt?: Date;
 }): Promise<{ success: boolean; error?: string }> {
   const paymentLabels: Record<string, string> = {
-    wallet: "محفظة رفيف العود",
+    wallet: "محفظة Myla",
     bank_transfer: "تحويل بنكي",
     tap: "بطاقة بنكية (Paymob)",
     stc_pay: "STC Pay",
@@ -940,7 +940,7 @@ export async function sendAdminNewOrderEmail(params: {
   <!-- Header -->
   <tr>
     <td align="center" style="background:${NAVY};background-image:linear-gradient(135deg,#1A1A1A 0%,${NAVY} 50%,#3d261e 100%);padding:28px 40px;border-bottom:3px solid ${GOLD};">
-      <div style="color:${GOLD};font-size:12px;font-weight:900;letter-spacing:0.4em;text-transform:uppercase;margin-bottom:6px;">RF Perfume — لوحة الإدارة</div>
+      <div style="color:${GOLD};font-size:12px;font-weight:900;letter-spacing:0.4em;text-transform:uppercase;margin-bottom:6px;">Myla — لوحة الإدارة</div>
       <div style="color:#ffffff;font-size:24px;font-weight:900;letter-spacing:0.05em;">🛒 طلب جديد وارد</div>
       <div style="margin-top:10px;display:inline-block;padding:6px 20px;background:rgba(201,169,110,0.15);border:1px solid rgba(201,169,110,0.4);border-radius:4px;color:${GOLD};font-size:18px;font-weight:900;letter-spacing:0.15em;">#${params.orderRef}</div>
       <div style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;margin-top:10px;">${dateStr}</div>
@@ -1046,7 +1046,7 @@ export async function sendAdminNewOrderEmail(params: {
   <!-- Footer -->
   <tr>
     <td align="center" style="background:#1A1A1A;padding:24px 40px;border-top:1px solid rgba(201,169,110,0.2);">
-      <div style="color:${GOLD};font-size:10px;font-weight:700;letter-spacing:0.35em;text-transform:uppercase;margin-bottom:6px;">RF Perfume — Admin Notification</div>
+      <div style="color:${GOLD};font-size:10px;font-weight:700;letter-spacing:0.35em;text-transform:uppercase;margin-bottom:6px;">Myla — Admin Notification</div>
       <div style="color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;">هذا البريد إشعار داخلي للإدارة فقط · ${SITE.DOMAIN}</div>
     </td>
   </tr>

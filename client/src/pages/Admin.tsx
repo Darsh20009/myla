@@ -196,18 +196,18 @@ const CreativeDashboardBanner = memo(({ totalOrders, totalRevenue }: { totalOrde
             </div>
             <div className="relative">
               <div className="absolute inset-0 rounded-2xl bg-[#E8637A]/30 blur-xl" />
-              <img src="/rf-logo.png" alt="RF Perfume" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(201,169,110,0.5)]" />
+              <img src="/rf-logo.png" alt="Myla" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(201,169,110,0.5)]" />
             </div>
           </div>
 
           <div>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none">
               <span className="bg-gradient-to-l from-[#C9A882] via-[#e8d4a3] to-[#C9A882] bg-clip-text text-transparent">
-                لوحة تحكم RF Perfume
+                لوحة تحكم Myla
               </span>
             </h1>
             <p className="mt-2 text-xs md:text-sm font-semibold text-white/60 tracking-wide" dir="ltr">
-              RF Perfume — Abayas by HMBL · Control Center
+              Myla — Abayas by HMBL · Control Center
             </p>
           </div>
 
@@ -4091,7 +4091,7 @@ const AdminBranches = () => {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold uppercase">البريد الإلكتروني</label>
-                  <Input value={b.email} onChange={e => setB({ ...b, email: e.target.value })} placeholder="branch@rfperfume.sa" className="rounded-none" dir="ltr" />
+                  <Input value={b.email} onChange={e => setB({ ...b, email: e.target.value })} placeholder="branch@myla.sa" className="rounded-none" dir="ltr" />
                 </div>
               </div>
               <div className="space-y-1">
@@ -4830,7 +4830,7 @@ const StoreSettingsPanel = () => {
 
   useEffect(() => {
     if (settings) {
-      setStoreName(settings.storeName ?? "RF Perfume");
+      setStoreName(settings.storeName ?? "Myla");
       setStorePhone(settings.storePhone ?? "");
       setStoreEmail(settings.storeEmail ?? "");
       setStoreAddress(settings.storeAddress ?? "");
@@ -4864,7 +4864,7 @@ const StoreSettingsPanel = () => {
     }
     if (settings) {
       setBankName(settings.bankName ?? "مصرف الراجحي");
-      setBankAccountHolder(settings.bankAccountHolder ?? "RF Perfume");
+      setBankAccountHolder(settings.bankAccountHolder ?? "Myla");
       setBankIBAN(settings.bankIBAN ?? "SA6280000501608016226411");
       setBankAccountNumber(settings.bankAccountNumber ?? "");
       setBankLogo(settings.bankLogo ?? "");
@@ -5132,12 +5132,12 @@ const StoreSettingsPanel = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-black uppercase">عنوان الصفحة (عربي)</Label>
-              <Input value={seoTitle} onChange={e => setSeoTitle(e.target.value)} className="font-bold" maxLength={70} placeholder="RF Perfume — عبايات فاخرة من الرياض" data-testid="input-seo-title" />
+              <Input value={seoTitle} onChange={e => setSeoTitle(e.target.value)} className="font-bold" maxLength={70} placeholder="Myla — عبايات فاخرة من الرياض" data-testid="input-seo-title" />
               <p className="text-[10px] text-muted-foreground">{seoTitle.length}/70</p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-black uppercase">Page Title (English)</Label>
-              <Input value={seoTitleEn} onChange={e => setSeoTitleEn(e.target.value)} className="font-bold" dir="ltr" maxLength={70} placeholder="RF Perfume — Luxury Abayas" data-testid="input-seo-title-en" />
+              <Input value={seoTitleEn} onChange={e => setSeoTitleEn(e.target.value)} className="font-bold" dir="ltr" maxLength={70} placeholder="Myla — Luxury Abayas" data-testid="input-seo-title-en" />
               <p className="text-[10px] text-muted-foreground">{seoTitleEn.length}/70</p>
             </div>
           </div>
@@ -5238,7 +5238,7 @@ const StoreSettingsPanel = () => {
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase">اسم صاحب الحساب</Label>
-            <Input value={bankAccountHolder} onChange={e => setBankAccountHolder(e.target.value)} placeholder="RF Perfume" className="font-bold" />
+            <Input value={bankAccountHolder} onChange={e => setBankAccountHolder(e.target.value)} placeholder="Myla" className="font-bold" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase">رقم الآيبان (IBAN)</Label>
@@ -5434,7 +5434,7 @@ const StoreSettingsPanel = () => {
               </div>
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase">المعرّف</label>
-                <Input value={s.handle || ""} onChange={e => updateSocial(i, { handle: e.target.value })} placeholder="@rfperfume" className="rounded-none h-9 text-xs" dir="ltr" />
+                <Input value={s.handle || ""} onChange={e => updateSocial(i, { handle: e.target.value })} placeholder="@myla.abayas" className="rounded-none h-9 text-xs" dir="ltr" />
               </div>
               <div className="col-span-1 flex items-center justify-center pb-1">
                 <Switch data-testid={`switch-social-active-${i}`} checked={s.isActive !== false} onCheckedChange={v => updateSocial(i, { isActive: v })} />
@@ -5597,10 +5597,10 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
       >
         {/* Header / Logo */}
         <div className="relative z-10 flex items-center gap-3 px-4 py-4 border-b border-slate-200">
-          <img src={logoDarkImg} alt="RF Perfume" className="w-9 h-9 rounded-xl object-cover shrink-0" />
+          <img src={logoDarkImg} alt="Myla" className="w-9 h-9 rounded-xl object-cover shrink-0" />
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="font-black text-sm text-[#6B3F2A] tracking-tight whitespace-nowrap">RF Perfume</p>
+              <p className="font-black text-sm text-[#6B3F2A] tracking-tight whitespace-nowrap">Myla</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <PulseRing color="bg-[#C9A882]" />
                 <span className="text-[9px] text-[#E8637A] font-bold uppercase tracking-widest">لوحة التحكم</span>

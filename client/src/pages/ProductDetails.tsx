@@ -371,7 +371,7 @@ export default function ProductDetails() {
       <SEO
         title={`${product.name}${(product as any).nameEn ? ` | ${(product as any).nameEn}` : ""} — Myla`}
         description={`اشتري ${product.name} من متجر Myla. ${(product as any).description ? String((product as any).description).slice(0, 120) : "عبايات راقية فاخرة"} — توصيل سريع لجميع مدن السعودية.`}
-        keywords={`${product.name}, ${(product as any).nameEn || ""}, عبايات راقية, Myla, رفيف العود, عبايات سعودية, عبايات فاخرة, ${product.name} سعر`}
+        keywords={`${product.name}, ${(product as any).nameEn || ""}, عبايات راقية, Myla, Myla, عبايات سعودية, عبايات فاخرة, ${product.name} سعر`}
         canonical={`/products/${product.id || (product as any)._id}`}
         ogImage={(product.images && product.images[0]) || undefined}
         ogType="product"
@@ -675,7 +675,7 @@ export default function ProductDetails() {
               </div>
               )}
 
-              {/* Perfume advisor / outfit suggestions removed — RF Perfume is an oud & perfume store, not clothing. */}
+              {/* Perfume advisor / outfit suggestions removed — Myla is an oud & perfume store, not clothing. */}
 
               {/* Quantity */}
               <div>

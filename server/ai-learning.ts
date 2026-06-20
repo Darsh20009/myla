@@ -1,5 +1,5 @@
 /**
- * AI Self-Learning System for RF Perfume
+ * AI Self-Learning System for Myla
  *
  * Tracks customer interactions with the abaya advisor:
  *   - Which products were shown vs actually purchased/added-to-cart

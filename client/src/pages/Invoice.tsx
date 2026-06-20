@@ -202,7 +202,7 @@ export default function Invoice() {
                 className="h-20 w-auto object-contain drop-shadow-[0_2px_8px_rgba(223,179,105,0.3)]"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = logoDark; }}
               />
-              <div className="text-[8px] font-black tracking-[0.3em] uppercase text-[#C9A882]">rfperfume.sa</div>
+              <div className="text-[8px] font-black tracking-[0.3em] uppercase text-[#C9A882]">myla.sa</div>
             </div>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function Invoice() {
         <div className="mt-10 pt-6 border-t border-gray-200 text-center text-xs text-gray-700 font-bold">
           <div className="gold-line mb-4" />
           <p className="mb-1">شكراً لاختياركم {sellerName}</p>
-          <p className="opacity-70">للاستفسار: info@rfperfume.sa</p>
+          <p className="opacity-70">للاستفسار: info@myla.sa</p>
           <p className="opacity-50 mt-2 text-[10px]">
             هذه الفاتورة تم إصدارها إلكترونياً وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك (ZATCA)
           </p>

@@ -151,7 +151,7 @@ export async function cancelOrder(opts: CancelOptions) {
         await sendEmail({
           to: user.email,
           toName: user.name,
-          subject: `تم إلغاء طلبك #${ref} — RF Perfume`,
+          subject: `تم إلغاء طلبك #${ref} — Myla`,
           html,
         }).catch(() => {});
       }

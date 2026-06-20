@@ -1,4 +1,4 @@
-const DB_NAME = "rf perfume-offline-db";
+const DB_NAME = "myla-offline-db";
 const DB_VERSION = 2;
 const STORE_NAME = "offline-orders";
 const MAX_RETRIES = 5;

@@ -259,7 +259,7 @@ export async function pushOrderToStorageStation(order: any): Promise<StorageStat
     line_items: lineItems,
     shipping_lines: [
       {
-        method_title: "شحن RF Perfume",
+        method_title: "شحن Myla",
         method_id: "flat_rate",
         total: String(Number(order.shippingCost || "0").toFixed(2)),
       },

@@ -93,13 +93,13 @@ export const UnifiedChat = memo(function UnifiedChat() {
     if (tab === "advisor" && advisorMessages.length === 0) {
       setAdvisorMessages([{
         role: "assistant",
-        content: "أهلاً بك في RF Perfume ✨ أنا لمى — مستشارتك الشخصية للأزياء الفاخرة. أخبريني عن مناسبتك أو ذوقك وسأقترح لك العباية أو القفطان المثالي.\n\nWelcome to RF Perfume ✨ I'm Lama, your personal luxury fashion advisor — tell me about your occasion or style and I'll find the perfect abaya for you."
+        content: "أهلاً بك في Myla ✨ أنا لمى — مستشارتك الشخصية للأزياء الفاخرة. أخبريني عن مناسبتك أو ذوقك وسأقترح لك العباية أو القفطان المثالي.\n\nWelcome to Myla ✨ I'm Lama, your personal luxury fashion advisor — tell me about your occasion or style and I'll find the perfect abaya for you."
       }]);
     }
     if (tab === "support" && supportMessages.length === 0) {
       setSupportMessages([{
         role: "assistant",
-        content: "مرحباً بك في دعم RF Perfume. كيف يمكنني خدمتك؟\n• تتبع طلبك  • معلومات المنتجات  • سياسة الاسترجاع  • استفسارات أخرى\n\nHi! Welcome to RF Perfume support. How can I help?\n• Track your order  • Product info  • Return policy  • Other questions\n\n(You can write in Arabic or English — I'll reply in the same language.)"
+        content: "مرحباً بك في دعم Myla. كيف يمكنني خدمتك؟\n• تتبع طلبك  • معلومات المنتجات  • سياسة الاسترجاع  • استفسارات أخرى\n\nHi! Welcome to Myla support. How can I help?\n• Track your order  • Product info  • Return policy  • Other questions\n\n(You can write in Arabic or English — I'll reply in the same language.)"
       }]);
     }
   }, [advisorMessages.length, supportMessages.length]);
@@ -199,7 +199,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
             {/* Logo */}
             <img
               src={LOGO_LIGHT}
-              alt="RF Perfume"
+              alt="Myla"
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
             />
@@ -291,7 +291,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
             {/* Footer */}
             <div className="px-4 py-3 bg-gradient-to-l from-[#FFFFFF] to-white border-t border-[#E8637A]/10 text-center">
               <p className="text-[10px] text-gray-400 font-bold tracking-wide">
-                RF Perfume <span className="text-[#E8637A]">·</span> RF Perfume
+                Myla <span className="text-[#E8637A]">·</span> Myla
               </p>
             </div>
           </motion.div>
@@ -515,7 +515,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                 </button>
               </div>
               <p className="text-[9px] text-gray-400 text-center mt-2 font-bold tracking-wide">
-                مدعوم بالذكاء الاصطناعي · RF Perfume
+                مدعوم بالذكاء الاصطناعي · Myla
               </p>
             </div>
           </motion.div>

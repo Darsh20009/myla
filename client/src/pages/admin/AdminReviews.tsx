@@ -356,7 +356,7 @@ export default function AdminReviews() {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 rows={5}
-                placeholder="اكتب ردّك بأسلوب راقي يعكس قيم RF Perfume..."
+                placeholder="اكتب ردّك بأسلوب راقي يعكس قيم Myla..."
                 className="resize-none"
                 data-testid="textarea-reply"
               />

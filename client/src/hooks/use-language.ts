@@ -622,7 +622,7 @@ const useLanguageStore = create<LanguageState>()(
       },
     }),
     {
-      name: 'rf perfume-language',
+      name: 'myla-language',
       partialize: (state) => ({ language: state.language, isAr: state.isAr }),
     }
   )

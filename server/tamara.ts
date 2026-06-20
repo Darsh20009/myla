@@ -93,7 +93,7 @@ export async function createTamaraCheckout(input: TamaraCheckoutInput): Promise<
     consumer: {
       first_name: firstName,
       last_name: lastName,
-      email: input.customer.email || "info@rfperfume.sa",
+      email: input.customer.email || "info@myla.sa",
       phone_number: phone,
     },
     shipping_address: {

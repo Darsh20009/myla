@@ -94,7 +94,7 @@ export function IOSInstallGuide() {
                   {/* URL bar */}
                   <div className="px-2 py-1.5 bg-stone-100 border-b border-stone-200">
                     <div className="bg-white rounded-md px-2 py-1 text-[8px] text-stone-500 text-center font-medium truncate">
-                      🔒 rfperfume.sa
+                      🔒 myla.sa
                     </div>
                   </div>
                   {/* Page preview */}

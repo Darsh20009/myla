@@ -6,7 +6,7 @@
  */
 
 export type OrderType    = "dine_in" | "takeaway" | "delivery" | "car_pickup";
-export type PaymentMethod = "cash" | "card" | "rf perfume-card" | "split";
+export type PaymentMethod = "cash" | "card" | "myla-card" | "split";
 
 export interface LineItemDiscount {
   type:  'percent' | 'amount';
