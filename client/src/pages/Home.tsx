@@ -14,7 +14,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { RiyalSign } from "@/components/RiyalSign";
-import mylaLogoPath from "@assets/Screenshot_2026-06-20_at_12.45.45_PM_1781948763490.png";
 
 /* ── Trust strip icons ─────────────────────────────────────────── */
 const TRUST_ITEMS = [
@@ -113,19 +112,6 @@ export default function Home() {
           style={{ background: "#0A0503" }}
           className="flex flex-col items-center text-center px-6 py-10 md:py-14"
         >
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
-            <img
-              src={mylaLogoPath}
-              alt="شعار المتجر"
-              style={{ width: "260px", maxWidth: "65vw", objectFit: "contain" }}
-            />
-          </motion.div>
-
           {/* Tagline */}
           <motion.p
             initial={{ opacity: 0, y: 12 }}
