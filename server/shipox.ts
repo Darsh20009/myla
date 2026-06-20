@@ -139,7 +139,7 @@ export async function createShipoxOrder(
   const street = [addr.street, addr.district, addr.building].filter(Boolean).join("، ")
     || order.deliveryAddress
     || "غير محدد";
-  const fullName = (order.customerName || "عميل رفيف").trim();
+  const fullName = (order.customerName || "عميل Myla").trim();
   const phone    = (order.customerPhone || "0500000000").replace(/\D/g, "");
   const orderRef = String(order.id || order._id).slice(-8).toUpperCase();
   const piecesCount = (order.items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;

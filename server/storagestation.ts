@@ -216,7 +216,7 @@ export async function pushOrderToStorageStation(order: any): Promise<StorageStat
   const street = [addr.street, addr.district].filter(Boolean).join("، ") || order.deliveryAddress || "";
 
   // Split customer name
-  const fullName = (order.customerName || "عميل رفيف").trim();
+  const fullName = (order.customerName || "عميل Myla").trim();
   const nameParts = fullName.split(" ");
   const firstName = nameParts[0] || fullName;
   const lastName = nameParts.slice(1).join(" ") || "-";

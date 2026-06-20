@@ -154,7 +154,7 @@ body {
   pointer-events: none;
 }
 
-/* ── RF Perfume petal animation ───────────────────────────────────── */
+/* ── Myla petal animation ────────────────────────────────────────── */
 @keyframes float-petal {
   0%   { transform: translateY(0) rotate(0deg) translateX(0); opacity: 0; }
   10%  { opacity: 0.6; }

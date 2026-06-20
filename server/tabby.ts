@@ -11,7 +11,7 @@ const TABBY_API_BASE = "https://api.tabby.ai";
 
 const PUBLIC_KEY = process.env.TABBY_PUBLIC_KEY || "";
 const SECRET_KEY = process.env.TABBY_SECRET_KEY || "";
-const MERCHANT_CODE = process.env.TABBY_MERCHANT_CODE || "RFperfume";
+const MERCHANT_CODE = process.env.TABBY_MERCHANT_CODE || "Myla";
 
 export function isTabbyConfigured(): boolean {
   return !!(PUBLIC_KEY && SECRET_KEY);

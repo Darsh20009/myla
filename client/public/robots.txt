@@ -20,4 +20,4 @@ Disallow: /admin
 Disallow: /api/
 Crawl-delay: 2
 
-Sitemap: https://rfperfume.sa/sitemap.xml
+Sitemap: https://myla-abayas.store/sitemap.xml
