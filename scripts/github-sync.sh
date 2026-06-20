@@ -9,11 +9,19 @@ fi
 
 REPO_URL="https://github.com/Darsh20009/myla.git"
 LAST_PUSHED=""
+CREDS_FILE="/tmp/.git-credentials-tmp-$$"
+
+# Cleanup credentials on exit (SIGTERM, SIGINT, or normal exit)
+cleanup() {
+  rm -f "$CREDS_FILE"
+  git config --local --unset credential.helper 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 
 # Configure credentials via store helper (never embed token in URL)
-git config --local credential.helper "store --file /tmp/.git-credentials-tmp"
-echo "https://x-token:${GITHUB_TOKEN}@github.com" > /tmp/.git-credentials-tmp
-chmod 600 /tmp/.git-credentials-tmp
+git config --local credential.helper "store --file $CREDS_FILE"
+printf "https://x-token:%s@github.com\n" "$GITHUB_TOKEN" > "$CREDS_FILE"
+chmod 600 "$CREDS_FILE"
 git remote set-url origin "$REPO_URL"
 
 echo "[github-sync] Started — watching for new commits every 60 seconds"
