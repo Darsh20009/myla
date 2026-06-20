@@ -1,0 +1,527 @@
+import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
+import { Send, X, Loader2, Sparkles, Headphones, ShoppingBag, Eye, Check } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useCart } from "@/hooks/use-cart";
+import { useToast } from "@/hooks/use-toast";
+import type { Product } from "@shared/schema";
+import { RiyalSign } from "@/components/RiyalSign";
+
+const LOGO_LIGHT = "/rf-logo.png";
+
+// ── Subscription expiry: AI advisor disabled after this date ──────────────────
+const ADVISOR_EXPIRY = new Date("2026-08-04T00:00:00.000Z");
+const isAdvisorActive = () => new Date() < ADVISOR_EXPIRY;
+
+interface AdvisorProduct {
+  id: string;
+  name: string;
+  price: string | number;
+  image?: string;
+}
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  products?: AdvisorProduct[];
+}
+
+type TabType = "advisor" | "support";
+type ViewMode = "closed" | "menu" | "chat";
+
+const WHATSAPP_URL = "https://api.whatsapp.com/send?phone=966507378047";
+
+export const UnifiedChat = memo(function UnifiedChat() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const addToCart = useCart(s => s.addItem);
+  const { data: allProducts } = useQuery<Product[]>({ queryKey: ["/api/products"] });
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+
+  const handleAddToCart = useCallback((productRef: AdvisorProduct) => {
+    const product = allProducts?.find(p => (p as any).id === productRef.id || (p as any)._id === productRef.id);
+    if (!product) {
+      toast({ title: "تعذر إضافة المنتج", description: "يرجى فتح صفحة المنتج لاختيار الحجم واللون.", variant: "destructive" });
+      return;
+    }
+    const variants: any[] = (product as any).variants || [];
+    const variant = variants.find(v => (v.stock ?? 0) > 0) || variants[0];
+    if (!variant) {
+      toast({ title: "غير متوفر حالياً", variant: "destructive" });
+      return;
+    }
+    addToCart(product as any, variant, 1);
+    setAddedIds(prev => new Set(prev).add(productRef.id));
+    toast({ title: "✨ تمت الإضافة للسلة", description: productRef.name });
+    setTimeout(() => {
+      setAddedIds(prev => { const n = new Set(prev); n.delete(productRef.id); return n; });
+    }, 2500);
+  }, [allProducts, addToCart, toast]);
+
+  const [view, setView] = useState<ViewMode>("closed");
+  const [activeTab, setActiveTab] = useState<TabType>("advisor");
+  const [advisorMessages, setAdvisorMessages] = useState<Message[]>([]);
+  const [supportMessages, setSupportMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Strip a single leading emoji + space from a chip label to get clean send text
+  const stripEmojiPrefix = (s: string): string => {
+    return s.replace(/^\p{Extended_Pictographic}(\u200D\p{Extended_Pictographic})*[\uFE0E\uFE0F]?\s+/u, "").trim();
+  };
+
+  const messages = activeTab === "advisor" ? advisorMessages : supportMessages;
+  const setMessages = activeTab === "advisor" ? setAdvisorMessages : setSupportMessages;
+
+  useEffect(() => {
+    if (view === "chat") messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [advisorMessages, supportMessages, view]);
+
+  useEffect(() => {
+    if (view === "chat" && inputRef.current) inputRef.current.focus();
+  }, [view, activeTab]);
+
+  const openChat = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+    setView("chat");
+    if (tab === "advisor" && advisorMessages.length === 0) {
+      setAdvisorMessages([{
+        role: "assistant",
+        content: "أهلاً بك في RF Perfume ✨ أنا لمى — مستشارتك الشخصية للأزياء الفاخرة. أخبريني عن مناسبتك أو ذوقك وسأقترح لك العباية أو القفطان المثالي.\n\nWelcome to RF Perfume ✨ I'm Lama, your personal luxury fashion advisor — tell me about your occasion or style and I'll find the perfect abaya for you."
+      }]);
+    }
+    if (tab === "support" && supportMessages.length === 0) {
+      setSupportMessages([{
+        role: "assistant",
+        content: "مرحباً بك في دعم RF Perfume. كيف يمكنني خدمتك؟\n• تتبع طلبك  • معلومات المنتجات  • سياسة الاسترجاع  • استفسارات أخرى\n\nHi! Welcome to RF Perfume support. How can I help?\n• Track your order  • Product info  • Return policy  • Other questions\n\n(You can write in Arabic or English — I'll reply in the same language.)"
+      }]);
+    }
+  }, [advisorMessages.length, supportMessages.length]);
+
+  const handleSend = useCallback(async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
+    if (!text || isLoading) return;
+    const userMsg = text;
+    setInput("");
+    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setIsLoading(true);
+
+    const endpoint = activeTab === "advisor" ? "/api/ai/perfume-advisor" : "/api/ai/support";
+    const body: any = {
+      message: userMsg,
+      history: messages.map(m => ({ role: m.role, content: m.content })),
+    };
+    if (activeTab === "support" && user) {
+      body.customerInfo = { name: (user as any).firstName || (user as any).phone };
+    }
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: data.response || "عذراً، لم أستلم رداً. / Sorry, no reply received.",
+        products: Array.isArray(data.products) ? data.products : undefined,
+      }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "عذراً، حدث خطأ في الاتصال. حاول مرة أخرى. / Connection error — please try again." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, activeTab, messages, user, setMessages]);
+
+  // ─── Dynamic quick-reply suggestions based on last assistant message ──
+  const quickReplies = useMemo<string[]>(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant" || isLoading) return [];
+    const txt = last.content.toLowerCase();
+    const hasProducts = (last.products?.length ?? 0) > 0;
+
+    if (activeTab === "advisor") {
+      // First greeting only → broad starter chips
+      if (messages.length <= 1) {
+        return ["👗 عباية يومية", "✨ عباية للمناسبات", "🌸 قفطان فاخر", "🎁 هدية مميزة", "💫 الأكثر طلباً"];
+      }
+      // After product recommendations
+      if (hasProducts) {
+        return ["💰 أرني الأسعار", "👑 أرني الأفخم", "🔄 اقترحي تصميم آخر", "🌸 عبايات للعروس", "📦 هل متوفر؟"];
+      }
+      // Generic follow-up
+      return ["💡 ما الفرق بينهم؟", "💰 ما الأسعار؟", "📦 هل متوفر؟", "🎁 عباية هدية", "🌸 ألوان أخرى"];
+    }
+    // Support
+    if (messages.length <= 1) {
+      return ["📦 أين طلبي؟", "🔄 سياسة الاسترجاع", "💳 طرق الدفع", "🚚 مدة التوصيل", "📞 تواصل بشري"];
+    }
+    if (txt.includes("طلب") || txt.includes("شحن") || txt.includes("order")) {
+      return ["📋 أعطني رقم التتبع", "⏰ متى يصل؟", "❌ أريد الإلغاء", "📞 تواصل بشري"];
+    }
+    return ["✅ شكراً لك", "❓ سؤال آخر", "📞 تواصل بشري"];
+  }, [messages, isLoading, activeTab]);
+
+  const isAdvisor = activeTab === "advisor";
+  const accentColor = isAdvisor ? "#E8637A" : "#6B3F2A";
+
+  return (
+    <div className="fixed bottom-6 left-4 z-50" dir="rtl">
+      {/* ── Closed FAB (small circle) ───────────────────────────── */}
+      <AnimatePresence>
+        {view === "closed" && (
+          <motion.button
+            key="fab"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.93 }}
+            onClick={() => setView("menu")}
+            aria-label="افتح قائمة التواصل"
+            className="relative flex items-center justify-center w-14 h-14 rounded-full shadow-[0_8px_32px_rgba(26,39,68,0.28)] active:scale-95 overflow-hidden"
+            style={{
+              background: "#FFFFFF",
+              border: "2px solid rgba(223,179,105,0.5)",
+            }}
+          >
+            {/* Live dot */}
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shadow ring-2 ring-white/80 z-10" />
+            {/* Logo */}
+            <img
+              src={LOGO_LIGHT}
+              alt="RF Perfume"
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+            />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* ── Menu (3 channels) ───────────────────────────────── */}
+      <AnimatePresence>
+        {view === "menu" && (
+          <motion.div
+            key="menu"
+            initial={{ opacity: 0, x: -30, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -30, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="ml-3 w-[320px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(26,39,68,0.18)] border border-[#E8637A]/15 overflow-hidden"
+          >
+            {/* Header */}
+            <div className="relative px-5 py-5" style={{ background: "linear-gradient(135deg, #6B3F2A 0%, #243154 100%)" }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-white font-black text-base tracking-tight">كيف يمكننا خدمتك؟</h4>
+                  <p className="text-white/60 text-[11px] font-semibold mt-0.5">اختر طريقة التواصل المفضلة</p>
+                </div>
+                <button
+                  onClick={() => setView("closed")}
+                  aria-label="إغلاق"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
+              <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#E8637A] to-transparent" />
+            </div>
+
+            {/* Options */}
+            <div className="p-3 space-y-2 bg-white">
+              {/* AI Advisor — shown only when subscription is active */}
+              {isAdvisorActive() ? (
+              <button
+                onClick={() => openChat("advisor")}
+                className="group w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#C9A882]/10 transition-all active:scale-[0.98] border border-transparent hover:border-[#C9A882]/30"
+              >
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md" style={{ background: "linear-gradient(135deg, #C9A882, #8B6340)" }}>
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 text-right min-w-0">
+                  <p className="font-black text-sm text-[#2C1810]">لمى — مستشارة الأزياء</p>
+                  <p className="text-[11px] text-gray-400 font-medium truncate">اكتشفي العباية المثالية بمساعدة الذكاء</p>
+                </div>
+                <span className="text-[9px] font-black text-[#C9A882] bg-[#C9A882]/15 px-2 py-1 rounded-full">AI</span>
+              </button>
+              ) : null}
+
+              {/* Support */}
+              <button
+                onClick={() => openChat("support")}
+                className="group w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#6B3F2A]/5 transition-all active:scale-[0.98] border border-transparent hover:border-[#6B3F2A]/20"
+              >
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md" style={{ background: "linear-gradient(135deg, #243154, #0f1a2e)" }}>
+                  <Headphones className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 text-right min-w-0">
+                  <p className="font-black text-sm text-[#6B3F2A]">الدعم الفني</p>
+                  <p className="text-[11px] text-gray-400 font-medium truncate">طلباتك واستفساراتك على مدار الساعة</p>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+
+              {/* WhatsApp */}
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="group w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#25D366]/5 transition-all active:scale-[0.98] border border-transparent hover:border-[#25D366]/20"
+              >
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md" style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>
+                  <SiWhatsapp className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 text-right min-w-0">
+                  <p className="font-black text-sm text-[#6B3F2A]">واتساب</p>
+                  <p className="text-[11px] text-gray-400 font-medium truncate">حوار مباشر مع فريق المبيعات</p>
+                </div>
+                <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full">سريع</span>
+              </a>
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 bg-gradient-to-l from-[#FFFFFF] to-white border-t border-[#E8637A]/10 text-center">
+              <p className="text-[10px] text-gray-400 font-bold tracking-wide">
+                RF Perfume <span className="text-[#E8637A]">·</span> RF Perfume
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Chat panel ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {view === "chat" && (
+          <>
+            {/* Mobile-only backdrop */}
+            <motion.div
+              key="chat-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setView("closed")}
+              className="sm:hidden fixed inset-0 bg-[#6B3F2A]/40 backdrop-blur-sm z-40"
+              aria-hidden="true"
+            />
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.98 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="sm:ml-3 w-full sm:w-[400px] sm:max-w-[calc(100vw-1.5rem)] bg-white rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(26,39,68,0.15)] sm:shadow-[0_20px_60px_rgba(26,39,68,0.18)] sm:border sm:border-[#E8637A]/15 overflow-hidden flex flex-col fixed sm:relative inset-x-0 bottom-0 sm:inset-auto z-50"
+            style={{ height: "min(92dvh, 720px)", paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100" style={{ background: `linear-gradient(135deg, ${accentColor}12, transparent)` }}>
+              <button
+                onClick={() => setView("menu")}
+                aria-label="رجوع"
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 12L10 8L6 4" stroke="#6B3F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <div className="flex items-center gap-2.5">
+                <div>
+                  <h4 className="font-black text-sm text-[#6B3F2A] text-center">
+                    {isAdvisor ? "لمى — مستشارة الأزياء" : "الدعم الفني"}
+                  </h4>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] text-gray-400 font-bold">متصل الآن</span>
+                  </div>
+                </div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-md" style={{ background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#d44f66" : "#0f1a2e"})` }}>
+                  {isAdvisor ? <Sparkles className="h-4 w-4 text-white" /> : <Headphones className="h-4 w-4 text-white" />}
+                </div>
+              </div>
+              <button
+                onClick={() => setView("closed")}
+                aria-label="إغلاق"
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#FFFFFF]/40">
+              {messages.map((msg, i) => (
+                <div key={i} className="space-y-2">
+                  <div className={`flex ${msg.role === "user" ? "justify-start" : "justify-end"}`}>
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line shadow-sm ${
+                        msg.role === "user"
+                          ? `text-white rounded-tr-none`
+                          : "bg-white text-[#6B3F2A] rounded-tl-none border border-gray-100"
+                      }`}
+                      style={msg.role === "user" ? { background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#d44f66" : "#0f1a2e"})` } : undefined}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+
+                  {/* Recommended product cards */}
+                  {msg.products && msg.products.length > 0 && (
+                    <div className="flex flex-col gap-2 pr-2">
+                      {msg.products.map((p, idx) => (
+                        <motion.div
+                          key={p.id}
+                          initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          transition={{ delay: idx * 0.12, type: "spring", stiffness: 200, damping: 18 }}
+                          className="bg-white rounded-2xl border border-[#E8637A]/30 p-3 shadow-md hover:shadow-xl hover:border-[#E8637A] transition-all group overflow-hidden relative"
+                          data-testid={`card-recommended-${p.id}`}
+                        >
+                          <div className="absolute -top-1 -right-1 bg-gradient-to-br from-[#E8637A] to-[#d44f66] text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow">
+                            توصية ميلا ✨
+                          </div>
+                          <div className="flex items-stretch gap-3">
+                            <button
+                              type="button"
+                              onClick={() => { setLocation(`/products/${p.id}`); setView("closed"); }}
+                              className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#FFFFFF] to-[#f0ebe0] relative"
+                              aria-label={`فتح ${p.name}`}
+                            >
+                              {p.image ? (
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover  transition-transform duration-500" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Sparkles className="h-6 w-6 text-[#E8637A]" />
+                                </div>
+                              )}
+                            </button>
+                            <div className="flex-1 min-w-0 text-right flex flex-col justify-between">
+                              <div>
+                                <p className="font-black text-sm text-[#6B3F2A] line-clamp-2 leading-tight">{p.name}</p>
+                                <p className="text-base text-[#E8637A] font-black mt-1">
+                                  {Number(p.price).toLocaleString("ar-SA")} <span className="text-[10px]"><RiyalSign /></span>
+                                </p>
+                              </div>
+                              <div className="flex gap-1.5 mt-2">
+                                <motion.button
+                                  type="button"
+                                  whileTap={{ scale: 0.94 }}
+                                  onClick={() => handleAddToCart(p)}
+                                  disabled={addedIds.has(p.id)}
+                                  className={`flex-1 flex items-center justify-center gap-1 text-[11px] font-black px-2 py-1.5 rounded-lg transition-all ${
+                                    addedIds.has(p.id)
+                                      ? "bg-emerald-500 text-white"
+                                      : "bg-gradient-to-r from-[#E8637A] to-[#d44f66] text-white hover:shadow-lg"
+                                  }`}
+                                  data-testid={`button-add-cart-${p.id}`}
+                                >
+                                  {addedIds.has(p.id) ? (
+                                    <><Check className="h-3 w-3" /> أُضيف</>
+                                  ) : (
+                                    <><ShoppingBag className="h-3 w-3" /> أضف للسلة</>
+                                  )}
+                                </motion.button>
+                                <motion.button
+                                  type="button"
+                                  whileTap={{ scale: 0.94 }}
+                                  onClick={() => { setLocation(`/products/${p.id}`); setView("closed"); }}
+                                  className="flex items-center justify-center gap-1 text-[11px] font-black px-2 py-1.5 rounded-lg bg-[#6B3F2A]/5 text-[#6B3F2A] hover:bg-[#6B3F2A]/10 transition-all"
+                                  data-testid={`button-view-${p.id}`}
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </motion.button>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-end">
+                  <div className="bg-white rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 border border-gray-100 shadow-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" style={{ color: accentColor }} />
+                    <span className="text-xs text-gray-400 font-bold">المستشار يفكر...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Dynamic quick-reply suggestions (after every assistant message) */}
+              {quickReplies.length > 0 && (
+                <motion.div
+                  key={`chips-${messages.length}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="flex flex-wrap gap-2 justify-end pt-1"
+                >
+                  {quickReplies.map((chip, idx) => (
+                    <motion.button
+                      key={`${messages.length}-${chip}`}
+                      type="button"
+                      initial={{ opacity: 0, scale: 0.85 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 + idx * 0.05 }}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => handleSend(stripEmojiPrefix(chip))}
+                      className={`text-[11px] font-bold px-3 py-1.5 rounded-full bg-white border transition-all shadow-sm ${
+                        isAdvisor
+                          ? "border-[#E8637A]/30 text-[#6B3F2A] hover:bg-[#E8637A]/10 hover:border-[#E8637A]"
+                          : "border-[#6B3F2A]/25 text-[#6B3F2A] hover:bg-[#6B3F2A]/8 hover:border-[#6B3F2A]"
+                      }`}
+                      data-testid={`chip-suggestion-${idx}`}
+                    >
+                      {chip}
+                    </motion.button>
+                  ))}
+                </motion.div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="px-4 py-3 border-t border-gray-100 bg-white">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  placeholder={isAdvisor ? "اسأليني عن العبايات… / Ask about abayas…" : "اكتب رسالتك… / Type…"}
+                  className="flex-1 h-11 px-4 rounded-full bg-[#FFFFFF] border border-gray-200 focus:border-[#E8637A] text-sm font-medium focus:outline-none transition-all"
+                  disabled={isLoading}
+                  data-testid="input-chat-message"
+                />
+                <button
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() || isLoading}
+                  aria-label="إرسال"
+                  className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all disabled:opacity-40 active:scale-95 shrink-0 shadow-md"
+                  style={{ background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#d44f66" : "#0f1a2e"})` }}
+                  data-testid="button-send-message"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[9px] text-gray-400 text-center mt-2 font-bold tracking-wide">
+                مدعوم بالذكاء الاصطناعي · RF Perfume
+              </p>
+            </div>
+          </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});

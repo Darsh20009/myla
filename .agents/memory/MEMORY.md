@@ -1,0 +1,5 @@
+- [MongoDB legacy id_1 indexes](mongodb-legacy-indexes.md) — Legacy unique id_1 indexes on 40+ collections block all create operations; must be dropped once after migration from old system.
+- [POS print system](pos-print-system.md) — Thermal print engine is in print-utils.ts (Myla branded), thermal-printer.ts is the hardware driver; PrinterSettings needs openCashDrawer alias for UI panel.
+- [Myla rebrand](myla-rebrand.md) — 3 brand eras layered (Fuji Cafe→RF Perfume→Myla abayas); grep all 3 for leaks, but keep internal identifiers/contracts as-is.
+- [Order item variant fields & cart line identity](order-item-variant-fields.md) — order-item fields need BOTH Zod (shared/schema) + Mongoose subdoc or they're stripped; cart line key = productId+variantSku+length, keep consistent across add/remove/update/merge/render.
+- [RF Perfume rebrand](rf-rebrand.md) — Myla → RF Perfume / رفيف العود brand values, Arabic word-boundary replace gotcha, and what was left out (artwork, content, DB).

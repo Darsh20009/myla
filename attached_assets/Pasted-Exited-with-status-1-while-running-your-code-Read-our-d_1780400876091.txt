@@ -1,0 +1,271 @@
+Exited with status 1 while running your code.
+Read our docs for common ways to troubleshoot your deploy.
+
+All logs
+Search
+Search
+
+Jun 2, 11:24 AM - 11:28 AM
+GMT+3
+
+
+
+==> Cloning from https://github.com/Darsh20009/FUGICAFE2030
+==> Checking out commit 6dfcf1a08b15a2769f3671e365d8bcf7f09d5517 in branch main
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 225B done
+#1 DONE 0.8s
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 ...
+#3 [auth] library/node:pull render-prod/docker-mirror-repository/library/node:pull token for us-west1-docker.pkg.dev
+#3 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 DONE 6.4s
+#4 [internal] load .dockerignore
+#4 transferring context: 137B done
+#4 DONE 0.0s
+#5 importing cache manifest from image-registry-v2.aws-ap-southeast-1-2.internal.render.com/srv-d8f96ureo5us73bkmr0g:buildcache
+#5 ERROR: failed to configure registry cache importer: image-registry-v2.aws-ap-southeast-1-2.internal.render.com/srv-d8f96ureo5us73bkmr0g:buildcache: not found
+#6 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#6 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#6 sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 0B / 445B 0.2s
+#6 sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 0B / 1.26MB 0.2s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 0B / 43.23MB 0.2s
+#6 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 0B / 3.86MB 0.2s
+#6 sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 445B / 445B 0.3s done
+#6 ...
+#7 [internal] load build context
+#7 transferring context: 340.45MB 1.5s done
+#7 DONE 1.6s
+#6 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#6 sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 1.05MB / 1.26MB 3.3s
+#6 sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 1.26MB / 1.26MB 3.5s done
+#6 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 1.05MB / 3.86MB 3.5s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 3.15MB / 43.23MB 3.8s
+#6 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 3.15MB / 3.86MB 3.8s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 8.39MB / 43.23MB 4.1s
+#6 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 3.86MB / 3.86MB 3.9s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 11.53MB / 43.23MB 4.2s
+#6 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 3.86MB / 3.86MB 4.0s done
+#6 extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 14.68MB / 43.23MB 4.4s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 17.83MB / 43.23MB 4.5s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 22.02MB / 43.23MB 4.7s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 25.17MB / 43.23MB 4.8s
+#6 extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 0.6s done
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 28.31MB / 43.23MB 5.0s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 31.46MB / 43.23MB 5.1s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 34.60MB / 43.23MB 5.3s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 37.75MB / 43.23MB 5.4s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 43.23MB / 43.23MB 5.7s
+#6 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 43.23MB / 43.23MB 6.6s done
+#6 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287
+#6 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 12.5s done
+#6 DONE 19.3s
+#6 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#6 extracting sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 0.1s done
+#6 extracting sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 0.1s done
+#6 DONE 19.4s
+#8 [2/6] WORKDIR /app
+#8 DONE 0.2s
+#9 [3/6] COPY package*.json ./
+#9 DONE 0.1s
+#10 [4/6] RUN npm ci --include=dev
+#10 4.523 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#10 11.67 
+#10 11.67 added 730 packages, and audited 731 packages in 11s
+#10 11.67 
+#10 11.67 104 packages are looking for funding
+#10 11.67   run `npm fund` for details
+#10 11.70 
+#10 11.70 25 vulnerabilities (1 low, 14 moderate, 10 high)
+#10 11.70 
+#10 11.70 To address issues that do not require attention, run:
+#10 11.70   npm audit fix
+#10 11.70 
+#10 11.70 Some issues need review, and may require choosing
+#10 11.70 a different dependency.
+#10 11.70 
+#10 11.70 Run `npm audit` for details.
+#10 11.70 npm notice
+#10 11.70 npm notice New major version of npm available! 10.8.2 -> 11.16.0
+#10 11.70 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+#10 11.70 npm notice To update run: npm install -g npm@11.16.0
+#10 11.70 npm notice
+#10 DONE 12.7s
+#11 [5/6] COPY . .
+#11 DONE 4.5s
+#12 [6/6] RUN npm run build
+#12 1.053 
+#12 1.053 > rest-express@1.0.0 build
+#12 1.053 > tsx script/build.ts
+#12 1.053 
+#12 1.936 building client...
+#12 2.019 vite v7.3.0 building client environment for production...
+#12 2.686 transforming...
+#12 2.932 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+#12 2.932   npx update-browserslist-db@latest
+#12 2.932   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+#12 11.57 ✓ 3707 modules transformed.
+#12 12.34 rendering chunks...
+#12 12.76 computing gzip size...
+#12 12.82 ../dist/public/assets/image_1774356279079-DHS3FmSX.png        12.87 kB
+#12 12.82 ../dist/public/index.html                                     14.86 kB │ gzip:   3.84 kB
+#12 12.82 ../dist/public/assets/image_1774356329374-Du4uhsGa.png        15.68 kB
+#12 12.82 ../dist/public/assets/image_1774356262659-DBzx8YUl.png        26.64 kB
+#12 12.82 ../dist/public/assets/dummy_1777292322734-Dkq4hAMZ.png        51.05 kB
+#12 12.82 ../dist/public/assets/image_1774356309971-CmxTN4g0.png        96.75 kB
+#12 12.82 ../dist/public/assets/image_1774356250671-t9zuCdry.png       137.28 kB
+#12 12.82 ../dist/public/assets/index-BlKSfhNM.css                     259.38 kB │ gzip:  55.29 kB
+#12 12.82 ../dist/public/assets/minus-De-Vtr_J.js                        0.11 kB │ gzip:   0.13 kB
+#12 12.82 ../dist/public/assets/chevron-up-o1BNfoeN.js                   0.12 kB │ gzip:   0.14 kB
+#12 12.82 ../dist/public/assets/message-circle-CW21atla.js               0.14 kB │ gzip:   0.15 kB
+#12 12.82 ../dist/public/assets/navigation-CrfzoEp_.js                   0.15 kB │ gzip:   0.15 kB
+#12 12.82 ../dist/public/assets/circle-check-CDVyE55A.js                 0.17 kB │ gzip:   0.16 kB
+#12 12.82 ../dist/public/assets/circle-check-big-p8yLPF3x.js             0.18 kB │ gzip:   0.18 kB
+#12 12.82 ../dist/public/assets/smartphone-DGNmPbIi.js                   0.19 kB │ gzip:   0.18 kB
+#12 12.82 ../dist/public/assets/rotate-ccw-C-RGs3Oz.js                   0.20 kB │ gzip:   0.18 kB
+#12 12.82 ../dist/public/assets/circle-x-CshD1mMn.js                     0.20 kB │ gzip:   0.17 kB
+#12 12.82 ../dist/public/assets/credit-card-DVV4FxC6.js                  0.20 kB │ gzip:   0.18 kB
+#12 12.82 ../dist/public/assets/lock-BdTzKMB-.js                         0.20 kB │ gzip:   0.19 kB
+#12 12.82 ../dist/public/assets/trending-down-DsxcoR98.js                0.20 kB │ gzip:   0.17 kB
+#12 12.82 ../dist/public/assets/copy-CoQG0z8p.js                         0.23 kB │ gzip:   0.20 kB
+#12 12.82 ../dist/public/assets/activity-DPJ0nL8H.js                     0.23 kB │ gzip:   0.20 kB
+#12 12.82 ../dist/public/assets/pen-B59XSghV.js                          0.23 kB │ gzip:   0.20 kB
+#12 12.82 ../dist/public/assets/headphones-NusDOesq.js                   0.23 kB │ gzip:   0.18 kB
+#12 12.82 ../dist/public/assets/chart-column-CScreE6o.js                 0.25 kB │ gzip:   0.19 kB
+#12 12.82 ../dist/public/assets/map-pin-DeOkM8rF.js                      0.25 kB │ gzip:   0.22 kB
+#12 12.82 ../dist/public/assets/triangle-alert-DvVwx1S8.js               0.26 kB │ gzip:   0.21 kB
+#12 12.82 ../dist/public/assets/image-BKbfpqOC.js                        0.27 kB │ gzip:   0.22 kB
+#12 12.82 ../dist/public/assets/award-B3rHBVvn.js                        0.27 kB │ gzip:   0.22 kB
+#12 12.82 ../dist/public/assets/bike-BLIb7TO5.js                         0.28 kB │ gzip:   0.20 kB
+#12 12.82 ../dist/public/assets/receipt-Dng403Rm.js                      0.29 kB │ gzip:   0.21 kB
+#12 12.82 ../dist/public/assets/users-Cdcg1EfK.js                        0.30 kB │ gzip:   0.22 kB
+#12 12.82 ../dist/public/assets/file-x-BY972Jwd.js                       0.30 kB │ gzip:   0.21 kB
+#12 12.82 ../dist/public/assets/shield-check-9MXhVO7L.js                 0.32 kB │ gzip:   0.24 kB
+#12 12.82 ../dist/public/assets/printer-Dq4-Ps1E.js                      0.32 kB │ gzip:   0.23 kB
+#12 12.82 ../dist/public/assets/refresh-cw-BbMxSb4U.js                   0.32 kB │ gzip:   0.22 kB
+#12 12.82 ../dist/public/assets/refresh-ccw-Cj7z-AY6.js                  0.32 kB │ gzip:   0.22 kB
+#12 12.82 ../dist/public/assets/save-Imww1K1m.js                         0.32 kB │ gzip:   0.23 kB
+#12 12.82 ../dist/public/assets/file-text-BgT6ui5w.js                    0.33 kB │ gzip:   0.21 kB
+#12 12.82 ../dist/public/assets/key-round-CSakAM6B.js                    0.35 kB │ gzip:   0.25 kB
+#12 12.82 ../dist/public/assets/lock-open-BLo7SC8n.js                    0.39 kB │ gzip:   0.28 kB
+#12 12.82 ../dist/public/assets/truck-B6rH6YxC.js                        0.40 kB │ gzip:   0.26 kB
+#12 12.82 ../dist/public/assets/link-2-BIEztqMm.js                       0.44 kB │ gzip:   0.28 kB
+#12 12.82 ../dist/public/assets/barcode-DPb1jis0.js                      0.46 kB │ gzip:   0.27 kB
+#12 12.82 ../dist/public/assets/textarea-v1UiM4XN.js                     0.50 kB │ gzip:   0.32 kB
+#12 12.82 ../dist/public/assets/building-BP61b07C.js                     0.54 kB │ gzip:   0.27 kB
+#12 12.82 ../dist/public/assets/share-2-D4ICsvKm.js                      0.54 kB │ gzip:   0.32 kB
+#12 12.82 ../dist/public/assets/fingerprint-CiOwU8Ny.js                  0.60 kB │ gzip:   0.35 kB
+#12 12.82 ../dist/public/assets/dollar-sign-cPPdwzoe.js                  0.70 kB │ gzip:   0.38 kB
+#12 12.82 ../dist/public/assets/settings-CELEk_-_.js                     0.72 kB │ gzip:   0.34 kB
+#12 12.82 ../dist/public/assets/scan-line-DEI6awGg.js                    0.76 kB │ gzip:   0.37 kB
+#12 12.82 ../dist/public/assets/locate-fixed-BnZHD0l2.js                 0.86 kB │ gzip:   0.45 kB
+#12 12.82 ../dist/public/assets/boxes-B9DN5rmb.js                        1.04 kB │ gzip:   0.48 kB
+#12 12.82 ../dist/public/assets/use-mapkit-D3qCnbkn.js                   1.08 kB │ gzip:   0.60 kB
+#12 12.82 ../dist/public/assets/PaymentBrands-CZ4wihn9.js                1.61 kB │ gzip:   0.84 kB
+#12 12.82 ../dist/public/assets/switch-D26BH-jC.js                       2.34 kB │ gzip:   1.19 kB
+#12 12.82 ../dist/public/assets/checkbox-BGpZO4zR.js                     2.74 kB │ gzip:   1.36 kB
+#12 12.82 ../dist/public/assets/ProfileWishlist-BCPpKFiE.js              3.08 kB │ gzip:   1.37 kB
+#12 12.82 ../dist/public/assets/tabs-BcgiHd_a.js                         3.18 kB │ gzip:   1.34 kB
+#12 12.82 ../dist/public/assets/PaymobResult-D6TYgmc_.js                 3.19 kB │ gzip:   1.19 kB
+#12 12.82 ../dist/public/assets/CustomPage-gFuu1yer.js                   3.67 kB │ gzip:   1.64 kB
+#12 12.82 ../dist/public/assets/AdminRoles-CNOAZxCH.js                   3.84 kB │ gzip:   1.57 kB
+#12 12.82 ../dist/public/assets/LocationMap-DvInzwhN.js                  4.51 kB │ gzip:   2.06 kB
+#12 12.82 ../dist/public/assets/VendorStore-DOgc7gIQ.js                  4.53 kB │ gzip:   1.61 kB
+#12 12.82 ../dist/public/assets/VendorsList-RkIqhPud.js                  4.63 kB │ gzip:   1.75 kB
+#12 12.82 ../dist/public/assets/alert-dialog-DwAoH8fN.js                 4.69 kB │ gzip:   1.71 kB
+#12 12.82 ../dist/public/assets/ActivateAccount-DUYs6l2W.js              5.21 kB │ gzip:   2.06 kB
+#12 12.82 ../dist/public/assets/BranchLogin-B3i97GQ1.js                  5.58 kB │ gzip:   2.43 kB
+#12 12.83 ../dist/public/assets/Privacy-CFi2fymD.js                      5.66 kB │ gzip:   2.40 kB
+#12 12.83 ../dist/public/assets/Terms-BvUGbjQL.js                        6.02 kB │ gzip:   2.49 kB
+#12 12.83 ../dist/public/assets/ShippingPolicy-ph9V0eON.js               6.39 kB │ gzip:   2.45 kB
+#12 12.83 ../dist/public/assets/ReturnPolicy-UQfkZ3hB.js                 6.41 kB │ gzip:   2.52 kB
+#12 12.83 ../dist/public/assets/CashDrawerReport-H4tBhPPU.js             6.58 kB │ gzip:   2.38 kB
+#12 12.83 ../dist/public/assets/Branches-BTFvFLgf.js                     6.64 kB │ gzip:   2.46 kB
+#12 12.83 ../dist/public/assets/AdminBanners-6aaGGyof.js                 6.80 kB │ gzip:   2.50 kB
+#12 12.83 ../dist/public/assets/VendorApply-DcjaSbqa.js                  6.88 kB │ gzip:   2.22 kB
+#12 12.83 ../dist/public/assets/AdminBranchAnalytics-B2-yaXtt.js         7.01 kB │ gzip:   2.03 kB
+#12 12.83 ../dist/public/assets/AdminCancellationPolicy-DWbe8_99.js      7.37 kB │ gzip:   2.42 kB
+#12 12.83 ../dist/public/assets/AdminAbandonedCarts-CxHFYi5g.js          8.25 kB │ gzip:   2.80 kB
+#12 12.83 ../dist/public/assets/AdminShippingCompanies-D4qXrFU8.js       9.27 kB │ gzip:   2.88 kB
+#12 12.83 ../dist/public/assets/ForgotPassword-CP56Oags.js               9.57 kB │ gzip:   2.77 kB
+#12 12.83 ../dist/public/assets/STCCheckout-BGV64ig-.js                  9.84 kB │ gzip:   3.28 kB
+#12 12.83 ../dist/public/assets/AdminAuditLogs-xb_s_Q2N.js              11.35 kB │ gzip:   3.37 kB
+#12 12.83 ../dist/public/assets/Invoice-CLJKNBBQ.js                     11.95 kB │ gzip:   3.75 kB
+#12 12.83 ../dist/public/assets/CashDrawer-ej4KkPCy.js                  12.08 kB │ gzip:   3.25 kB
+#12 12.83 ../dist/public/assets/AdminBranchInventory-CJBdQp6X.js        12.49 kB │ gzip:   3.83 kB
+#12 12.83 ../dist/public/assets/ProfileInvoices-CQ5JP42X.js             12.73 kB │ gzip:   3.70 kB
+#12 12.83 ../dist/public/assets/OrderSuccess-unGhIn1p.js                12.86 kB │ gzip:   4.06 kB
+#12 12.83 ../dist/public/assets/Profile-48lGfK-r.js                     13.28 kB │ gzip:   4.16 kB
+#12 12.83 ../dist/public/assets/TabbyCheckout-DlbMCfNb.js               15.76 kB │ gzip:   4.42 kB
+#12 12.83 ../dist/public/assets/VendorDashboard-DqTAY5GI.js             16.75 kB │ gzip:   3.95 kB
+#12 12.83 ../dist/public/assets/Employees-DDk5xLsE.js                   16.78 kB │ gzip:   4.88 kB
+#12 12.83 ../dist/public/assets/UnifiedChat-cBpsn9zE.js                 17.23 kB │ gzip:   5.87 kB
+#12 12.83 ../dist/public/assets/AdminStaff-CpssGocR.js                  18.05 kB │ gzip:   5.27 kB
+#12 12.83 ../dist/public/assets/TamaraCheckout-Cbd3mI41.js              18.85 kB │ gzip:   4.97 kB
+#12 12.83 ../dist/public/assets/POS-BKa71zJo.js                         19.29 kB │ gzip:   6.06 kB
+#12 12.83 ../dist/public/assets/format-DDrcvaJb.js                      19.71 kB │ gzip:   5.59 kB
+#12 12.83 ../dist/public/assets/select-DGQ3fM4y.js                      20.71 kB │ gzip:   7.19 kB
+#12 12.83 ../dist/public/assets/Orders-BwMWX_rU.js                      24.12 kB │ gzip:   7.03 kB
+#12 12.83 ../dist/public/assets/PaymentGateway-Bw-QP-eD.js              24.35 kB │ gzip:   6.96 kB
+#12 12.83 ../dist/public/assets/Dashboard-DhWksleV.js                   24.60 kB │ gzip:   6.38 kB
+#12 12.83 ../dist/public/assets/browser-DCGTffwy.js                     25.50 kB │ gzip:  10.02 kB
+#12 12.83 ../dist/public/assets/AdminBranches-CXFKS5vj.js               26.46 kB │ gzip:   7.07 kB
+#12 12.83 ../dist/public/assets/OrderDetail-xLrZFCq3.js                 27.90 kB │ gzip:   7.76 kB
+#12 12.83 ../dist/public/assets/BranchDashboard-DW3a_GTK.js             28.45 kB │ gzip:   9.10 kB
+#12 12.83 ../dist/public/assets/Checkout-DI3yZ1Ty.js                    49.24 kB │ gzip:  13.81 kB
+#12 12.83 ../dist/public/assets/AdminInbox-Bre1aPrA.js                  71.10 kB │ gzip:  21.83 kB
+#12 12.83 ../dist/public/assets/index-D-mwpZrl.js                      825.82 kB │ gzip: 254.84 kB
+#12 12.83 ../dist/public/assets/Admin-DRcuT_Ru.js                    1,256.14 kB │ gzip: 314.20 kB
+#12 12.83 
+#12 12.83 (!) Some chunks are larger than 500 kB after minification. Consider:
+#12 12.83 - Using dynamic import() to code-split the application
+#12 12.83 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#12 12.83 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#12 12.83 ✓ built in 10.57s
+#12 12.83 building server...
+#12 13.36 
+#12 13.36   dist/index.js  6.2mb ⚠️
+#12 13.36 
+#12 13.36 ⚡ Done in 521ms
+#12 DONE 13.7s
+#13 exporting to image
+#13 exporting layers
+#13 exporting layers 3.4s done
+#13 exporting manifest sha256:4e5bdf1224c9964228ff29f6ff070b67a8b1d3d1955fbf0310278e82e5bb20ca done
+#13 exporting config sha256:fe86f891a54a38237b821d344b1380dc310066d8aeea9e313745e05ba98e570f done
+#13 pushing layers
+#13 ...
+#14 exporting cache to registry
+#14 sending cache export
+#14 ...
+#13 exporting to image
+#13 pushing layers 8.3s done
+#13 pushing manifest for image-registry-v2.aws-ap-southeast-1-2.internal.render.com/srv-d8f96ureo5us73bkmr0g:bld-d8f96vreo5us73bkmssg@sha256:4e5bdf1224c9964228ff29f6ff070b67a8b1d3d1955fbf0310278e82e5bb20ca
+#13 pushing manifest for image-registry-v2.aws-ap-southeast-1-2.internal.render.com/srv-d8f96ureo5us73bkmr0g:bld-d8f96vreo5us73bkmssg@sha256:4e5bdf1224c9964228ff29f6ff070b67a8b1d3d1955fbf0310278e82e5bb20ca 0.2s done
+#13 DONE 11.9s
+#14 exporting cache to registry
+#14 writing cache image manifest sha256:73aa61f8ad2e40dff522cde8c99d27032883d582999b7b9986c2d86d25d34611
+#14 sending cache export 10.2s done
+#14 writing cache image manifest sha256:73aa61f8ad2e40dff522cde8c99d27032883d582999b7b9986c2d86d25d34611 0.1s done
+#14 DONE 10.2s
+------
+ > importing cache manifest from image-registry-v2.aws-ap-southeast-1-2.internal.render.com/srv-d8f96ureo5us73bkmr0g:buildcache:
+------
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+file:///app/dist/index.js:141959
+    throw new Error("[Inbox] INBOX_ENC_KEY (or SESSION_SECRET) env var is REQUIRED in production");
+          ^
+Error: [Inbox] INBOX_ENC_KEY (or SESSION_SECRET) env var is REQUIRED in production
+    at file:///app/dist/index.js:141959:11
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Node.js v20.20.2
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

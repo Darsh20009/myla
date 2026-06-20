@@ -1,0 +1,32 @@
+{
+  "name": "RF Perfume — Abayas by HMBL",
+  "short_name": "رفيف العود",
+  "description": "متجر العبايات الفاخرة في الرياض — تشكيلات راقية بتصاميم حصرية",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#2C1810",
+  "orientation": "portrait-primary",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["shopping", "fashion", "lifestyle"],
+  "id": "rf-perfume-sa",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/rf-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/rf-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
