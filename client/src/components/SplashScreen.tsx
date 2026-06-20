@@ -36,7 +36,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
         >
           <video
             ref={videoRef}
-            src="/rf-splash.mov"
+            src="/myla-splash.mov"
             muted
             playsInline
             autoPlay

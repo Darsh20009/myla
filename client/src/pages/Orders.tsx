@@ -657,7 +657,7 @@ export default function Orders() {
             <h1 className="font-black text-6xl md:text-8xl uppercase tracking-tighter leading-none">طلباتي</h1>
             <div className="flex items-center gap-4 mt-6 mb-6">
               <div className="h-[3px] w-16 bg-primary rounded-full" />
-              <p className="text-black/30 font-black text-[11px] uppercase tracking-[0.4em]">RF PERFUME • LIVE TRACKING</p>
+              <p className="text-black/30 font-black text-[11px] uppercase tracking-[0.4em]">Myla • LIVE TRACKING</p>
             </div>
           </motion.div>
         </header>

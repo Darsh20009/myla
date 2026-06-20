@@ -17,8 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RiyalSign } from "@/components/RiyalSign";
-const logoImg = "/rf-logo.png";
-const logoDarkImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
+const logoDarkImg = "/myla-logo.png";
 
 const statusColors: Record<string, string> = {
   pending:     "bg-amber-400/10 text-amber-400 border-amber-400/20",

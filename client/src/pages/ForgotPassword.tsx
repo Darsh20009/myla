@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2, ShieldCheck, Lock, Eye, EyeOff, Mail, KeyRound, Phone, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const logoImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
 
 type Step = "phone" | "otp" | "verify" | "reset" | "done";
 

@@ -569,7 +569,7 @@ export default function Checkout() {
       <header className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <Link href="/">
-            <span className="font-black text-lg tracking-tight cursor-pointer">RF PERFUME</span>
+            <span className="font-black text-lg tracking-tight cursor-pointer">Myla</span>
           </Link>
           <div className="flex items-center gap-1.5 text-xs font-bold text-green-600">
             <ShieldCheck className="h-4 w-4" />

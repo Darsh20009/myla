@@ -25,12 +25,12 @@ export const SITE = {
 } as const;
 
 export const ASSETS = {
-  LOGO_SQUARE:  `${SITE.URL}/rf-logo.png`,
-  LOGO_LIGHT:   `${SITE.URL}/rf-logo.png`,
-  LOGO_DARK:    `${SITE.URL}/rf-logo.png`,
-  BRAND_LOGO:   `${SITE.URL}/rf-logo.png`,
-  EMAIL_BANNER: `${SITE.URL}/rf-logo.png`,
-  OG_COVER:     `${SITE.URL}/rf-logo.png`,
+  LOGO_SQUARE:  `${SITE.URL}/myla-logo.png`,
+  LOGO_LIGHT:   `${SITE.URL}/myla-logo.png`,
+  LOGO_DARK:    `${SITE.URL}/myla-logo.png`,
+  BRAND_LOGO:   `${SITE.URL}/myla-logo.png`,
+  EMAIL_BANNER: `${SITE.URL}/myla-logo.png`,
+  OG_COVER:     `${SITE.URL}/myla-logo.png`,
 } as const;
 
 export const ROUTES = {

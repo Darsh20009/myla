@@ -3,8 +3,8 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Printer } from "lucide-react";
 import { RiyalSign } from "@/components/RiyalSign";
-const logoDark = "/rf-logo.png";
-const logoWhite = "/rf-logo.png";
+const logoDark = "/myla-logo.png";
+const logoWhite = "/myla-logo.png";
 
 interface ZatcaPayload {
   qr: string;

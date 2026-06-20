@@ -1820,7 +1820,7 @@ export default function PosSystem() {
       <header className="flex flex-col sm:flex-row items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b bg-card gap-2 sm:gap-0">
         <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
           <div className="flex items-center gap-2">
-            <img src="/rf-logo.png" alt="Myla" className="h-9 sm:h-11 w-auto object-contain" />
+            <img src="/myla-logo.png" alt="Myla" className="h-9 sm:h-11 w-auto object-contain" />
           </div>
           
           <div className="flex items-center gap-2 sm:hidden">

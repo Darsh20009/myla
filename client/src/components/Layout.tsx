@@ -1,5 +1,5 @@
-const logoImg = "/rf-logo.png";
-const logoDarkImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
+const logoDarkImg = "/myla-logo.png";
 import { ReactNode, useEffect, useState, lazy, Suspense, createContext, useContext } from "react";
 import { GlobalFloatingBeans } from "@/components/GlobalFloatingBeans";
 import { Link, useLocation } from "wouter";

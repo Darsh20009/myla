@@ -1,7 +1,7 @@
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
-const logoImg = "/rf-logo.png";
-const logoDarkImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
+const logoDarkImg = "/myla-logo.png";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthProviders } from "@/hooks/use-auth-providers";
 import { useQuery } from "@tanstack/react-query";

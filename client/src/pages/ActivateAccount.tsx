@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2, ShieldCheck, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const logoImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
 
 export default function ActivateAccount() {
   const [, setLocation] = useLocation();

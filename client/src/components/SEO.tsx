@@ -26,7 +26,7 @@ interface SEOProps {
 const BASE_URL = "https://myla.sa";
 const BRAND = "Myla — Abayas by HMBL";
 const BRAND_AR = "Myla — عبايات HMBL";
-const DEFAULT_IMG = `${BASE_URL}/rf-logo.png`;
+const DEFAULT_IMG = `${BASE_URL}/myla-logo.png`;
 const PHONE = "+966507378047";
 const ADDRESS = "الرياض، المملكة العربية السعودية";
 const INSTAGRAM = "https://www.instagram.com/myla.abayas";
@@ -121,11 +121,11 @@ export function SEO({
       "url": BASE_URL,
       "logo": {
         "@type": "ImageObject",
-        "url": `${BASE_URL}/rf-logo.png`,
+        "url": `${BASE_URL}/myla-logo.png`,
         "width": 200,
         "height": 200,
       },
-      "image": `${BASE_URL}/rf-logo.png`,
+      "image": `${BASE_URL}/myla-logo.png`,
       "email": "info@myla.sa",
       "telephone": PHONE,
       "address": {
@@ -173,7 +173,7 @@ export function SEO({
       "@type": ["ClothingStore", "OnlineStore"],
       "@id": `${BASE_URL}/#localbusiness`,
       "name": "Myla — Abayas by HMBL",
-      "image": `${BASE_URL}/rf-logo.png`,
+      "image": `${BASE_URL}/myla-logo.png`,
       "url": BASE_URL,
       "telephone": PHONE,
       "email": "info@myla.sa",
@@ -229,7 +229,7 @@ export function SEO({
         "brand": {
           "@type": "Brand",
           "name": productSchema.brand || "Myla",
-          "logo": `${BASE_URL}/rf-logo.png`,
+          "logo": `${BASE_URL}/myla-logo.png`,
         },
         "sku": productSchema.sku,
         "offers": {

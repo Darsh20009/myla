@@ -13,7 +13,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { useState, useRef, useEffect } from "react";
 
-const logoDarkImg = "/rf-logo.png";
+const logoDarkImg = "/myla-logo.png";
 
 export default function Register() {
   const { register, isRegistering, user } = useAuth();

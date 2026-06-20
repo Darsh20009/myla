@@ -39,8 +39,8 @@ import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminPixels from "@/pages/admin/AdminPixels";
 import { EmployeeAssistant } from "@/components/admin/EmployeeAssistant";
 import { NotificationBell } from "@/components/notification-bell";
-const logoImg = "/rf-logo.png";
-const logoDarkImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
+const logoDarkImg = "/myla-logo.png";
 import {
   BarChart,
   Bar,
@@ -196,7 +196,7 @@ const CreativeDashboardBanner = memo(({ totalOrders, totalRevenue }: { totalOrde
             </div>
             <div className="relative">
               <div className="absolute inset-0 rounded-2xl bg-[#E8637A]/30 blur-xl" />
-              <img src="/rf-logo.png" alt="Myla" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(201,169,110,0.5)]" />
+              <img src="/myla-logo.png" alt="Myla" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(201,169,110,0.5)]" />
             </div>
           </div>
 

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff, X } from "lucide-react";
 import { useLocation } from "wouter";
 
-const logoImg = "/rf-logo.png";
+const logoImg = "/myla-logo.png";
 
 declare global {
   interface Window {

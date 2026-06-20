@@ -193,7 +193,7 @@ function buildReceipt(tx: Transaction): TransactionReceipt {
     authCode: tx.status === "approved" ? generateAuthCode() : "",
     rrn: generateRRN(),
     terminalId: "TID-QRX-001",
-    merchantId: "RF-PERFUME-SA",
+    merchantId: "MYLA-SA",
     timestamp: new Date().toISOString(),
     amount: tx.amount,
     currency: tx.currency,

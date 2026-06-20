@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@shared/schema";
 import { RiyalSign } from "@/components/RiyalSign";
 
-const LOGO_LIGHT = "/rf-logo.png";
+const LOGO_LIGHT = "/myla-logo.png";
 
 // ── Subscription expiry: AI advisor disabled after this date ──────────────────
 const ADVISOR_EXPIRY = new Date("2026-08-04T00:00:00.000Z");

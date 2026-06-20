@@ -61,10 +61,10 @@ export function useBlockInspect() {
     document.addEventListener("dragstart", handleDragStart);
 
     const styleEl = document.createElement("style");
-    styleEl.id = "rf-inspect-block-style";
+    styleEl.id = "myla-inspect-block-style";
     styleEl.textContent = `
       img { -webkit-user-drag: none; user-select: none; }
-      .rf-no-select { user-select: none; -webkit-user-select: none; }
+      .myla-no-select { user-select: none; -webkit-user-select: none; }
     `;
     document.head.appendChild(styleEl);
 

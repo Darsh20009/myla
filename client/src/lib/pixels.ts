@@ -26,7 +26,7 @@ export function initPixels(config: PixelConfig) {
 
   if (config.facebookPixelId) {
     injectInlineScript(
-      "rf-fb-pixel",
+      "myla-fb-pixel",
       `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
@@ -38,7 +38,7 @@ fbq('init','${config.facebookPixelId}');fbq('track','PageView');`,
 
   if (config.tiktokPixelId) {
     injectInlineScript(
-      "rf-ttq-pixel",
+      "myla-ttq-pixel",
       `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];
 ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];
 ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};
@@ -54,7 +54,7 @@ ttq.load('${config.tiktokPixelId}');ttq.page();}(window,document,'ttq');`,
 
   if (config.snapchatPixelId) {
     injectInlineScript(
-      "rf-snap-pixel",
+      "myla-snap-pixel",
       `(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){
 a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
 a.queue=[];var s='script',r=t.createElement(s);r.async=!0;
@@ -66,7 +66,7 @@ snaptr('init','${config.snapchatPixelId}',{'user_email':''});snaptr('track','PAG
 
   if (config.twitterPixelId) {
     injectInlineScript(
-      "rf-twq-pixel",
+      "myla-twq-pixel",
       `!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):
 s.queue.push(arguments)},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,
 u.src='https://static.ads-twitter.com/uwt.js',a=t.getElementsByTagName(n)[0],
@@ -76,7 +76,7 @@ a.parentNode.insertBefore(u,a))}(window,document,'script');twq('config','${confi
 
   if (config.gtmId) {
     injectInlineScript(
-      "rf-gtm",
+      "myla-gtm",
       `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
 var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
 j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;

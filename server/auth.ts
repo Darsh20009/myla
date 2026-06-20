@@ -51,7 +51,7 @@ export function setupAuth(app: Express) {
   const useCrossSiteCookie = isReplit || isProd;
 
   const sessionSettings: session.SessionOptions = {
-    name: "rf.sid",
+    name: "myla.sid",
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
