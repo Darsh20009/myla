@@ -96,15 +96,17 @@ export default function Home() {
           HERO — full-screen landing section
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section className="relative w-full min-h-[100svh] flex items-center justify-center overflow-hidden">
-        {/* Hero background image (video will replace this) */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&h=1080&fit=crop&auto=format&q=80')`,
-          }}
+        {/* Hero background video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src="/hero-video.mov"
         />
         {/* Overlay */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(44,24,16,0.7) 0%, rgba(44,24,16,0.55) 50%, rgba(44,24,16,0.8) 100%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(10,5,3,0.55) 0%, rgba(10,5,3,0.35) 50%, rgba(10,5,3,0.72) 100%)" }} />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center text-center px-6 py-24">
@@ -116,7 +118,7 @@ export default function Home() {
           >
             <img
               src={mylaLogoPath}
-              alt="RF Perfume"
+              alt="شعار المتجر"
               className="w-64 md:w-80 lg:w-96 max-w-[75vw] object-contain drop-shadow-2xl"
             />
           </motion.div>
