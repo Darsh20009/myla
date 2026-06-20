@@ -692,7 +692,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
                 <TabbyLogo className="h-6" />
               </div>
               <div className="h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm cursor-default" title="Tamara">
-                <TamaraLogo className="h-10" />
+                <TamaraLogo className="h-6" />
               </div>
             </div>
           </div>
