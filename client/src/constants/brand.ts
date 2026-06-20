@@ -176,7 +176,7 @@ export const SHADOWS = {
 export const BRAND_VOICE = {
   taglines: {
     primary: 'عبايات راقية من قلب الرياض',
-    secondary: 'RF Perfume — Abayas by HMBL, Riyadh',
+    secondary: 'Myla — Abayas by HMBL, Riyadh',
     tertiary: 'أناقة بلا حدود · Elegance Without Limits',
   },
   

@@ -36,7 +36,7 @@ const sections = [
     icon: Phone,
     title: "كيفية طلب الإرجاع",
     content:
-      "للبدء بعملية الإرجاع أو الاستبدال، تواصل معنا عبر: واتساب 966507378047+ أو البريد الإلكتروني info@rfperfume.sa مع ذكر رقم الطلب وسبب الإرجاع وصورة للمنتج. سيتواصل معك فريقنا خلال ٢٤ ساعة لإتمام الإجراءات.",
+      "للبدء بعملية الإرجاع أو الاستبدال، تواصل معنا عبر واتساب 966507378047+ مع ذكر رقم الطلب وسبب الإرجاع وصورة للمنتج. سيتواصل معك فريقنا خلال ٢٤ ساعة لإتمام الإجراءات.",
   },
 ];
 
@@ -102,7 +102,7 @@ export default function ReturnPolicy() {
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
               تسري هذه السياسة على جميع مشتريات متجر رفيف العود الإلكتروني والفروع. نحتفظ بحق تعديل هذه السياسة في أي وقت.
             </p>
-            <p className="text-xs text-[#C9A882] font-bold mt-3 tracking-widest uppercase">RF Perfume — رفيف العود</p>
+            <p className="text-xs text-[#C9A882] font-bold mt-3 tracking-widest uppercase">Myla — Abayas by HMBL</p>
           </div>
         </div>
       </div>

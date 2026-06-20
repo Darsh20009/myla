@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CardBrandsLogo, STCPayLogo, TabbyLogo, TamaraLogo, ApplePayLogo } from "@/components/payment/PaymentBrands";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { RiyalSign } from "@/components/RiyalSign";
 
@@ -68,9 +69,9 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
 
   useEffect(() => {
     if (user?.role === "admin" && pendingAdminCount > 0) {
-      document.title = `(${pendingAdminCount}) لوحة التحكم | RF Perfume`;
+      document.title = `(${pendingAdminCount}) لوحة التحكم | Myla`;
     } else {
-      document.title = "RF Perfume — Abayas by HMBL";
+      document.title = "Myla — Abayas by HMBL";
     }
   }, [pendingAdminCount, user]);
 
@@ -139,7 +140,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
             href="/"
             className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center hover:opacity-80 active:scale-95 transition-all"
           >
-            <img src={logoImg} alt="RF Perfume" className="h-10 w-auto object-contain logo-transparent" />
+            <img src={logoImg} alt="Myla" className="h-10 w-auto object-contain logo-transparent" />
           </Link>
 
           <div className="flex items-center gap-2 md:gap-4">
@@ -154,7 +155,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
 
                   {/* ── Header ─────────────────────────────────── */}
                   <div className="flex items-center justify-between px-5 pt-5 pb-4">
-                    <img src={logoImg} alt="RF Perfume" className="h-9 w-auto object-contain logo-transparent" />
+                    <img src={logoImg} alt="Myla" className="h-9 w-auto object-contain logo-transparent" />
                     <button
                       onClick={closeSidebar}
                       className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors active:scale-95"
@@ -346,8 +347,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
 
                     {/* Footer */}
                     <div className="border-t border-border pt-4 pb-8 text-center">
-                      <p className="text-[10px] text-muted-foreground font-bold">© 2026 RF Perfume — رفيف العود</p>
-                      <p className="text-[9px] text-muted-foreground/50 mt-0.5">rfperfume.sa</p>
+                      <p className="text-[10px] text-muted-foreground font-bold">© 2026 Myla — Abayas by HMBL</p>
                     </div>
                   </div>
 
@@ -356,7 +356,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
             </Sheet>
 
             <Link href="/" className="hidden md:flex items-center py-1 hover:opacity-80 transition-opacity active:scale-95 transition-transform">
-              <img src={logoImg} alt="RF Perfume" className="h-10 md:h-12 w-auto object-contain" />
+              <img src={logoImg} alt="Myla" className="h-10 md:h-12 w-auto object-contain" />
             </Link>
           </div>
 
@@ -553,7 +553,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
         <div className="container grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-12 px-4">
           <div className="col-span-2 md:col-span-1 space-y-3 sm:space-y-4">
             <Link href="/" className="flex items-center">
-              <img src={logoImg} alt="RF Perfume" className="h-10 sm:h-12 md:h-14 w-auto object-contain logo-transparent" />
+              <img src={logoImg} alt="Myla" className="h-10 sm:h-12 md:h-14 w-auto object-contain logo-transparent" />
             </Link>
             <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
               {t('footerTagline')}
@@ -679,23 +679,20 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
           <div className="mt-6 sm:mt-10 md:mt-12 pt-5 sm:pt-7 md:pt-8 border-t border-gray-200">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-700 mb-3 sm:mb-5">{t('availablePayments')}</p>
             <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3">
-              <div className="h-10 px-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center  transition-transform shadow-sm cursor-default" title="Mada / Visa / Mastercard / Amex">
-                <img src="/uploads/card-brands-logo.png" alt="Card Brands" className="h-7 w-auto object-contain" />
+              <div className="h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center shadow-sm cursor-default" title="Visa · Mastercard · مدى">
+                <CardBrandsLogo className="h-7" />
               </div>
-              <div className="h-10 px-4 rounded-xl bg-gray-900 flex items-center gap-1.5  transition-transform shadow-sm cursor-default" title="Apple Pay">
-                <svg viewBox="0 0 20 24" className="h-4 w-auto fill-white flex-shrink-0">
-                  <path d="M13.23 3.02C14.28 1.71 14.94 0 14.94 0s-1.71.28-2.76 1.59c-.96 1.21-1.57 2.86-1.47 3.64.97.07 2.53-.3 3.52-2.21zM16.44 8.74c-1.77-.07-3.28 1-4.13 1-.85 0-2.14-.94-3.55-.91-1.82.03-3.5 1.06-4.43 2.71-1.9 3.28-.49 8.15 1.35 10.82.9 1.31 1.97 2.77 3.38 2.72 1.35-.05 1.86-.87 3.49-.87 1.62 0 2.09.87 3.51.84 1.46-.03 2.39-1.32 3.29-2.63.97-1.47 1.37-2.9 1.4-2.97-.03-.01-2.71-1.04-2.74-4.13-.03-2.59 2.11-3.83 2.21-3.9-1.2-1.78-3.08-1.68-3.78-1.68z"/>
-                </svg>
-                <span className="text-white font-semibold text-sm">Pay</span>
+              <div className="h-10 px-3 rounded-xl bg-black flex items-center shadow-sm cursor-default" title="Apple Pay">
+                <ApplePayLogo className="h-7" />
               </div>
-              <div className="h-10 px-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center  transition-transform shadow-sm cursor-default" title="STC Pay">
-                <img src="/uploads/stcpay-logo.png" alt="STC Pay" className="h-7 w-auto object-contain" />
+              <div className="h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center shadow-sm cursor-default" title="STC Pay">
+                <STCPayLogo className="h-7" />
               </div>
-              <div className="h-10 px-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center  transition-transform shadow-sm cursor-default" title="Tabby">
-                <img src="/uploads/tabby-logo.png" alt="Tabby" className="h-7 w-auto object-contain" />
+              <div className="h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center shadow-sm cursor-default" title="Tabby">
+                <TabbyLogo className="h-6" />
               </div>
-              <div className="h-10 px-1 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden transition-transform shadow-sm cursor-default" title="Tamara">
-                <img src="/uploads/tamara-logo.png" alt="Tamara" className="h-20 w-auto object-contain" />
+              <div className="h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm cursor-default" title="Tamara">
+                <TamaraLogo className="h-10" />
               </div>
             </div>
           </div>
@@ -724,10 +721,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
 
           {/* Copyright */}
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-xs sm:text-sm text-gray-700">© 2026 RF Perfume — Abayas by HMBL. {t('allRightsReserved')}.</p>
-            <p className="mt-2 text-[10px] sm:text-xs text-gray-700">
-              rfperfume.sa
-            </p>
+            <p className="text-xs sm:text-sm text-gray-700">© 2026 Myla — Abayas by HMBL. {t('allRightsReserved')}.</p>
           </div>
         </div>
       </footer>}

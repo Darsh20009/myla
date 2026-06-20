@@ -163,11 +163,11 @@ export function PWAPrompt() {
       {showInstallBanner && (
         <div className="pointer-events-auto mx-3 mb-3 rounded-2xl bg-background border border-border shadow-2xl flex items-center gap-3 px-4 py-3 animate-in slide-in-from-bottom-4 duration-300">
           <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center shrink-0">
-            <img src="/icons/icon-192x192.png" alt="RF Perfume" className="w-8 h-8 rounded-lg object-contain" />
+            <img src="/icons/icon-192x192.png" alt="Myla" className="w-8 h-8 rounded-lg object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-black text-foreground leading-tight">
-              {ar ? "حمّل تطبيق RF Perfume" : "Install RF Perfume App"}
+              {ar ? "حمّل تطبيق Myla" : "Install Myla App"}
             </p>
             <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
               {ar ? "تجربة أسرع وأفضل على جهازك" : "Faster & better on your device"}

@@ -158,7 +158,7 @@ export default function OrderSuccess() {
             <p className="text-sm sm:text-base text-muted-foreground font-bold">
               {isPaymentFailed
                 ? <>تم إلغاء عملية الدفع أو رفضها. يمكنك المحاولة بطريقة أخرى.</>
-                : <>شكراً لشرائك من <span className="text-primary">RF Perfume</span> — طلبك تأكد ووصلنا.</>
+                : <>شكراً لشرائك من <span className="text-primary">Myla</span> — طلبك تأكد ووصلنا.</>
               }
             </p>
           </motion.div>

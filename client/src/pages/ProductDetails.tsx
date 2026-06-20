@@ -369,9 +369,9 @@ export default function ProductDetails() {
   return (
     <Layout>
       <SEO
-        title={`${product.name}${(product as any).nameEn ? ` | ${(product as any).nameEn}` : ""} — RF Perfume`}
-        description={`اشتري ${product.name} من متجر RF Perfume. ${(product as any).description ? String((product as any).description).slice(0, 120) : "عبايات راقية فاخرة"} — توصيل سريع لجميع مدن السعودية.`}
-        keywords={`${product.name}, ${(product as any).nameEn || ""}, عبايات راقية, RF Perfume, رفيف العود, عبايات سعودية, عبايات فاخرة, ${product.name} سعر`}
+        title={`${product.name}${(product as any).nameEn ? ` | ${(product as any).nameEn}` : ""} — Myla`}
+        description={`اشتري ${product.name} من متجر Myla. ${(product as any).description ? String((product as any).description).slice(0, 120) : "عبايات راقية فاخرة"} — توصيل سريع لجميع مدن السعودية.`}
+        keywords={`${product.name}, ${(product as any).nameEn || ""}, عبايات راقية, Myla, رفيف العود, عبايات سعودية, عبايات فاخرة, ${product.name} سعر`}
         canonical={`/products/${product.id || (product as any)._id}`}
         ogImage={(product.images && product.images[0]) || undefined}
         ogType="product"
@@ -382,7 +382,7 @@ export default function ProductDetails() {
           image: (product.images && product.images[0]) || undefined,
           price: currentPrice,
           sku: selectedVariant?.sku || (product as any).sku,
-          brand: "RF Perfume — Abayas by HMBL",
+          brand: "Myla — Abayas by HMBL",
           availability: stockCount > 0 ? "InStock" : "OutOfStock",
         }}
       />

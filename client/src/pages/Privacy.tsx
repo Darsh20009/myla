@@ -36,7 +36,7 @@ const sections = [
     icon: Mail,
     title: "التواصل معنا",
     content:
-      "إن كان لديك أي استفسار حول سياسة الخصوصية أو طريقة تعاملنا مع بياناتك، يُرجى التواصل معنا عبر: البريد الإلكتروني info@rfperfume.sa أو عبر واتساب على الرقم 966507378047+.",
+      "إن كان لديك أي استفسار حول سياسة الخصوصية أو طريقة تعاملنا مع بياناتك، يُرجى التواصل معنا عبر واتساب على الرقم 966507378047+.",
   },
 ];
 
@@ -83,9 +83,9 @@ export default function Privacy() {
 
           <div className="mt-10 p-6 bg-[#6B3F2A]/3 border border-[#E8637A]/20 rounded-2xl text-center">
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              تُطبَّق هذه السياسة على جميع خدمات ومنصات RF Perfume الرقمية. آخر تحديث: ٢٠٢٦
+              تُطبَّق هذه السياسة على جميع خدمات ومنصاتنا الرقمية. آخر تحديث: ٢٠٢٦
             </p>
-            <p className="text-xs text-[#E8637A] font-bold mt-3 tracking-widest uppercase">RF Perfume — RF Perfume</p>
+            <p className="text-xs text-[#E8637A] font-bold mt-3 tracking-widest uppercase">Myla — Abayas by HMBL</p>
           </div>
         </div>
       </div>

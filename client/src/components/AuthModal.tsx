@@ -314,7 +314,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
         <DialogTitle className="sr-only">{t("signIn")}</DialogTitle>
 
         <div className="px-6 pt-6 pb-2 text-center">
-          <img src={logoImg} alt="RF Perfume" className="h-14 w-auto mx-auto mb-3 object-contain" />
+          <img src={logoImg} alt="Myla" className="h-14 w-auto mx-auto mb-3 object-contain" />
           <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-[#E8637A] to-transparent mx-auto" />
         </div>
 

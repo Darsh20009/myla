@@ -24,8 +24,8 @@ interface SEOProps {
 }
 
 const BASE_URL = "https://rfperfume.sa";
-const BRAND = "RF Perfume — رفيف العود";
-const BRAND_AR = "رفيف العود — عبايات HMBL";
+const BRAND = "Myla — Abayas by HMBL";
+const BRAND_AR = "Myla — عبايات HMBL";
 const DEFAULT_IMG = `${BASE_URL}/rf-logo.png`;
 const PHONE = "+966507378047";
 const ADDRESS = "الرياض، المملكة العربية السعودية";
@@ -85,7 +85,7 @@ export function SEO({
 
     setMeta("description", fullDescription);
     setMeta("keywords", keywords ||
-      "رفيف العود, RF Perfume, عبايات, عبايات فاخرة, عبايات سعودية, عبايات رياض, قفاطين, أطقم نسائية, عباية, HMBL, abayas, luxury abayas, Saudi Arabia, Riyadh, rf perfume abayas");
+      "رفيف العود, Myla, عبايات, عبايات فاخرة, عبايات سعودية, عبايات رياض, قفاطين, أطقم نسائية, عباية, HMBL, abayas, luxury abayas, Saudi Arabia, Riyadh, myla abayas");
     setLink("canonical", url);
     setMeta("robots", noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1", "name");
     setMeta("theme-color", "#2C1810", "name");
@@ -111,13 +111,13 @@ export function SEO({
     setMeta("twitter:site", "@rfperfume", "name");
     setMeta("twitter:creator", "@rfperfume", "name");
 
-    // ── Organization schema (AEO: who is RF Perfume?) ──────────────────────────────
+    // ── Organization schema ──────────────────────────────────────────────────────
     setJsonLd("ld-org", {
       "@context": "https://schema.org",
       "@type": "Organization",
       "@id": `${BASE_URL}/#organization`,
-      "name": "RF Perfume",
-      "alternateName": ["رفيف العود", "RF Perfume Abayas", "RF Perfume HMBL", "رفيف العود عبايات"],
+      "name": "Myla — Abayas by HMBL",
+      "alternateName": ["رفيف العود", "Myla Abayas", "Myla HMBL", "رفيف العود عبايات"],
       "url": BASE_URL,
       "logo": {
         "@type": "ImageObject",
@@ -153,7 +153,7 @@ export function SEO({
       "@type": "WebSite",
       "@id": `${BASE_URL}/#website`,
       "url": BASE_URL,
-      "name": "RF Perfume — رفيف العود عبايات",
+      "name": "Myla — Abayas by HMBL",
       "description": fullDescription,
       "inLanguage": "ar",
       "potentialAction": {
@@ -172,7 +172,7 @@ export function SEO({
       "@context": "https://schema.org",
       "@type": ["ClothingStore", "OnlineStore"],
       "@id": `${BASE_URL}/#localbusiness`,
-      "name": "RF Perfume — رفيف العود عبايات",
+      "name": "Myla — Abayas by HMBL",
       "image": `${BASE_URL}/rf-logo.png`,
       "url": BASE_URL,
       "telephone": PHONE,
@@ -228,7 +228,7 @@ export function SEO({
         "image": productSchema.image || img,
         "brand": {
           "@type": "Brand",
-          "name": productSchema.brand || "RF Perfume",
+          "name": productSchema.brand || "Myla",
           "logo": `${BASE_URL}/rf-logo.png`,
         },
         "sku": productSchema.sku,
@@ -240,7 +240,7 @@ export function SEO({
           "availability": `https://schema.org/${productSchema.availability || "InStock"}`,
           "seller": {
             "@type": "Organization",
-            "name": "RF Perfume",
+            "name": "Myla",
             "@id": `${BASE_URL}/#organization`,
           },
           "priceValidUntil": new Date(new Date().getFullYear() + 1, 11, 31).toISOString().split("T")[0],

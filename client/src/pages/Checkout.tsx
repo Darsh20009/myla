@@ -83,7 +83,7 @@ export default function Checkout() {
       const { latitude, longitude } = pos.coords;
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ar`,
-        { headers: { "User-Agent": "RF Perfume/1.0" } }
+        { headers: { "User-Agent": "Myla/1.0" } }
       );
       if (!res.ok) throw new Error("geocode_fail");
       const data = await res.json();

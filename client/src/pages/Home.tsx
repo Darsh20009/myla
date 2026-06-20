@@ -130,7 +130,7 @@ export default function Home() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-[#E8D5B7] text-sm md:text-base tracking-[0.35em] uppercase font-light mt-4 mb-10"
           >
-            {isRtl ? "عبايات راقية · الرياض" : "Luxury Abayas · Riyadh"}
+            {isRtl ? "عبايات أنيقة، قصّات مريحة وأقمشة ستعشقينها" : "Elegant abayas, comfortable cuts & fabrics you'll fall in love with"}
           </motion.p>
 
           {/* CTA Buttons */}

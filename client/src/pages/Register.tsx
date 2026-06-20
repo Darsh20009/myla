@@ -101,7 +101,7 @@ export default function Register() {
       <div className="w-full max-w-md space-y-8 relative z-10">
         <div className="text-center">
           <Link href="/">
-            <img src={logoDarkImg} alt="RF Perfume" className="h-20 w-auto mx-auto mb-4 cursor-pointer object-contain" />
+            <img src={logoDarkImg} alt="Myla" className="h-20 w-auto mx-auto mb-4 cursor-pointer object-contain" />
           </Link>
           <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#E8637A] to-transparent mx-auto mb-4" />
           <p className="text-slate-800 text-sm">

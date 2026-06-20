@@ -119,7 +119,7 @@ export default function Invoice() {
   }
 
   const refNum = (order.id || "").slice(-8).toUpperCase();
-  const sellerName = zatca?.sellerName || "RF Perfume — رفيف العود";
+  const sellerName = zatca?.sellerName || "Myla — Abayas by HMBL";
   const vatNumber = zatca?.vatNumber || "";
 
   return (
@@ -198,7 +198,7 @@ export default function Invoice() {
             <div className="shrink-0 flex flex-col items-center gap-2">
               <img
                 src={logoWhite}
-                alt="RF Perfume"
+                alt="Myla"
                 className="h-20 w-auto object-contain drop-shadow-[0_2px_8px_rgba(223,179,105,0.3)]"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = logoDark; }}
               />

@@ -45,7 +45,7 @@ export default function PaymobResult() {
             </div>
             <h2 className="text-xl font-black text-green-800">تمت عملية الدفع بنجاح!</h2>
             <p className="text-sm text-gray-800 font-bold">
-              شكراً لتسوقك من RF Perfume. سيتم تجهيز طلبك وشحنه قريباً.
+              شكراً لتسوقك من Myla. سيتم تجهيز طلبك وشحنه قريباً.
             </p>
             {orderId && (
               <p className="text-xs text-gray-700 font-bold">
