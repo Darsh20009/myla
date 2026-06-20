@@ -96,7 +96,9 @@ export default function Home() {
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section style={{ background: "#826555" }}>
         {/* ── Video — full viewport, no overlay, no blur ── */}
-        <div style={{ width: "100%", background: "#826555", display: "flex", justifyContent: "center", overflow: "hidden" }}>
+        <div
+          style={{ width: "100%", background: "#826555", display: "flex", justifyContent: "center", overflow: "hidden" }}
+          className="bg-[#2e1e16]">
           <video
             autoPlay
             muted
@@ -152,7 +154,6 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
-
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           TRUST STRIP
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -178,7 +179,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           FLASH DEALS
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -204,8 +204,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           NEW ARRIVALS
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -253,8 +251,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           BEST SELLERS
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -301,9 +297,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-
-
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           NEWSLETTER
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
