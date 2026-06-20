@@ -94,11 +94,10 @@ export default function Home() {
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           HERO — full-screen landing section
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section style={{ background: "#826555" }}>
+      <section style={{ background: "linear-gradient(to bottom, #1A0E08 0%, #5a3422 15%, #826555 40%, #826555 72%, #FAF7F2 100%)" }}>
         {/* ── Video — full viewport, no overlay, no blur ── */}
         <div
-          style={{ width: "100%", background: "#826555", display: "flex", justifyContent: "center", overflow: "hidden" }}
-          className="bg-[#2e1e16]">
+          style={{ width: "100%", background: "transparent", display: "flex", justifyContent: "center", overflow: "hidden" }}>
           <video
             autoPlay
             muted
@@ -111,7 +110,7 @@ export default function Home() {
 
         {/* ── Content below the video ── */}
         <div
-          style={{ background: "#826555" }}
+          style={{ background: "transparent" }}
           className="flex flex-col items-center text-center px-6 py-10 md:py-14"
         >
           {/* Tagline */}
