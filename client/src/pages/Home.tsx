@@ -95,49 +95,52 @@ export default function Home() {
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           HERO — full-screen landing section
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="relative w-full min-h-[100svh] flex items-center justify-center overflow-hidden">
-        {/* Hero background video */}
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          src="/hero-video.mov"
-        />
-        {/* Overlay */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(10,5,3,0.55) 0%, rgba(10,5,3,0.35) 50%, rgba(10,5,3,0.72) 100%)" }} />
+      <section style={{ background: "#0A0503" }}>
+        {/* ── Video — full viewport, no overlay, no blur ── */}
+        <div style={{ width: "100%", background: "#0A0503", display: "flex", justifyContent: "center", overflow: "hidden" }}>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{ display: "block", maxHeight: "100svh", width: "auto", maxWidth: "100%" }}
+            src="/hero-video.mov"
+          />
+        </div>
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center text-center px-6 py-24">
+        {/* ── Content below the video ── */}
+        <div
+          style={{ background: "#0A0503" }}
+          className="flex flex-col items-center text-center px-6 py-10 md:py-14"
+        >
           {/* Logo */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, ease: "easeOut" }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
           >
             <img
               src={mylaLogoPath}
               alt="شعار المتجر"
-              className="w-64 md:w-80 lg:w-96 max-w-[75vw] object-contain drop-shadow-2xl"
+              style={{ width: "260px", maxWidth: "65vw", objectFit: "contain" }}
             />
           </motion.div>
 
           {/* Tagline */}
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-[#E8D5B7] text-sm md:text-base tracking-[0.35em] uppercase font-light mt-4 mb-10"
+            transition={{ delay: 0.25, duration: 0.7 }}
+            style={{ color: "#C9A882", letterSpacing: "0.18em", marginTop: "16px", marginBottom: "32px", fontSize: "0.875rem" }}
           >
             {isRtl ? "عبايات أنيقة، قصّات مريحة وأقمشة ستعشقينها" : "Elegant abayas, comfortable cuts & fabrics you'll fall in love with"}
           </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65, duration: 0.7 }}
+            transition={{ delay: 0.45, duration: 0.6 }}
             className="flex flex-col sm:flex-row items-center gap-4"
           >
             <Link href="/products">
@@ -153,29 +156,13 @@ export default function Home() {
               <Link href="/login">
                 <button
                   data-testid="button-sign-in-hero"
-                  className="px-10 py-4 text-sm font-bold tracking-[0.25em] uppercase border transition-all duration-300 active:scale-95 hover:bg-white/10"
-                  style={{ borderColor: "#E8D5B7", color: "#E8D5B7" }}
+                  className="px-10 py-4 text-sm font-bold tracking-[0.25em] uppercase border transition-all duration-300 active:scale-95"
+                  style={{ borderColor: "#C9A882", color: "#C9A882" }}
                 >
                   {isRtl ? "تسجيل الدخول" : "Sign In"}
                 </button>
               </Link>
             )}
-          </motion.div>
-
-          {/* Scroll hint */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.6 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          >
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-              className="w-6 h-10 rounded-full border-2 border-[#C9A882]/50 flex items-start justify-center pt-2"
-            >
-              <div className="w-1.5 h-2 rounded-full bg-[#C9A882]" />
-            </motion.div>
           </motion.div>
         </div>
       </section>
