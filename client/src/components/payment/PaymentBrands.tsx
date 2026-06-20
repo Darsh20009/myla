@@ -1,7 +1,7 @@
-import tabbyImg from "@assets/image_1774356250671.png";
-import tamaraImg from "@assets/image_1774356262659.png";
-import stcPayImg from "@assets/image_1774356279079.png";
-import cardBrandsImg from "@assets/image_1774356309971.png";
+import tabbyImg from "@assets/Screenshot_2026-06-21_at_12.29.40_AM_1781991015291.png";
+import tamaraImg from "@assets/Screenshot_2026-06-21_at_12.28.57_AM_1781991015288.png";
+import stcPayImg from "@assets/Screenshot_2026-06-21_at_12.28.27_AM_1781991015287.png";
+import cardBrandsImg from "@assets/Screenshot_2026-06-21_at_12.31.02_AM_1781991087059.png";
 import alRajhiImg from "@assets/image_1774356329374.png";
 
 export function CardBrandsLogo({ className = "h-8" }: { className?: string }) {
