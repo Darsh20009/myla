@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@100;200;300;400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -112,9 +112,29 @@ img, video, iframe { max-width: 100%; height: auto; }
 
 /* ── Arabic base font ──────────────────────────────────────── */
 body {
-  font-family: 'Alexandria', sans-serif;
+  font-family: 'Tajawal', sans-serif;
   background-color: #FAF7F2;
   color: #1A0E08;
+  letter-spacing: 0;
+}
+
+/* ── Zero letter-spacing for ALL Arabic/RTL text — critical ── */
+[dir="rtl"],
+[dir="rtl"] *,
+:lang(ar),
+:lang(ar) * {
+  letter-spacing: 0 !important;
+  word-spacing: normal;
+}
+
+/* ── Override Tailwind tracking utilities in RTL context ────── */
+[dir="rtl"] .tracking-wide,
+[dir="rtl"] .tracking-wider,
+[dir="rtl"] .tracking-widest,
+[dir="rtl"] .tracking-tight,
+[dir="rtl"] .tracking-tighter,
+[dir="rtl"] [class*="tracking-"] {
+  letter-spacing: 0 !important;
 }
 
 /* ── Logo styling ──────────────────────────────────────────── */
