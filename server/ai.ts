@@ -159,7 +159,7 @@ export async function generateProductDescription(product: {
   targetAudience?: string;
   lang?: "ar" | "en" | "both";
 }) {
-  const prompt = `You are a professional Arabic copywriter for Myla, a Saudi luxury perfume & oud brand based in Riyadh.
+  const prompt = `You are a professional Arabic copywriter for Myla, a Saudi luxury abaya & women's fashion brand based in Riyadh.
 STRICT RULES:
 1. Write Arabic text ONLY in Arabic script — no Chinese, Japanese, Korean or any other language.
 2. Write English text ONLY in the Latin alphabet.
@@ -194,7 +194,7 @@ export async function getOutfitSuggestions(params: {
 }) {
   const lang = pickLang(params.lang, params.productName, params.occasion);
   const prompt = lang === "ar"
-    ? `أنت مستشار عطور وعود فاخر خبير في Myla. اقترح كيفية الاستمتاع بهذا العطر:
+    ? `أنت مستشارة أزياء فاخرة خبيرة في متجر Myla للعبايات. اقترحي كيفية تنسيق هذه القطعة:
 المنتج: ${params.productName} (${params.productCategory})
 ${params.occasion ? `المناسبة: ${params.occasion}` : ""}
 
@@ -207,7 +207,7 @@ ${params.occasion ? `المناسبة: ${params.occasion}` : ""}
   "style_tip": "نصيحة تنسيق أو إطلالة قيّمة",
   "avoid": "ما يجب تجنبه عند التنسيق"
 }`
-    : `You are an expert luxury perfume & oud advisor at Myla. Suggest how to enjoy this fragrance:
+    : `You are an expert luxury fashion advisor at Myla, a luxury abaya brand. Suggest how to style this piece:
 Product: ${params.productName} (${params.productCategory})
 ${params.occasion ? `Occasion: ${params.occasion}` : ""}
 

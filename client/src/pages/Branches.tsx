@@ -41,8 +41,8 @@ export default function Branches() {
 
   const title = language === "ar" ? "فروعنا" : "Our Branches";
   const subtitle = language === "ar"
-    ? "زورونا في أحد فروعنا للاستمتاع بتجربة العود الفاخرة"
-    : "Visit one of our boutiques and experience our signature oud collections";
+    ? "زورونا في أحد فروعنا للاستمتاع بتجربة العبايات الفاخرة"
+    : "Visit one of our boutiques and experience our signature abaya collections";
 
   return (
     <Layout>

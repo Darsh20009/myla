@@ -322,16 +322,16 @@ function detectIntent(msg: string): string {
 }
 
 const ARABIC_KEYWORDS = [
-  "عود", "مسك", "ورد", "عنبر", "بخور", "زعفران", "سانداوود", "ياسمين",
-  "فاخر", "خفيف", "قوي", "ثقيل", "منعش", "حلو", "دافئ", "بارد",
-  "رجال", "نساء", "للجميع", "يومي", "سهرة", "عمل", "زفاف", "هدية",
-  "صيف", "شتاء", "ليل", "نهار", "طويل", "ثبات",
+  "عباءة", "عبايات", "قفطان", "كلاسيك", "مطرّز", "كاجوال", "رسمي",
+  "فاخر", "خفيف", "أنيق", "راقٍ", "مريح", "بسيط", "مزخرف",
+  "نساء", "بنات", "يومي", "سهرة", "عمل", "زفاف", "هدية", "خطوبة",
+  "صيف", "شتاء", "قماش", "حرير", "شيفون", "كريب", "لون", "مقاس",
 ];
 const ENGLISH_KEYWORDS = [
-  "oud", "musk", "rose", "amber", "incense", "saffron", "sandalwood", "jasmine",
-  "luxury", "light", "strong", "heavy", "fresh", "sweet", "warm", "cool",
-  "men", "women", "unisex", "daily", "evening", "office", "wedding", "gift",
-  "summer", "winter", "night", "day", "longevity", "lasting",
+  "abaya", "abayas", "kaftan", "qaftan", "classic", "embroidered", "casual", "formal",
+  "luxury", "light", "elegant", "premium", "comfortable", "simple", "decorated",
+  "women", "girls", "daily", "evening", "office", "wedding", "gift", "engagement",
+  "summer", "winter", "fabric", "silk", "chiffon", "crepe", "color", "size",
 ];
 
 function extractKeywords(msg: string): string[] {

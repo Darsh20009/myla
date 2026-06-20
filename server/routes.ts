@@ -4946,10 +4946,10 @@ ${allUrls.map(u => `  <url>
       if (!product) return res.status(404).json({ message: "Product not found" });
 
       // Always-safe defaults (used if AI fails or returns nothing usable)
-      const defaultHighlightsAr = ["مكوّنات عطرية فاخرة مختارة بعناية", "تركيبة عطرية متقنة وثبات طويل", "تجربة عطرية استثنائية لا تُنسى"];
-      const defaultHighlightsEn = ["Carefully selected fine ingredients", "Masterfully blended for long-lasting projection", "An unforgettable fragrance experience"];
-      const defaultTaglineAr = product.description || `${product.name} — عطر فاخر من Myla`;
-      const defaultTaglineEn = product.descriptionEn || `${product.nameEn || product.name} — luxury perfume by Myla`;
+      const defaultHighlightsAr = ["أقمشة فاخرة مختارة بعناية", "تصميم أنيق يجمع بين الراحة والأناقة", "تجربة عباءات استثنائية لا تُنسى"];
+      const defaultHighlightsEn = ["Carefully selected luxury fabrics", "Elegant design combining comfort and style", "An unforgettable abaya experience"];
+      const defaultTaglineAr = product.description || `${product.name} — عباءة فاخرة من Myla`;
+      const defaultTaglineEn = product.descriptionEn || `${product.nameEn || product.name} — luxury abaya by Myla`;
 
       try {
         const { generateProductDescription } = await import("./ai");
