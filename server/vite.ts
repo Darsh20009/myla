@@ -9,20 +9,19 @@ import { nanoid } from "nanoid";
 const viteLogger = createLogger();
 
 export async function setupVite(server: Server, app: Express) {
+  // In the Replit preview environment the proxy blocks Vite's HMR WebSocket,
+  // causing a noisy 400 error. HMR is not required for the app to work, so
+  // we disable it when running on Replit dev and fall back to a shared-server
+  // WS setup elsewhere.
   const replitDomain = process.env.REPLIT_DEV_DOMAIN;
   const serverOptions = {
     middlewareMode: true,
     hmr: replitDomain
-      ? {
-          server,
-          clientPort: 443,
-          protocol: "wss",
-          host: replitDomain,
-        }
+      ? false
       : {
           server,
           clientPort: 443,
-          protocol: "wss",
+          protocol: "wss" as const,
         },
     allowedHosts: true as const,
   };

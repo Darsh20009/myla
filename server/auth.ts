@@ -30,6 +30,18 @@ const registerLimiter = rateLimit({
 
 const scryptAsync = promisify(scrypt);
 
+/**
+ * Returns the correct public base URL for OAuth callbacks.
+ * Priority: PUBLIC_SITE_URL env var → X-Forwarded-Host header → Host header.
+ * Always uses https:// since Replit and production both sit behind HTTPS proxies.
+ */
+function getBaseUrl(req: express.Request): string {
+  if (process.env.PUBLIC_SITE_URL) return process.env.PUBLIC_SITE_URL.replace(/\/$/, "");
+  const fwdHost = req.get("x-forwarded-host");
+  const host = fwdHost || req.get("host") || "localhost:5000";
+  return `https://${host}`;
+}
+
 export function setupAuth(app: Express) {
   let sessionSecret = process.env.SESSION_SECRET;
   if (!sessionSecret || sessionSecret.length < 32) {
@@ -436,7 +448,7 @@ export function setupAuth(app: Express) {
 
   app.get("/api/auth/google/init", (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID || "";
-    const redirectURI = process.env.GOOGLE_REDIRECT_URI || `https://${req.get("host")}/api/auth/google/callback`;
+    const redirectURI = process.env.GOOGLE_REDIRECT_URI || `${getBaseUrl(req)}/api/auth/google/callback`;
     res.json({ clientId, redirectURI, enabled: !!clientId });
   });
 
@@ -444,7 +456,7 @@ export function setupAuth(app: Express) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) return res.status(503).send("Google OAuth غير مفعّل");
 
-    const redirectURI = process.env.GOOGLE_REDIRECT_URI || `https://${req.get("host")}/api/auth/google/callback`;
+    const redirectURI = process.env.GOOGLE_REDIRECT_URI || `${getBaseUrl(req)}/api/auth/google/callback`;
     const state = randomBytes(16).toString("hex");
     (req.session as any).oauthState = state;
 
@@ -476,7 +488,7 @@ export function setupAuth(app: Express) {
 
       const clientId = process.env.GOOGLE_CLIENT_ID!;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-      const redirectURI = process.env.GOOGLE_REDIRECT_URI || `https://${req.get("host")}/api/auth/google/callback`;
+      const redirectURI = process.env.GOOGLE_REDIRECT_URI || `${getBaseUrl(req)}/api/auth/google/callback`;
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -624,7 +636,7 @@ export function setupAuth(app: Express) {
 
   app.get("/api/auth/apple/init", (req, res) => {
     const clientId = process.env.APPLE_CLIENT_ID || "";
-    const redirectURI = process.env.APPLE_REDIRECT_URI || `https://${req.get("host")}/api/auth/apple/callback`;
+    const redirectURI = process.env.APPLE_REDIRECT_URI || `${getBaseUrl(req)}/api/auth/apple/callback`;
     res.json({ clientId, redirectURI, enabled: !!clientId });
   });
 
@@ -632,7 +644,7 @@ export function setupAuth(app: Express) {
     const clientId = process.env.APPLE_CLIENT_ID;
     if (!clientId) return res.status(503).send("Apple Sign-In غير مفعّل");
 
-    const redirectURI = process.env.APPLE_REDIRECT_URI || `https://${req.get("host")}/api/auth/apple/callback`;
+    const redirectURI = process.env.APPLE_REDIRECT_URI || `${getBaseUrl(req)}/api/auth/apple/callback`;
     const state = randomBytes(16).toString("hex");
     const nonce = randomBytes(16).toString("hex");
     (req.session as any).appleOAuthState = state;
