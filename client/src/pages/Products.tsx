@@ -688,7 +688,7 @@ export default function Products() {
           {activeCategory === "all" && (
             <div className={`flex items-baseline justify-between mb-6 ${isRtl ? "flex-row-reverse" : ""}`}>
               <h1 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tighter">
-                {isRtl ? "الكولكشن الكامل" : "Full Collection"}
+                {isRtl ? "الكولكشن الكامل " : "Full Collection"}
               </h1>
               <span className="text-muted-foreground text-sm font-light">
                 {filteredProducts.length} {isRtl ? "منتج" : "items"}
