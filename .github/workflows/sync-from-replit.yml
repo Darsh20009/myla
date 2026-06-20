@@ -1,0 +1,19 @@
+name: Sync from Replit
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  confirm-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirm sync
+        run: |
+          echo "GitHub is now in sync with Replit."
+          echo "Commit: ${{ github.sha }}"
+          echo "Pushed at: $(date -u)"
