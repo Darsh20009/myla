@@ -583,7 +583,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-800">
               <li>
                 <Link href="/branches" data-testid="link-footer-branches" className="hover:text-[#C9A882] transition-colors">
-                  {language === 'ar' ? 'فروعنا ' : 'Our Branches'}
+                  {language === 'ar' ? 'فروعنا  ' : 'Our Branches'}
                 </Link>
               </li>
               <li>
