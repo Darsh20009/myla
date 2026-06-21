@@ -722,6 +722,17 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
           {/* Copyright */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <p className="text-xs sm:text-sm text-gray-700">© 2026 Myla — Abayas by HMBL. {t('allRightsReserved')}.</p>
+            <p className="mt-2 text-[10px] sm:text-xs text-gray-400">
+              صُنع بواسطة{' '}
+              <a
+                href="https://qiroxstudio.online"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-gray-500 hover:text-[#C9A882] transition-colors duration-200"
+              >
+                QIROX STUDIO
+              </a>
+            </p>
           </div>
         </div>
       </footer>}
