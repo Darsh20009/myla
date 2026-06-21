@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Activity, Database, Server, Mail, Clock, Cpu, CheckCircle2, AlertTriangle, XCircle, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Activity, Database, Server, Mail, Clock, Cpu, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Github, CloudUpload } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
 function pct(used: number, limit: number) {
@@ -73,6 +74,69 @@ function MetricBar({ label, used, limit, unit, icon: Icon, color = "bg-blue-500"
         </div>
         <p className="text-[10px] font-bold text-slate-400 mt-1">{p}% مستخدم</p>
       </div>
+    </div>
+  );
+}
+
+function GitHubSyncPanel() {
+  const [syncing, setSyncing] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; output: string } | null>(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setResult(null);
+    try {
+      const r = await fetch("/api/admin/github-sync", { method: "POST" });
+      const data = await r.json();
+      setResult({ ok: data.ok, output: data.output || (data.ok ? "تمت المزامنة بنجاح" : "فشلت المزامنة") });
+    } catch (e: any) {
+      setResult({ ok: false, output: e.message || "خطأ في الاتصال" });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-100 rounded-xl">
+            <Github className="h-5 w-5 text-slate-700" />
+          </div>
+          <div>
+            <h3 className="font-black text-sm text-slate-800">مزامنة GitHub</h3>
+            <p className="text-[11px] text-slate-400 font-bold mt-0.5">رفع آخر تحديثات الكود إلى المستودع</p>
+          </div>
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          data-testid="button-github-sync"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        >
+          {syncing
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <CloudUpload className="h-3.5 w-3.5" />
+          }
+          {syncing ? "جارٍ المزامنة..." : "مزامنة الآن"}
+        </button>
+      </div>
+      {result && (
+        <div className={`mt-3 p-3 rounded-xl border text-xs font-mono break-all ${
+          result.ok
+            ? "bg-emerald-50 border-emerald-100 text-emerald-800"
+            : "bg-red-50 border-red-100 text-red-800"
+        }`}>
+          <div className="flex items-center gap-2 mb-1.5">
+            {result.ok
+              ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              : <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+            }
+            <span className="font-black text-[11px]">{result.ok ? "نجحت المزامنة" : "فشلت المزامنة"}</span>
+          </div>
+          {result.output && <pre className="whitespace-pre-wrap text-[10px] leading-relaxed">{result.output}</pre>}
+        </div>
+      )}
     </div>
   );
 }
@@ -244,6 +308,9 @@ export default function AdminSystemHealth() {
           ))}
         </div>
       </div>
+
+      {/* GitHub Sync */}
+      <GitHubSyncPanel />
 
       <p className="text-[10px] text-slate-300 font-bold text-center">يتحدث تلقائياً كل دقيقة · البيانات للاطلاع الداخلي فقط</p>
     </div>

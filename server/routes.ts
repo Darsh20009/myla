@@ -7218,6 +7218,23 @@ ${allUrls.map(u => `  <url>
     }
   });
 
+  // ─── GitHub Sync ─────────────────────────────────────────────────────────
+  app.post("/api/admin/github-sync", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user.role !== "admin") return res.sendStatus(403);
+    try {
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+      const { stdout, stderr } = await execAsync("git push origin main --force", { timeout: 30000 });
+      res.json({ ok: true, output: (stdout + stderr).trim() });
+    } catch (err: any) {
+      const output = ((err.stdout || "") + (err.stderr || "")).trim() || err.message;
+      res.status(500).json({ ok: false, output });
+    }
+  });
+
   // Boot the abandoned-cart background worker
   startAbandonedCartWorker();
   startPickupExpiryWorker();
