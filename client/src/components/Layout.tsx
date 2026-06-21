@@ -677,7 +677,7 @@ export function Layout({ children, hideFooter }: { children: ReactNode; hideFoot
 
           {/* Payment Methods */}
           <div className="mt-6 sm:mt-10 md:mt-12 pt-5 sm:pt-7 md:pt-8 border-t border-gray-200">
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-700 mb-3 sm:mb-5">{t('availablePayments')}</p>
+            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-700 mb-3 sm:mb-5">{t('availablePayments')} </p>
             <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3">
               <div className="h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center shadow-sm cursor-default" title="Visa · Mastercard · مدى">
                 <CardBrandsLogo className="h-7" />
