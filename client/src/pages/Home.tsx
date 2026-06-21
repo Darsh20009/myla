@@ -42,10 +42,9 @@ export default function Home() {
             loop
             playsInline
             style={{ display: "block", maxHeight: "100svh", width: "auto", maxWidth: "100%" }}
-            onError={(e) => { (e.target as HTMLVideoElement).style.display = "none"; }}
           >
-            <source src="/hero-video.mp4" type="video/mp4" />
-            <source src="/hero-video.mov" type="video/quicktime" />
+            <source src="/hero-video.mov" type="video/mp4" />
+            <source src="/myla-splash.mov" type="video/mp4" />
           </video>
         </div>
 

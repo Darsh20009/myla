@@ -1,0 +1,6 @@
+Fix email/invoice logo and banner not displaying
+
+- server/site-config.ts: change default SITE.URL from myla.sa → myla-abayas.store
+  so all email asset URLs (logo, banner) resolve correctly
+- server/invoice-html.ts: add fallback logo URL for invoices when settings.logo is empty
+- client/src/components/Layout.tsx: minor footer text tweak (trailing space on فروعنا)

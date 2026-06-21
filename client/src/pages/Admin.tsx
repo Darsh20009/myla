@@ -744,10 +744,11 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.message || "Upload failed");
       }
       
@@ -1182,10 +1183,11 @@ const ProductsTable = memo(() => {
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.message || "Upload failed");
       }
       
