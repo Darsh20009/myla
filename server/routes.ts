@@ -646,26 +646,34 @@ ${allUrls.map(u => `  <url>
 
   // Image Upload Endpoint — persists to Object Storage if configured,
   // else local disk. Both produce the same /uploads/<filename> URL.
-  app.post("/api/upload", upload.any(), async (req, res) => {
-    const files = (req.files as Express.Multer.File[]) || [];
-    const single = (req as any).file as Express.Multer.File | undefined;
-    const all = files.length > 0 ? files : (single ? [single] : []);
-    if (all.length === 0) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
-    const { persistUpload } = await import("./uploads");
-    const results: { url: string; storage: string; bytes?: number }[] = [];
-    for (const f of all) {
-      try {
-        const r = await persistUpload(f.path, f.filename);
-        results.push({ url: r.url, storage: r.storage, bytes: r.bytes });
-      } catch (e: any) {
-        console.error("[upload] persist failed:", e?.message);
-        results.push({ url: `/uploads/${f.filename}`, storage: "local" });
+  app.post("/api/upload", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    upload.any()(req, res, async (err: any) => {
+      if (err) {
+        const msg = err?.code === "LIMIT_FILE_SIZE"
+          ? "حجم الملف أكبر من 5MB المسموح"
+          : err?.message || "فشل رفع الملف";
+        return res.status(400).json({ message: msg });
       }
-    }
-    // Backward-compat: also expose .url (first file) for legacy single-file callers
-    res.json({ urls: results.map(r => r.url), files: results, url: results[0].url, storage: results[0].storage, bytes: results[0].bytes });
+      const files = (req.files as Express.Multer.File[]) || [];
+      const single = (req as any).file as Express.Multer.File | undefined;
+      const all = files.length > 0 ? files : (single ? [single] : []);
+      if (all.length === 0) {
+        return res.status(400).json({ message: "لم يتم اختيار ملف" });
+      }
+      const { persistUpload } = await import("./uploads");
+      const results: { url: string; storage: string; bytes?: number }[] = [];
+      for (const f of all) {
+        try {
+          const r = await persistUpload(f.path, f.filename);
+          results.push({ url: r.url, storage: r.storage, bytes: r.bytes });
+        } catch (e: any) {
+          console.error("[upload] persist failed:", e?.message);
+          results.push({ url: `/uploads/${f.filename}`, storage: "local" });
+        }
+      }
+      res.json({ urls: results.map(r => r.url), files: results, url: results[0].url, storage: results[0].storage, bytes: results[0].bytes });
+    });
   });
 
   // Bank Transfer Receipt Upload

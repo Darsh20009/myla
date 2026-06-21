@@ -3,11 +3,29 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useRef } from "react";
 
 export default function Home() {
   const { language } = useLanguage();
   const isRtl = language === "ar";
   const { user } = useAuth();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    const tryPlay = () => {
+      video.play().catch(() => {
+        // Autoplay blocked — show static fallback (video hidden via onError)
+      });
+    };
+    if (video.readyState >= 2) {
+      tryPlay();
+    } else {
+      video.addEventListener("loadeddata", tryPlay, { once: true });
+    }
+  }, []);
 
   return (
     <Layout hideFooter>
@@ -18,13 +36,17 @@ export default function Home() {
         {/* ── Video ── */}
         <div style={{ width: "100%", background: "transparent", display: "flex", justifyContent: "center", overflow: "hidden" }}>
           <video
+            ref={videoRef}
             autoPlay
             muted
             loop
             playsInline
             style={{ display: "block", maxHeight: "100svh", width: "auto", maxWidth: "100%" }}
-            src="/hero-video.mov"
-          />
+            onError={(e) => { (e.target as HTMLVideoElement).style.display = "none"; }}
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+            <source src="/hero-video.mov" type="video/quicktime" />
+          </video>
         </div>
 
         {/* ── Content below video ── */}

@@ -1124,6 +1124,9 @@ const ProductsTable = memo(() => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
       toast({ title: "تم حذف المنتج بنجاح" });
+    },
+    onError: (err: any) => {
+      toast({ title: "فشل حذف المنتج", description: err?.message || "حدث خطأ غير متوقع", variant: "destructive" });
     }
   });
 
@@ -1627,7 +1630,10 @@ const CategoriesTable = memo(() => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({ title: "تم حذف الفئة" });
+      toast({ title: "تم حذف الفئة بنجاح" });
+    },
+    onError: (err: any) => {
+      toast({ title: "فشل حذف الفئة", description: err?.message || "حدث خطأ غير متوقع", variant: "destructive" });
     }
   });
 
