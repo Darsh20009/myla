@@ -5,7 +5,7 @@
  * Override per-environment via `PUBLIC_SITE_URL` env var (e.g. for staging).
  */
 
-const RAW_URL = process.env.PUBLIC_SITE_URL || "https://myla.sa";
+const RAW_URL = process.env.PUBLIC_SITE_URL || "https://myla-abayas.store";
 
 export const SITE = {
   /** Primary canonical URL — no trailing slash */

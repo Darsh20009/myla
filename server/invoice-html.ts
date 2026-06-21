@@ -62,7 +62,7 @@ export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promis
   const nationalUnifiedNumber = settings.nationalUnifiedNumber || settings.crNumber || "7042488606";
   const crLink = settings.crLink || "https://qr.saudibusiness.gov.sa/viewcr?nCrNumber=HdI7BQp2aUmM4b9xJYrbnA==";
   const sellerAddress = settings.companyAddress || settings.address || "المملكة العربية السعودية";
-  const storeLogo = settings.logo || "";
+  const storeLogo = settings.logo || "https://myla-abayas.store/myla-logo.png";
 
   const issueDate = new Date(order.paidAt || order.createdAt || Date.now());
   const orderRef = String(order._id || order.id).slice(-8).toUpperCase();
