@@ -32,7 +32,7 @@ export default function Home() {
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           HERO — full-screen landing section
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="-mt-16 md:-mt-20" style={{ background: "linear-gradient(to bottom, #1A0E08 0%, #5a3422 15%, #826555 40%, #826555 72%, #FAF7F2 100%)" }}>
+      <section className="-mt-20 md:-mt-20" style={{ background: "linear-gradient(to bottom, #1A0E08 0%, #5a3422 15%, #826555 40%, #826555 72%, #FAF7F2 100%)" }}>
         {/* ── Video ── */}
         <div style={{ width: "100%", background: "transparent", display: "flex", justifyContent: "center", overflow: "hidden" }}>
           <video

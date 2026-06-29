@@ -1,5 +1,6 @@
-const logoImg = "/myla-logo.png";
-const logoDarkImg = "/myla-logo.png";
+const logoImg = "/myla-logo-transparent.png";   // بدون خلفية — للهيدر فقط
+const logoDarkImg = "/myla-logo-transparent.png";
+const logoWithBg = "/myla-logo.png";             // مع الخلفية — للشات والسايدبار
 import { ReactNode, useEffect, useState, lazy, Suspense, createContext, useContext } from "react";
 import { GlobalFloatingBeans } from "@/components/GlobalFloatingBeans";
 import { Link, useLocation } from "wouter";
@@ -134,16 +135,13 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Navbar */}
       <nav
-        className="sticky top-0 z-50 w-full safe-top h-16 md:h-20"
-        style={transparentNav
-          ? {
-              background: "rgba(20, 10, 5, 0.35)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              borderBottom: "1px solid rgba(201,168,130,0.15)",
-            }
-          : { background: "#2C1810", borderBottom: "1px solid rgba(201,168,130,0.2)" }
-        }
+        className="sticky top-0 z-50 w-full safe-top h-20 md:h-20"
+        style={{
+          background: "rgba(20, 10, 5, 0.35)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(201,168,130,0.15)",
+        }}
       >
         <div className="container relative flex h-full items-center justify-between gap-2 px-4 md:gap-4">
           {/* Centered logo on mobile only (independent of side flex children) */}
@@ -166,7 +164,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
 
                   {/* ── Header ─────────────────────────────────── */}
                   <div className="flex items-center justify-between px-5 pt-5 pb-4">
-                    <img src={logoImg} alt="Myla" className="h-9 w-auto object-contain logo-transparent" />
+                    <img src={logoWithBg} alt="Myla" className="h-9 w-auto object-contain" />
                     <button
                       onClick={closeSidebar}
                       className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors active:scale-95"
