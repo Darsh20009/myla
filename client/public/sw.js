@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v10';
 const STATIC_CACHE  = `myla-static-${CACHE_VERSION}`;
 const API_CACHE     = `myla-api-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `myla-images-${CACHE_VERSION}`;

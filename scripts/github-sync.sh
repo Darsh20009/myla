@@ -2,6 +2,9 @@
 # Background script: watches for new local git commits and pushes them to GitHub.
 # Runs as a sidecar alongside the dev server in the Replit workflow.
 
+# Support both GITHUB_TOKEN and GITHUB_PERSONAL_ACCESS_TOKEN
+GITHUB_TOKEN="${GITHUB_TOKEN:-$GITHUB_PERSONAL_ACCESS_TOKEN}"
+
 if [ -z "$GITHUB_TOKEN" ]; then
   echo "[github-sync] GITHUB_TOKEN not set — GitHub sync disabled"
   exit 0
