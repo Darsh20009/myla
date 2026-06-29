@@ -65,6 +65,7 @@ run = ["node", "./dist/index.cjs"]
 EMAIL_SENDER = "noreply@myla-abayas.store"
 EMAIL_SENDER_NAME = "Myla | ميلا"
 MONGODB_URI = "mongodb+srv://qiroxsystem_db_user:wVWnldRDw0N14FoQ@myla.qry6pxu.mongodb.net/?appName=myla"
+PORT = "5000"
 
 [postMerge]
 path = "scripts/post-merge.sh"
