@@ -10,6 +10,7 @@ import { User as SelectUser } from "@shared/schema";
 import { UserModel } from "./models";
 import { sendWelcomeEmail } from "./email";
 import rateLimit from "express-rate-limit";
+import mongoose from "mongoose";
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -434,11 +435,36 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/logout", (req, res, next) => {
-    req.logout((err) => {
-      if (err) return next(err);
-      res.sendStatus(200);
-    });
+  app.post("/api/auth/logout", async (req, res, next) => {
+    try {
+      const userId =
+        (req.user as any)?._id?.toString() ||
+        (req.user as any)?.id?.toString();
+
+      // Destroy all sessions for this user from MongoDB so every device is signed out
+      if (userId) {
+        try {
+          const db = mongoose.connection.db;
+          if (db) {
+            await db.collection("sessions").deleteMany({
+              $or: [
+                { "session.passport.user": userId },
+                { "session.passport.user": { $regex: `^${userId}$` } },
+              ],
+            });
+          }
+        } catch (e: any) {
+          console.warn("[AUTH] Could not purge user sessions:", e?.message);
+        }
+      }
+
+      req.logout((err) => {
+        if (err) return next(err);
+        res.sendStatus(200);
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.get("/api/user", (req, res) => {
