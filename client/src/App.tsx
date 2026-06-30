@@ -96,41 +96,109 @@ function LazyFallback() {
   );
 }
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error?: Error }> {
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error; retryCount: number }
+> {
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, retryCount: 0 };
   }
+
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
+
   componentDidCatch(error: Error, info: any) {
-    // سجّل الخطأ فقط — لا تمسح الجلسة أبداً عند أخطاء الواجهة
     console.error("[ErrorBoundary] Caught error:", error.message, "\nInfo:", info?.componentStack);
   }
+
+  componentWillUnmount() {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+  }
+
+  handleRetry = () => {
+    this.setState(prev => ({ hasError: false, error: undefined, retryCount: prev.retryCount + 1 }));
+  };
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
   render() {
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-8 text-center" dir="rtl">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
+        <div
+          dir="rtl"
+          style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}
+          className="min-h-screen flex flex-col items-center justify-center bg-[#FAF8F5] px-6 text-center"
+        >
+          {/* Logo */}
+          <img
+            src="/myla-logo.png"
+            alt="Myla"
+            className="h-14 mb-10 opacity-80"
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+
+          {/* Icon */}
+          <div className="w-20 h-20 rounded-full bg-[#2C1810]/8 flex items-center justify-center mb-6">
+            <svg className="w-10 h-10 text-[#2C1810]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2 text-slate-800">حدث خطأ غير متوقع</h2>
-          <p className="text-slate-500 text-sm mb-6">جلستك محفوظة — فقط أعد تحميل الصفحة</p>
+
+          {/* Heading */}
+          <h1 className="text-2xl font-bold text-[#2C1810] mb-3">
+            حدث خطأ غير متوقع
+          </h1>
+          <p className="text-[#7A6A5A] text-base mb-2 max-w-sm leading-relaxed">
+            واجه الموقع مشكلة مؤقتة. جلستك ومعلوماتك بخير — فقط أعد تحميل الصفحة.
+          </p>
+          <p className="text-[#A8997E] text-sm mb-8">
+            إذا استمرت المشكلة، تواصل مع الدعم الفني.
+          </p>
+
+          {/* Dev error details */}
           {isDev && this.state.error && (
-            <pre className="text-left text-xs text-red-600 bg-red-50 border border-red-200 rounded p-4 mb-4 max-w-2xl overflow-auto text-wrap">
-              {this.state.error.message}{"\n"}{this.state.error.stack}
-            </pre>
+            <details className="mb-6 max-w-2xl w-full text-right">
+              <summary className="cursor-pointer text-xs text-[#A8997E] mb-2 select-none">
+                تفاصيل الخطأ (وضع التطوير فقط)
+              </summary>
+              <pre className="text-left text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-4 overflow-auto whitespace-pre-wrap break-words">
+                {this.state.error.message}{"\n\n"}{this.state.error.stack}
+              </pre>
+            </details>
           )}
-          <button
-            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
-            className="px-6 py-3 bg-[#2C1810] text-white text-sm font-bold rounded-xl hover:bg-[#3d2415] transition-colors"
-          >
-            إعادة التحميل
-          </button>
+
+          {/* Action buttons */}
+          <div className="flex gap-3 flex-wrap justify-center">
+            <button
+              onClick={this.handleRetry}
+              className="px-7 py-3 bg-[#2C1810] text-white text-sm font-bold rounded-2xl hover:bg-[#3d2415] active:scale-95 transition-all"
+            >
+              حاول مرة أخرى
+            </button>
+            <button
+              onClick={this.handleReload}
+              className="px-7 py-3 bg-white border border-[#D9CFC4] text-[#2C1810] text-sm font-semibold rounded-2xl hover:bg-[#F5F0EB] active:scale-95 transition-all"
+            >
+              إعادة تحميل الصفحة
+            </button>
+            <a
+              href="/"
+              className="px-7 py-3 bg-white border border-[#D9CFC4] text-[#2C1810] text-sm font-semibold rounded-2xl hover:bg-[#F5F0EB] active:scale-95 transition-all"
+            >
+              الصفحة الرئيسية
+            </a>
+          </div>
+
+          {/* Subtle footer */}
+          <p className="mt-12 text-xs text-[#C5B89A]">Myla © {new Date().getFullYear()}</p>
         </div>
       );
     }
