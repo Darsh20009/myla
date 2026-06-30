@@ -127,6 +127,17 @@ class ErrorBoundary extends Component<
     window.location.reload();
   };
 
+  handleClearCookies = () => {
+    document.cookie.split(";").forEach(c => {
+      const key = c.trim().split("=")[0];
+      document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    });
+    if ("caches" in window) {
+      caches.keys().then(names => names.forEach(n => caches.delete(n)));
+    }
+    window.location.href = "/";
+  };
+
   render() {
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
@@ -196,6 +207,14 @@ class ErrorBoundary extends Component<
               الصفحة الرئيسية
             </a>
           </div>
+
+          {/* Clear cookies */}
+          <button
+            onClick={this.handleClearCookies}
+            className="mt-5 text-xs text-[#A8997E] underline underline-offset-2 hover:text-[#7A6A5A] transition-colors"
+          >
+            مسح الكوكيز وإعادة التشغيل
+          </button>
 
           {/* Subtle footer */}
           <p className="mt-12 text-xs text-[#C5B89A]">Myla © {new Date().getFullYear()}</p>
