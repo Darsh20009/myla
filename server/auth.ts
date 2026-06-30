@@ -98,6 +98,23 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // ─── Stale-session guard ──────────────────────────────────────────────────
+  // If the session references a user ID that no longer exists in the DB,
+  // destroy the session and clear the cookie so the user gets a clean login
+  // page instead of being stuck in a silent "logged-out" loop.
+  app.use((req, res, next) => {
+    const sess = req.session as any;
+    if (sess?.passport?.user && !req.isAuthenticated()) {
+      req.session.destroy((err) => {
+        if (err) console.warn("[AUTH] Could not destroy stale session:", err?.message);
+        res.clearCookie("myla.sid", { path: "/" });
+        next();
+      });
+      return;
+    }
+    next();
+  });
+
   passport.use(
     new LocalStrategy({ usernameField: 'username', passwordField: 'password', passReqToCallback: false }, async (username, password, done) => {
       try {
