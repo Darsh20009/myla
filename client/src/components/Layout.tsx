@@ -77,9 +77,9 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
   }, [pendingAdminCount, user]);
 
   useEffect(() => {
+    // Install prompt disabled — always suppress the browser's PWA install popup.
     const handleInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handleInstallPrompt);
     // Set initial direction
@@ -136,10 +136,17 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
       {/* Navbar */}
       <nav
         className="sticky top-0 z-50 w-full safe-top h-20 md:h-20"
-        style={{
-          background: "#2C1810",
-          borderBottom: "1px solid rgba(201,168,130,0.15)",
-        }}
+        style={
+          transparentNav
+            ? {
+                background: "transparent",
+                borderBottom: "none",
+              }
+            : {
+                background: "#2C1810",
+                borderBottom: "1px solid rgba(201,168,130,0.15)",
+              }
+        }
       >
         <div className="container relative flex h-full items-center justify-between gap-2 px-4 md:gap-4">
           {/* Centered logo on mobile only (independent of side flex children) */}
