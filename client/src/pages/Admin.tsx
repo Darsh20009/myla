@@ -5562,17 +5562,9 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
   ];
 
   const cafeOperationsLinks = [
-    { label: "تقرير اليوم", icon: BarChart3, url: "/admin/daily-report" },
-    { label: "التحليلات المتقدمة", icon: BarChart3, url: "/admin/analytics" },
-    { label: "خريطة الطاولات", icon: LayoutGrid, url: "/admin/table-map" },
-    { label: "حجوزات الطاولات", icon: CalendarClock, url: "/admin/table-reservations" },
-    { label: "هندسة القائمة", icon: Sparkles, url: "/admin/menu-engineering" },
-    { label: "سجل الهدر", icon: Trash2, url: "/admin/waste-log" },
-    { label: "جدول الورديات", icon: Clock, url: "/admin/shifts" },
     { label: "الحضور والغياب", icon: Clock, url: "/admin/attendance" },
     { label: "طلبات الإجازة", icon: FileText, url: "/admin/leave-requests" },
-    { label: "المواد الخام", icon: Package, url: "/admin/raw-materials" },
-    { label: "وصفات المنتجات", icon: Sparkles, url: "/admin/recipes" },
+    { label: "جدول الورديات", icon: Clock, url: "/admin/shifts" },
     { label: "الموردون", icon: Store, url: "/admin/suppliers" },
     { label: "بطاقات الهدايا", icon: Award, url: "/admin/gift-cards" },
     { label: "المصروفات", icon: TrendingDown, url: "/admin/expenses" },
@@ -5683,10 +5675,10 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
           </div>
         ))}
 
-        {/* Cafe Operations links */}
+        {/* HR & Operations links */}
         {!collapsed && (
           <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-3 pb-1.5">عمليات الكافيه</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-3 pb-1.5">الموارد البشرية</p>
           </div>
         )}
         {cafeOperationsLinks.map((link) => (

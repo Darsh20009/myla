@@ -5201,7 +5201,7 @@ ${allUrls.map(u => `  <url>
     res.json({
       configured: isStorageStationConfigured(),
       baseUrl: "https://storagestation.app",
-      store: "fujicafe",
+      store: "myla",
     });
   });
 

@@ -1411,10 +1411,10 @@ export async function printTaxInvoice(data: TaxInvoiceData, config: PrintConfig 
 
         const errMsg = result.error || 'فشلت الطباعة الحرارية';
         console.error('[PrintTaxInvoice] Hardware print failed — mode:', printerSettings.mode, '— error:', errMsg);
-        if (typeof window !== 'undefined' && (window as any).__fujiPrintError !== undefined) {
-          (window as any).__fujiPrintError(errMsg);
+        if (typeof window !== 'undefined' && (window as any).__mylaPrintError !== undefined) {
+          (window as any).__mylaPrintError(errMsg);
         } else {
-          window.dispatchEvent(new CustomEvent('fuji:print-error', { detail: { error: errMsg, mode: printerSettings.mode } }));
+          window.dispatchEvent(new CustomEvent('myla:print-error', { detail: { error: errMsg, mode: printerSettings.mode } }));
         }
         return;
       }

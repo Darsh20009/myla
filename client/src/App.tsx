@@ -374,7 +374,7 @@ function Router() {
         <ProtectedRoute component={AdminShifts} permission="staff.manage" />
       </Route>
 
-      {/* ─── Cafe Operations ─────────────────────────────────────────── */}
+      {/* ─── Operations & HR ─────────────────────────────────────────── */}
       <Route path="/admin/attendance">
         <ProtectedRoute component={AdminAttendance} permission="staff.manage" />
       </Route>

@@ -79,7 +79,6 @@ export function setupAuth(app: Express) {
     store: mongoUri
       ? MongoStore.create({
           mongoUrl: mongoUri,
-          dbName: "fujicafe",
           collectionName: "sessions",
           ttl: 30 * 24 * 60 * 60, // 30 days
           autoRemove: "native",

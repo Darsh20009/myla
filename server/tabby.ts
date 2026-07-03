@@ -26,7 +26,7 @@ export interface TabbyCheckoutInput {
   customer: { name: string; phone: string; email: string };
   shipping?: { city?: string; address?: string; zip?: string };
   items?: Array<{ title: string; quantity: number; price: number; sku?: string }>;
-  origin: string; // e.g. https://fujicafe.replit.app
+  origin: string; // e.g. https://myla.replit.app
   lang?: "ar" | "en";
 }
 

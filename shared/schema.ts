@@ -174,6 +174,11 @@ export const insertCategorySchema = z.object({
   description: z.string().optional(),
   parentId: z.string().optional().nullable(),
   sortOrder: z.number().optional().default(0),
+  asPage: z.boolean().optional().default(false),
+  showInNav: z.boolean().optional().default(false),
+  pageHero: z.string().optional().default(""),
+  pageContentAr: z.string().optional().default(""),
+  pageContentEn: z.string().optional().default(""),
 });
 
 export type InsertCategory = z.infer<typeof insertCategorySchema>;

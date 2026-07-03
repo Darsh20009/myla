@@ -149,7 +149,7 @@ body {
   90%  { opacity: 0.5; }
   100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
 }
-.fuji-bean {
+.myla-bean {
   animation: float-up linear infinite;
   pointer-events: none;
 }

@@ -18,7 +18,7 @@ export interface ChannelSoundConfig {
   volume: number;
 }
 
-const CHANNEL_SOUND_KEY = 'fuji_channel_sounds';
+const CHANNEL_SOUND_KEY = 'myla_channel_sounds';
 
 const CHANNEL_DEFAULTS: Record<SoundChannel, ChannelSoundConfig> = {
   manual:  { enabled: true, soundType: 'newOrder',         volume: 0.6 },

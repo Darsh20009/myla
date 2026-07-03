@@ -269,7 +269,7 @@ export async function pushOrderToStorageStation(order: any): Promise<StorageStat
       { key: "rf_order_ref", value: orderRef },
       { key: "rf_payment_method", value: order.paymentMethod || "" },
       { key: "rf_notes", value: order.notes || "" },
-      { key: "source", value: "fujicafe" },
+      { key: "source", value: "myla" },
     ],
     customer_note: order.notes || "",
     payment_method: "bacs",
