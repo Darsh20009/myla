@@ -24,8 +24,14 @@ const HERO_IMAGES = [
   "/hero/model-19.png",
 ];
 
-const SLIDE_DURATION = 6500;         // ms each image holds
-const TRANS_DURATION  = 1.7;         // seconds for the crossfade
+const SLIDE_DURATION  = 6500;   // ms each image holds
+const TRANS_DURATION  = 1.8;    // seconds for the transition
+const KB_VARIANTS = [
+  { fromX:  "0%",    fromY:  "0%",    toX: "-1.5%", toY:  "1%"   },
+  { fromX:  "0.5%",  fromY: "-0.3%",  toX: "-0.5%", toY:  "1.4%" },
+  { fromX: "-1%",    fromY:  "0.5%",  toX:  "0.8%", toY: "-1%"   },
+  { fromX:  "1%",    fromY:  "0.2%",  toX: "-0.6%", toY:  "0.8%" },
+];
 
 /* ─── CSS ────────────────────────────────────────────────────────── */
 const HERO_CSS = `
@@ -37,7 +43,7 @@ const HERO_CSS = `
     background: #0E0A07;
   }
 
-  /* ── Image slide ── */
+  /* ── Image slots ── */
   .myla-slide {
     position: absolute;
     inset: 0;
@@ -49,20 +55,21 @@ const HERO_CSS = `
     width: 112%; height: 112%;
     object-fit: cover;
     object-position: center top;
-    will-change: transform;
+    will-change: transform, opacity;
     transform-origin: center center;
   }
 
-  /* ── Ken Burns variants ── */
-  @keyframes kb0 { from { transform: scale(1.08) translate(0%,    0%);   } to { transform: scale(1.16) translate(-1.2%, 0.8%);  } }
-  @keyframes kb1 { from { transform: scale(1.07) translate(0.5%, -0.3%); } to { transform: scale(1.15) translate(-0.5%, 1.2%);  } }
-  @keyframes kb2 { from { transform: scale(1.09) translate(-0.8%, 0.4%); } to { transform: scale(1.17) translate(0.6%, -0.9%);  } }
-  @keyframes kb3 { from { transform: scale(1.06) translate(1%,   0.2%);  } to { transform: scale(1.14) translate(-0.4%, 0.7%);  } }
-
-  /* ── Subtle breathing (layered on Ken Burns) ── */
-  @keyframes breathe {
-    0%, 100% { filter: brightness(1);    }
-    50%       { filter: brightness(1.03); }
+  /* ── Golden shimmer flash ── */
+  .myla-shimmer {
+    position: absolute; inset: 0;
+    z-index: 8; pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 38%,
+      rgba(210,175,120,0.22) 0%,
+      rgba(180,140,90,0.10) 45%,
+      transparent 75%
+    );
+    will-change: opacity;
   }
 
   /* ── Depth overlays ── */
@@ -161,6 +168,17 @@ const HERO_CSS = `
   }
 `;
 
+/* ─── Ken Burns via GSAP ─────────────────────────────────────────── */
+function startKenBurns(imgEl: HTMLImageElement, idx: number, duration: number) {
+  const v = KB_VARIANTS[idx % KB_VARIANTS.length];
+  gsap.killTweensOf(imgEl, "x,y,scale");
+  gsap.fromTo(
+    imgEl,
+    { scale: 1.12, x: v.fromX, y: v.fromY },
+    { scale: 1.20, x: v.toX, y: v.toY, duration: duration / 1000 + 1.5, ease: "none" }
+  );
+}
+
 /* ─── Component ──────────────────────────────────────────────────── */
 export function HeroCinematic({
   onShop,
@@ -171,21 +189,41 @@ export function HeroCinematic({
   onLogin: () => void;
   isLoggedIn: boolean;
 }) {
-  const [curIdx, setCurIdx]   = useState(0);
-  const [nxtIdx, setNxtIdx]   = useState(1);
+  /* dots only — all transition state lives in refs */
+  const [activeDot, setActiveDot] = useState(0);
 
-  const curSlideRef = useRef<HTMLDivElement>(null);
+  /* Two reusable slots — A and B alternate being front/back */
+  const slotA    = useRef<HTMLDivElement>(null);
+  const slotB    = useRef<HTMLDivElement>(null);
+  const imgA     = useRef<HTMLImageElement>(null);
+  const imgB     = useRef<HTMLImageElement>(null);
+  const shimRef  = useRef<HTMLDivElement>(null);
   const rayRef   = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const wordRef  = useRef<HTMLDivElement>(null);
   const tagRef   = useRef<HTMLDivElement>(null);
   const ctaRef   = useRef<HTMLDivElement>(null);
 
-  const inTransRef  = useRef(false);
-  const timerRef    = useRef<ReturnType<typeof setTimeout>>();
-  const lightIntRef = useRef<ReturnType<typeof setInterval>>();
+  /* Transition bookkeeping (all refs, never stale) */
+  const frontIsA   = useRef(true);   // which slot is currently on top
+  const curIdx     = useRef(0);      // index of the front slot's image
+  const inTrans    = useRef(false);
+  const timerRef   = useRef<ReturnType<typeof setTimeout>>();
 
-  /* ── Content entrance ───────────────────────────────────────────── */
+  /* ── Initialise slots ─────────────────────────────────────────── */
+  useEffect(() => {
+    /* A is front: opacity 1, z-index 2, Ken Burns running */
+    if (slotA.current) gsap.set(slotA.current, { opacity: 1, zIndex: 2 });
+    if (imgA.current) {
+      imgA.current.src = HERO_IMAGES[0];
+      startKenBurns(imgA.current, 0, SLIDE_DURATION);
+    }
+    /* B is back: opacity 0, z-index 1, image pre-loaded */
+    if (slotB.current) gsap.set(slotB.current, { opacity: 0, zIndex: 1 });
+    if (imgB.current) imgB.current.src = HERO_IMAGES[1];
+  }, []);
+
+  /* ── Content entrance ─────────────────────────────────────────── */
   useEffect(() => {
     const t = setTimeout(() => {
       const els = [wordRef.current, tagRef.current, ctaRef.current].filter(Boolean);
@@ -194,7 +232,7 @@ export function HeroCinematic({
     return () => clearTimeout(t);
   }, []);
 
-  /* ── Audio ──────────────────────────────────────────────────────── */
+  /* ── Audio ────────────────────────────────────────────────────── */
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -203,12 +241,12 @@ export function HeroCinematic({
     const t = setTimeout(() => {
       audio.play().then(() => {
         gsap.to(audio, { volume: 0.1, duration: 3, ease: "power1.out" });
-      }).catch(() => {/* autoplay blocked; user can click the sound btn */});
+      }).catch(() => {/* autoplay blocked */});
     }, 1400);
     return () => clearTimeout(t);
   }, []);
 
-  /* ── Repeating light ray ────────────────────────────────────────── */
+  /* ── Repeating light ray ──────────────────────────────────────── */
   useEffect(() => {
     const sweep = () => {
       if (!rayRef.current) return;
@@ -218,49 +256,91 @@ export function HeroCinematic({
       );
     };
     sweep();
-    lightIntRef.current = setInterval(sweep, 13000);
-    return () => clearInterval(lightIntRef.current);
+    const id = setInterval(sweep, 13000);
+    return () => clearInterval(id);
   }, []);
 
-  /* ── Crossfade transition (dissolve, no cuts/wipes) ───────────────── */
+  /* ── Core transition ──────────────────────────────────────────── */
   const doTransition = useCallback(() => {
-    if (inTransRef.current) return;
-    inTransRef.current = true;
+    if (inTrans.current) return;
+    inTrans.current = true;
 
-    const curSlide = curSlideRef.current;
-    const newN = (nxtIdx + 1) % HERO_IMAGES.length;
+    const nextIdx    = (curIdx.current + 1) % HERO_IMAGES.length;
+    const afterNext  = (nextIdx + 1) % HERO_IMAGES.length;
 
-    if (!curSlide) {
-      setCurIdx(nxtIdx);
-      setNxtIdx(newN);
-      inTransRef.current = false;
+    /* Which slot is currently front vs back? */
+    const frontSlot = frontIsA.current ? slotA.current : slotB.current;
+    const backSlot  = frontIsA.current ? slotB.current : slotA.current;
+    const backImg   = frontIsA.current ? imgB.current  : imgA.current;
+    const frontImg  = frontIsA.current ? imgA.current  : imgB.current;
+
+    if (!frontSlot || !backSlot || !backImg) {
+      inTrans.current = false;
       return;
     }
 
-    /* The "next" image already sits behind the current one, so simply
-       dissolving the front image's opacity to 0 blends the two together —
-       a true crossfade rather than a hard slide cut. */
-    gsap.to(curSlide, {
-      opacity: 0,
-      duration: TRANS_DURATION,
-      ease: "sine.inOut",
-      onComplete() {
-        gsap.set(curSlide, { opacity: 1 });
-        setCurIdx(nxtIdx);
-        setNxtIdx(newN);
-        inTransRef.current = false;
-      },
-    });
-  }, [nxtIdx]);
+    /* ① Raise back slot above front — it will fade IN on top */
+    gsap.set(backSlot, { zIndex: 3 });
 
-  /* ── Advance timer ──────────────────────────────────────────────── */
+    /* ② Start Ken Burns on the incoming image */
+    startKenBurns(backImg, nextIdx, SLIDE_DURATION);
+
+    /* ③ Golden shimmer flash — peaks at 40% through the transition */
+    if (shimRef.current) {
+      gsap.fromTo(
+        shimRef.current,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: TRANS_DURATION * 0.4,
+          ease: "power2.in",
+          onComplete() {
+            gsap.to(shimRef.current!, {
+              opacity: 0,
+              duration: TRANS_DURATION * 0.7,
+              ease: "power2.out",
+            });
+          },
+        }
+      );
+    }
+
+    /* ④ Fade back slot IN (zoom-reveal: scale 1.08 → 1.0 as it appears) */
+    gsap.fromTo(
+      backSlot,
+      { opacity: 0, scale: 1.06 },
+      {
+        opacity: 1,
+        scale: 1,
+        duration: TRANS_DURATION,
+        ease: "power2.inOut",
+        onComplete() {
+          /* ⑤ New image fully visible — now clean up the old front */
+          gsap.set(frontSlot, { zIndex: 1, opacity: 0, scale: 1 });
+          if (frontImg) gsap.killTweensOf(frontImg, "x,y,scale");
+
+          /* ⑥ Preload the image after next into the old front slot */
+          if (frontImg) frontImg.src = HERO_IMAGES[afterNext];
+
+          /* ⑦ Swap bookkeeping */
+          frontIsA.current = !frontIsA.current;
+          curIdx.current   = nextIdx;
+          inTrans.current  = false;
+
+          setActiveDot(nextIdx);
+
+          /* ⑧ Schedule next transition */
+          timerRef.current = setTimeout(doTransition, SLIDE_DURATION);
+        },
+      }
+    );
+  }, []);
+
+  /* ── Start the first timer ────────────────────────────────────── */
   useEffect(() => {
     timerRef.current = setTimeout(doTransition, SLIDE_DURATION);
     return () => clearTimeout(timerRef.current);
-  }, [curIdx, doTransition]);
-
-  const kbAnim = (i: number) =>
-    `kb${i % 4} ${(SLIDE_DURATION / 1000 + 1.5).toFixed(1)}s ease-in-out forwards, breathe 5s ease-in-out infinite`;
+  }, [doTransition]);
 
   return (
     <>
@@ -269,29 +349,30 @@ export function HeroCinematic({
       <div className="myla-hero">
         <audio ref={audioRef} src="/hero/ambient.mp3" preload="none" />
 
-        {/* ── Current slide ── */}
-        <div ref={curSlideRef} className="myla-slide" style={{ zIndex: 1 }}>
+        {/* ── Slot A ── */}
+        <div ref={slotA} className="myla-slide" style={{ zIndex: 2 }}>
           <img
-            key={`c${curIdx}`}
-            src={HERO_IMAGES[curIdx]}
+            ref={imgA}
+            src={HERO_IMAGES[0]}
             alt=""
             className="myla-img"
             loading="eager"
-            style={{ animation: kbAnim(curIdx) }}
           />
         </div>
 
-        {/* ── Next slide (preloaded, sits behind — crossfades in as current fades out) ── */}
-        <div className="myla-slide" style={{ zIndex: 0 }}>
+        {/* ── Slot B (back, pre-loaded) ── */}
+        <div ref={slotB} className="myla-slide" style={{ opacity: 0, zIndex: 1 }}>
           <img
-            key={`n${nxtIdx}`}
-            src={HERO_IMAGES[nxtIdx]}
+            ref={imgB}
+            src={HERO_IMAGES[1]}
             alt=""
             className="myla-img"
             loading="lazy"
-            style={{ transform: "scale(1.08)" }}
           />
         </div>
+
+        {/* ── Golden shimmer flash ── */}
+        <div ref={shimRef} className="myla-shimmer" style={{ opacity: 0 }} />
 
         {/* ── Depth ── */}
         <div className="myla-vignette" />
@@ -320,7 +401,7 @@ export function HeroCinematic({
         {/* ── Slide dots (first 8) ── */}
         <div className="myla-dots">
           {HERO_IMAGES.slice(0, 8).map((_, i) => (
-            <div key={i} className={`myla-dot${curIdx % 8 === i ? " active" : ""}`} />
+            <div key={i} className={`myla-dot${activeDot % 8 === i ? " active" : ""}`} />
           ))}
         </div>
       </div>
