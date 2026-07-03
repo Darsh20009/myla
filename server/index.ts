@@ -78,6 +78,16 @@ app.use(
 
 app.use(express.urlencoded({ extended: false, limit: "2mb" }));
 
+// ─── Serve uploaded files ─────────────────────────────────────────────────────
+import path from "path";
+import fs from "fs";
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use("/uploads", express.static(uploadsDir, {
+  maxAge: "1d",
+  etag: true,
+}));
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",

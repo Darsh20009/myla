@@ -1568,7 +1568,7 @@ const CategoriesTable = memo(() => {
       if (!r.ok) throw new Error("Upload failed");
       const data = await r.json();
       await apiRequest("PATCH", `/api/categories/${catId}`, { image: data.url });
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/categories"], type: "all" });
       toast({ title: "تم تحديث صورة الفئة بنجاح" });
     } catch {
       toast({ title: "فشل رفع الصورة", variant: "destructive" });
@@ -1605,7 +1605,7 @@ const CategoriesTable = memo(() => {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.refetchQueries({ queryKey: ["/api/categories"], type: "all" });
       setNewCat({ name: "", nameAr: "", slug: "", image: "", description: "", parentId: null });
       toast({ title: "تمت إضافة الفئة بنجاح" });
     },
@@ -1620,7 +1620,7 @@ const CategoriesTable = memo(() => {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.refetchQueries({ queryKey: ["/api/categories"], type: "all" });
       setEditingId(null);
       toast({ title: "تم تحديث الفئة بنجاح" });
     }
@@ -1631,7 +1631,7 @@ const CategoriesTable = memo(() => {
       await apiRequest("DELETE", `/api/categories/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.refetchQueries({ queryKey: ["/api/categories"], type: "all" });
       toast({ title: "تم حذف الفئة بنجاح" });
     },
     onError: (err: any) => {
