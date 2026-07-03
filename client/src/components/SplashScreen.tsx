@@ -12,7 +12,7 @@ const LETTERS = [
 const SPLASH_CSS = `
   .myla-splash-root {
     position: fixed; inset: 0; z-index: 9999;
-    background: #EBEBE8;
+    background: #FAFAF8;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     overflow: hidden;
