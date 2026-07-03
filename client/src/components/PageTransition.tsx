@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 function isProductDetail(path: string) {
@@ -13,7 +13,10 @@ export function PageTransition() {
   const [visible, setVisible] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
+  // useLayoutEffect fires synchronously before the browser paints the new
+  // page, so the overlay covers the screen before any flash of the
+  // destination page content is visible.
+  useLayoutEffect(() => {
     const from = prevLocation.current;
     const to = location;
     prevLocation.current = to;
@@ -39,7 +42,7 @@ export function PageTransition() {
     const finish = () => setVisible(false);
     if (video) {
       video.currentTime = 0;
-      video.playbackRate = location === "/" ? 3 : 1;
+      video.playbackRate = 2;
       video.addEventListener("ended", finish);
       video.addEventListener("error", finish);
       video.play().catch(finish);
@@ -61,11 +64,11 @@ export function PageTransition() {
       {visible && (
         <motion.div
           key="page-transition"
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#EEEEEC]"
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-background"
           data-testid="page-transition-overlay"
         >
           <video
