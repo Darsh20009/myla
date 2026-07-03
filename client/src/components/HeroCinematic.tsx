@@ -146,19 +146,6 @@ const HERO_CSS = `
   .myla-btn-outline:hover  { background: rgba(201,168,130,0.08); }
   .myla-btn-outline:active { transform: scale(0.97); }
 
-  /* ── Sound toggle ── */
-  .myla-sound {
-    position: absolute; bottom: 2rem; right: 1.8rem; z-index: 12;
-    width: 2.2rem; height: 2.2rem; border-radius: 50%;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(201,168,130,0.28);
-    color: #C9A882; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    backdrop-filter: blur(6px);
-    transition: background 0.3s;
-  }
-  .myla-sound:hover { background: rgba(201,168,130,0.14); }
-
   /* ── Slide dots ── */
   .myla-dots {
     position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%);
@@ -186,7 +173,6 @@ export function HeroCinematic({
 }) {
   const [curIdx, setCurIdx]   = useState(0);
   const [nxtIdx, setNxtIdx]   = useState(1);
-  const [muted, setMuted]     = useState(true);
 
   const curSlideRef = useRef<HTMLDivElement>(null);
   const rayRef   = useRef<HTMLDivElement>(null);
@@ -273,19 +259,6 @@ export function HeroCinematic({
     return () => clearTimeout(timerRef.current);
   }, [curIdx, doTransition]);
 
-  /* ── Sound toggle ───────────────────────────────────────────────── */
-  const toggleSound = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (muted) {
-      audio.play().catch(() => {});
-      gsap.to(audio, { volume: 0.1, duration: 1 });
-    } else {
-      gsap.to(audio, { volume: 0, duration: 0.8, onComplete: () => audio.pause() });
-    }
-    setMuted(m => !m);
-  };
-
   const kbAnim = (i: number) =>
     `kb${i % 4} ${(SLIDE_DURATION / 1000 + 1.5).toFixed(1)}s ease-in-out forwards, breathe 5s ease-in-out infinite`;
 
@@ -343,22 +316,6 @@ export function HeroCinematic({
             )}
           </div>
         </div>
-
-        {/* ── Sound btn ── */}
-        <button className="myla-sound" onClick={toggleSound} aria-label={muted ? "تشغيل" : "إيقاف"}>
-          {muted ? (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-              <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
-            </svg>
-          ) : (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            </svg>
-          )}
-        </button>
 
         {/* ── Slide dots (first 8) ── */}
         <div className="myla-dots">
