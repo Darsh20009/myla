@@ -136,12 +136,19 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
       {/* Navbar */}
       <nav
         className="sticky top-0 z-50 w-full safe-top h-20 md:h-20"
-        style={{
-          background: "rgba(20, 10, 5, 0.35)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(201,168,130,0.15)",
-        }}
+        style={
+          transparentNav
+            ? {
+                background: "#1A0E08",
+                borderBottom: "1px solid rgba(201,168,130,0.15)",
+              }
+            : {
+                background: "rgba(20, 10, 5, 0.35)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                borderBottom: "1px solid rgba(201,168,130,0.15)",
+              }
+        }
       >
         <div className="container relative flex h-full items-center justify-between gap-2 px-4 md:gap-4">
           {/* Centered logo on mobile only (independent of side flex children) */}

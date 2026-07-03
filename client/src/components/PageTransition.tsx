@@ -39,6 +39,7 @@ export function PageTransition() {
     const finish = () => setVisible(false);
     if (video) {
       video.currentTime = 0;
+      video.playbackRate = location === "/" ? 3 : 1;
       video.addEventListener("ended", finish);
       video.addEventListener("error", finish);
       video.play().catch(finish);
