@@ -602,22 +602,7 @@ export default function Products() {
               transition={{ duration: 0.35 }}
               className="w-full"
             >
-              {/* Frameless, soft-rounded image — no crop (matches Home page) */}
-              <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 mb-4 flex items-center justify-center overflow-hidden">
-                <img
-                  src={(() => {
-                    if (activeSubCategory) {
-                      const sub = (dbCategories || []).find((c: any) => c.slug === activeSubCategory);
-                      return sub?.image || activeCatData.img;
-                    }
-                    return activeCatData.img;
-                  })()}
-                  alt={isRtl ? activeCatData.label_ar : activeCatData.label_en}
-                  className="w-full h-full object-contain rounded-3xl mx-auto"
-                />
-              </div>
-
-              {/* Banner content (below image) */}
+              {/* Banner content */}
               <div className={`flex items-end justify-between gap-3 ${isRtl ? "flex-row-reverse text-right" : "text-left"}`}>
                 <div>
                   <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] text-[#E8637A] mb-1.5">
