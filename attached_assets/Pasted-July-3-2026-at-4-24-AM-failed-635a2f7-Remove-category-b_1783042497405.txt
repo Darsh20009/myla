@@ -1,0 +1,165 @@
+July 3, 2026 at 4:24 AM
+failed
+635a2f7
+Remove category banner image from all product pages Remove the category banner image element and its associated styling from the Products page component in the client-side application. Replit-Commit-Author: Agent Replit-Commit-Session-Id: ba9ce654-5bdb-4662-a541-1f3fe09f26cc Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 87f08ccf-62fb-46fc-8215-7a56329fb717 Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/cebbc3d8-706b-48e1-97af-39588b0722aa/ba9ce654-5bdb-4662-a541-1f3fe09f26cc/s576yj2 Replit-Helium-Checkpoint-Created: true
+
+Rollback
+Exited with status 1 while building your code.
+Read our docs for common ways to troubleshoot your deploy.
+
+All logs
+Search
+Search logs
+
+Jul 3, 4:23 AM - 4:26 AM
+GMT+3
+
+
+
+==> Downloading cache...
+==> Cloning from https://github.com/Darsh20009/myla
+==> Checking out commit 635a2f72f5115bd13b808da4c58b7613bc469ab8 in branch main
+==> Downloaded 189MB in 7s. Extraction took 3s.
+==> Using Node.js version 24.14.1 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'npm install; npm run build'...
+npm error code ENOTFOUND
+npm error syscall getaddrinfo
+npm error errno ENOTFOUND
+npm error network request to http://package-firewall.replit.local/npm/gsap/-/gsap-3.15.0.tgz failed, reason: getaddrinfo ENOTFOUND package-firewall.replit.local
+npm error network This is a problem related to network connectivity.
+npm error network In most cases you are behind a proxy or have bad network settings.
+npm error network
+npm error network If you are behind a proxy, please make sure that the
+npm error network 'proxy' config is set properly.  See: 'npm help config'
+npm error A complete log of this run can be found in: /opt/render/.cache/_logs/2026-07-03T01_24_26_881Z-debug-0.log
+> rest-express@1.0.0 build
+> tsx script/build.ts
+building client...
+vite v7.3.0 building client environment for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 27 modules transformed.
+✗ Build failed in 2.37s
+[vite]: Rollup failed to resolve import "gsap" from "/opt/render/project/src/client/src/components/SplashScreen.tsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (/opt/render/project/src/node_modules/vite/dist/node/chunks/config.js:33634:57)
+    at <anonymous> (/opt/render/project/src/node_modules/vite/dist/node/chunks/config.js:33668:73)
+    at onwarn (/opt/render/project/src/node_modules/@vitejs/plugin-react/dist/index.js:90:7)
+    at <anonymous> (/opt/render/project/src/node_modules/vite/dist/node/chunks/config.js:33668:28)
+    at onRollupLog (/opt/render/project/src/node_modules/vite/dist/node/chunks/config.js:33663:63)
+    at onLog (/opt/render/project/src/node_modules/vite/dist/node/chunks/config.js:33466:4)
+    at <anonymous> (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:21004:32)
+    at Object.logger (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:22891:9)
+    at ModuleLoader.handleInvalidResolvedId (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:21635:26)
+    at <anonymous> (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:21593:26) {
+  watchFiles: [
+    '/opt/render/project/src/client/index.html',
+    '/opt/render/project/src/client/src/main.tsx',
+    '/opt/render/project/src/package.json',
+    '/opt/render/project/src/node_modules/react/jsx-runtime.js',
+    '/opt/render/project/src/node_modules/react-dom/client.js',
+    '/opt/render/project/src/client/src/App.tsx',
+    '/opt/render/project/src/client/src/lib/clear-cookies.ts',
+    '/opt/render/project/src/client/src/index.css',
+    '/opt/render/project/src/client/src/constants/brand.ts',
+    '/opt/render/project/src/client/src/hooks/use-auth-providers.ts',
+    '/opt/render/project/src/client/src/hooks/use-auth.ts',
+    '/opt/render/project/src/client/src/hooks/use-block-inspect.ts',
+    '/opt/render/project/src/client/src/hooks/use-cart.ts',
+    '/opt/render/project/src/client/src/hooks/use-coupon.ts',
+    '/opt/render/project/src/client/src/hooks/use-language.ts',
+    '/opt/render/project/src/client/src/hooks/use-mapkit.ts',
+    '/opt/render/project/src/client/src/hooks/use-notifications.ts',
+    '/opt/render/project/src/client/src/hooks/use-orders.ts',
+    '/opt/render/project/src/client/src/hooks/use-products.ts',
+    '/opt/render/project/src/client/src/hooks/use-session-keepalive.ts',
+    '/opt/render/project/src/client/src/hooks/use-toast.ts',
+    '/opt/render/project/src/client/src/hooks/useRealtimeEngine.ts',
+    '/opt/render/project/src/client/src/lib/constants.ts',
+    '/opt/render/project/src/client/src/lib/flyToCart.ts',
+    '/opt/render/project/src/client/src/lib/i18n-shim.ts',
+    '/opt/render/project/src/client/src/lib/notification-sounds.ts',
+    '/opt/render/project/src/client/src/lib/offline-queue.ts',
+    '/opt/render/project/src/client/src/lib/pixels.ts',
+    '/opt/render/project/src/client/src/lib/pos-engine.ts',
+    '/opt/render/project/src/client/src/lib/print-utils.ts',
+    '/opt/render/project/src/client/src/lib/queryClient.ts',
+    '/opt/render/project/src/client/src/lib/realtime-engine.ts',
+    '/opt/render/project/src/client/src/lib/receipt-png-cache.ts',
+    '/opt/render/project/src/client/src/lib/thermal-printer.ts',
+    '/opt/render/project/src/client/src/lib/useTranslate.ts',
+    '/opt/render/project/src/client/src/lib/utils.ts',
+    '/opt/render/project/src/client/src/lib/zatca.ts',
+    '/opt/render/project/src/client/src/components/AppleMapEmbed.tsx',
+    '/opt/render/project/src/client/src/components/AuthModal.tsx',
+    '/opt/render/project/src/client/src/components/CustomerTestimonials.tsx',
+    '/opt/render/project/src/client/src/components/GlobalFloatingBeans.tsx',
+    '/opt/render/project/src/client/src/components/HeroCinematic.tsx',
+    '/opt/render/project/src/client/src/components/IOSInstallGuide.tsx',
+    '/opt/render/project/src/client/src/components/Layout.tsx',
+    '/opt/render/project/src/client/src/components/LocationMap.tsx',
+    '/opt/render/project/src/client/src/components/MobileBottomNav.tsx',
+    '/opt/render/project/src/client/src/components/PWAPrompt.tsx',
+    '/opt/render/project/src/client/src/components/PageTransition.tsx',
+    '/opt/render/project/src/client/src/components/PixelTracker.tsx',
+    '/opt/render/project/src/client/src/components/PrinterSettingsPanel.tsx',
+    '/opt/render/project/src/client/src/components/ProductCard.tsx',
+    '/opt/render/project/src/client/src/components/ProductInsightsCard.tsx',
+    '/opt/render/project/src/client/src/components/RiyalSign.tsx',
+    '/opt/render/project/src/client/src/components/SEO.tsx',
+    '/opt/render/project/src/client/src/components/SessionExpiredModal.tsx',
+    '/opt/render/project/src/client/src/components/SplashScreen.tsx',
+    '/opt/render/project/src/client/src/components/admin/EmployeeAssistant.tsx',
+    '/opt/render/project/src/client/src/components/ai/AIInsights.tsx',
+    '/opt/render/project/src/client/src/components/ai/DescriptionGenerator.tsx',
+    '/opt/render/project/src/client/src/components/ai/OutfitSuggestions.tsx',
+    '/opt/render/project/src/client/src/components/ai/SizeAdvisor.tsx',
+    '/opt/render/project/src/client/src/components/ai/SupportChat.tsx',
+    '/opt/render/project/src/client/src/components/ai/UnifiedChat.tsx',
+    '/opt/render/project/src/client/src/components/audio-unlock-banner.tsx',
+    '/opt/render/project/src/client/src/components/auth-provider.tsx',
+    '/opt/render/project/src/client/src/components/barcode-generator.tsx',
+    '/opt/render/project/src/client/src/components/drink-customization-dialog.tsx',
+    '/opt/render/project/src/client/src/components/marketing-banners.tsx',
+    '/opt/render/project/src/client/src/components/notification-bell.tsx',
+    '/opt/render/project/src/client/src/components/payment/ApplePayButton.tsx',
+    '/opt/render/project/src/client/src/components/payment/CardPaymentForm.tsx',
+    '/opt/render/project/src/client/src/components/payment/InstallmentSection.tsx',
+    '/opt/render/project/src/client/src/components/payment/PaymentBrands.tsx',
+    '/opt/render/project/src/client/src/components/payment/STCPayForm.tsx',
+    '/opt/render/project/src/client/src/components/payment/ThreeDSModal.tsx',
+    '/opt/render/project/src/client/src/components/pos-shift-bar.tsx',
+    '/opt/render/project/src/client/src/components/printer-settings-panel.tsx',
+    '/opt/render/project/src/client/src/components/qr-pay-modal.tsx',
+    '/opt/render/project/src/client/src/components/quick-sidebar.tsx',
+    '/opt/render/project/src/client/src/components/refund-dialog.tsx',
+    '/opt/render/project/src/client/src/components/sar-icon.tsx',
+    '/opt/render/project/src/client/src/components/sound-settings-panel.tsx',
+    '/opt/render/project/src/client/src/components/theme-provider.tsx',
+    '/opt/render/project/src/client/src/components/ui/accordion.tsx',
+    '/opt/render/project/src/client/src/components/ui/alert-dialog.tsx',
+    '/opt/render/project/src/client/src/components/ui/alert.tsx',
+    '/opt/render/project/src/client/src/components/ui/aspect-ratio.tsx',
+    '/opt/render/project/src/client/src/components/ui/avatar.tsx',
+    '/opt/render/project/src/client/src/components/ui/badge.tsx',
+    '/opt/render/project/src/client/src/components/ui/breadcrumb.tsx',
+    '/opt/render/project/src/client/src/components/ui/button.tsx',
+    '/opt/render/project/src/client/src/components/ui/calendar.tsx',
+    '/opt/render/project/src/client/src/components/ui/card.tsx',
+    '/opt/render/project/src/client/src/components/ui/carousel.tsx',
+    '/opt/render/project/src/client/src/components/ui/chart.tsx',
+    '/opt/render/project/src/client/src/components/ui/checkbox.tsx',
+    '/opt/render/project/src/client/src/components/ui/collapsible.tsx',
+    '/opt/render/project/src/client/src/components/ui/command.tsx',
+    '/opt/render/project/src/client/src/components/ui/context-menu.tsx',
+    '/opt/render/project/src/client/src/components/ui/dialog.tsx',
+    ... 120 more items
+  ]
+}
+==> Build failed 😞
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
