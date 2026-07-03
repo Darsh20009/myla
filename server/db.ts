@@ -19,6 +19,7 @@ async function tryConnect(uri: string): Promise<boolean> {
       await mongoose.disconnect();
     }
     await mongoose.connect(uri, {
+      dbName: "myla",
       serverSelectionTimeoutMS: 10000,
       connectTimeoutMS: 10000,
       socketTimeoutMS: 30000,
