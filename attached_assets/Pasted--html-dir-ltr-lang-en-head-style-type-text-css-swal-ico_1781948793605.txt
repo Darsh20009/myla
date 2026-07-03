@@ -1,0 +1,2350 @@
+<html dir="ltr" lang="en"><head><style type="text/css">.swal-icon--error{border-color:#f27474;-webkit-animation:animateErrorIcon .5s;animation:animateErrorIcon .5s}.swal-icon--error__x-mark{position:relative;display:block;-webkit-animation:animateXMark .5s;animation:animateXMark .5s}.swal-icon--error__line{position:absolute;height:5px;width:47px;background-color:#f27474;display:block;top:37px;border-radius:2px}.swal-icon--error__line--left{-webkit-transform:rotate(45deg);transform:rotate(45deg);left:17px}.swal-icon--error__line--right{-webkit-transform:rotate(-45deg);transform:rotate(-45deg);right:16px}@-webkit-keyframes animateErrorIcon{0%{-webkit-transform:rotateX(100deg);transform:rotateX(100deg);opacity:0}to{-webkit-transform:rotateX(0deg);transform:rotateX(0deg);opacity:1}}@keyframes animateErrorIcon{0%{-webkit-transform:rotateX(100deg);transform:rotateX(100deg);opacity:0}to{-webkit-transform:rotateX(0deg);transform:rotateX(0deg);opacity:1}}@-webkit-keyframes animateXMark{0%{-webkit-transform:scale(.4);transform:scale(.4);margin-top:26px;opacity:0}50%{-webkit-transform:scale(.4);transform:scale(.4);margin-top:26px;opacity:0}80%{-webkit-transform:scale(1.15);transform:scale(1.15);margin-top:-6px}to{-webkit-transform:scale(1);transform:scale(1);margin-top:0;opacity:1}}@keyframes animateXMark{0%{-webkit-transform:scale(.4);transform:scale(.4);margin-top:26px;opacity:0}50%{-webkit-transform:scale(.4);transform:scale(.4);margin-top:26px;opacity:0}80%{-webkit-transform:scale(1.15);transform:scale(1.15);margin-top:-6px}to{-webkit-transform:scale(1);transform:scale(1);margin-top:0;opacity:1}}.swal-icon--warning{border-color:#f8bb86;-webkit-animation:pulseWarning .75s infinite alternate;animation:pulseWarning .75s infinite alternate}.swal-icon--warning__body{width:5px;height:47px;top:10px;border-radius:2px;margin-left:-2px}.swal-icon--warning__body,.swal-icon--warning__dot{position:absolute;left:50%;background-color:#f8bb86}.swal-icon--warning__dot{width:7px;height:7px;border-radius:50%;margin-left:-4px;bottom:-11px}@-webkit-keyframes pulseWarning{0%{border-color:#f8d486}to{border-color:#f8bb86}}@keyframes pulseWarning{0%{border-color:#f8d486}to{border-color:#f8bb86}}.swal-icon--success{border-color:#a5dc86}.swal-icon--success:after,.swal-icon--success:before{content:"";border-radius:50%;position:absolute;width:60px;height:120px;background:#fff;-webkit-transform:rotate(45deg);transform:rotate(45deg)}.swal-icon--success:before{border-radius:120px 0 0 120px;top:-7px;left:-33px;-webkit-transform:rotate(-45deg);transform:rotate(-45deg);-webkit-transform-origin:60px 60px;transform-origin:60px 60px}.swal-icon--success:after{border-radius:0 120px 120px 0;top:-11px;left:30px;-webkit-transform:rotate(-45deg);transform:rotate(-45deg);-webkit-transform-origin:0 60px;transform-origin:0 60px;-webkit-animation:rotatePlaceholder 4.25s ease-in;animation:rotatePlaceholder 4.25s ease-in}.swal-icon--success__ring{width:80px;height:80px;border:4px solid hsla(98,55%,69%,.2);border-radius:50%;box-sizing:content-box;position:absolute;left:-4px;top:-4px;z-index:2}.swal-icon--success__hide-corners{width:5px;height:90px;background-color:#fff;padding:1px;position:absolute;left:28px;top:8px;z-index:1;-webkit-transform:rotate(-45deg);transform:rotate(-45deg)}.swal-icon--success__line{height:5px;background-color:#a5dc86;display:block;border-radius:2px;position:absolute;z-index:2}.swal-icon--success__line--tip{width:25px;left:14px;top:46px;-webkit-transform:rotate(45deg);transform:rotate(45deg);-webkit-animation:animateSuccessTip .75s;animation:animateSuccessTip .75s}.swal-icon--success__line--long{width:47px;right:8px;top:38px;-webkit-transform:rotate(-45deg);transform:rotate(-45deg);-webkit-animation:animateSuccessLong .75s;animation:animateSuccessLong .75s}@-webkit-keyframes rotatePlaceholder{0%{-webkit-transform:rotate(-45deg);transform:rotate(-45deg)}5%{-webkit-transform:rotate(-45deg);transform:rotate(-45deg)}12%{-webkit-transform:rotate(-405deg);transform:rotate(-405deg)}to{-webkit-transform:rotate(-405deg);transform:rotate(-405deg)}}@keyframes rotatePlaceholder{0%{-webkit-transform:rotate(-45deg);transform:rotate(-45deg)}5%{-webkit-transform:rotate(-45deg);transform:rotate(-45deg)}12%{-webkit-transform:rotate(-405deg);transform:rotate(-405deg)}to{-webkit-transform:rotate(-405deg);transform:rotate(-405deg)}}@-webkit-keyframes animateSuccessTip{0%{width:0;left:1px;top:19px}54%{width:0;left:1px;top:19px}70%{width:50px;left:-8px;top:37px}84%{width:17px;left:21px;top:48px}to{width:25px;left:14px;top:45px}}@keyframes animateSuccessTip{0%{width:0;left:1px;top:19px}54%{width:0;left:1px;top:19px}70%{width:50px;left:-8px;top:37px}84%{width:17px;left:21px;top:48px}to{width:25px;left:14px;top:45px}}@-webkit-keyframes animateSuccessLong{0%{width:0;right:46px;top:54px}65%{width:0;right:46px;top:54px}84%{width:55px;right:0;top:35px}to{width:47px;right:8px;top:38px}}@keyframes animateSuccessLong{0%{width:0;right:46px;top:54px}65%{width:0;right:46px;top:54px}84%{width:55px;right:0;top:35px}to{width:47px;right:8px;top:38px}}.swal-icon--info{border-color:#c9dae1}.swal-icon--info:before{width:5px;height:29px;bottom:17px;border-radius:2px;margin-left:-2px}.swal-icon--info:after,.swal-icon--info:before{content:"";position:absolute;left:50%;background-color:#c9dae1}.swal-icon--info:after{width:7px;height:7px;border-radius:50%;margin-left:-3px;top:19px}.swal-icon{width:80px;height:80px;border-width:4px;border-style:solid;border-radius:50%;padding:0;position:relative;box-sizing:content-box;margin:20px auto}.swal-icon:first-child{margin-top:32px}.swal-icon--custom{width:auto;height:auto;max-width:100%;border:none;border-radius:0}.swal-icon img{max-width:100%;max-height:100%}.swal-title{color:rgba(0,0,0,.65);font-weight:600;text-transform:none;position:relative;display:block;padding:13px 16px;font-size:27px;line-height:normal;text-align:center;margin-bottom:0}.swal-title:first-child{margin-top:26px}.swal-title:not(:first-child){padding-bottom:0}.swal-title:not(:last-child){margin-bottom:13px}.swal-text{font-size:16px;position:relative;float:none;line-height:normal;vertical-align:top;text-align:left;display:inline-block;margin:0;padding:0 10px;font-weight:400;color:rgba(0,0,0,.64);max-width:calc(100% - 20px);overflow-wrap:break-word;box-sizing:border-box}.swal-text:first-child{margin-top:45px}.swal-text:last-child{margin-bottom:45px}.swal-footer{text-align:right;padding-top:13px;margin-top:13px;padding:13px 16px;border-radius:inherit;border-top-left-radius:0;border-top-right-radius:0}.swal-button-container{margin:5px;display:inline-block;position:relative}.swal-button{background-color:#7cd1f9;color:#fff;border:none;box-shadow:none;border-radius:5px;font-weight:600;font-size:14px;padding:10px 24px;margin:0;cursor:pointer}.swal-button:not([disabled]):hover{background-color:#78cbf2}.swal-button:active{background-color:#70bce0}.swal-button:focus{outline:none;box-shadow:0 0 0 1px #fff,0 0 0 3px rgba(43,114,165,.29)}.swal-button[disabled]{opacity:.5;cursor:default}.swal-button::-moz-focus-inner{border:0}.swal-button--cancel{color:#555;background-color:#efefef}.swal-button--cancel:not([disabled]):hover{background-color:#e8e8e8}.swal-button--cancel:active{background-color:#d7d7d7}.swal-button--cancel:focus{box-shadow:0 0 0 1px #fff,0 0 0 3px rgba(116,136,150,.29)}.swal-button--danger{background-color:#e64942}.swal-button--danger:not([disabled]):hover{background-color:#df4740}.swal-button--danger:active{background-color:#cf423b}.swal-button--danger:focus{box-shadow:0 0 0 1px #fff,0 0 0 3px rgba(165,43,43,.29)}.swal-content{padding:0 20px;margin-top:20px;font-size:medium}.swal-content:last-child{margin-bottom:20px}.swal-content__input,.swal-content__textarea{-webkit-appearance:none;background-color:#fff;border:none;font-size:14px;display:block;box-sizing:border-box;width:100%;border:1px solid rgba(0,0,0,.14);padding:10px 13px;border-radius:2px;transition:border-color .2s}.swal-content__input:focus,.swal-content__textarea:focus{outline:none;border-color:#6db8ff}.swal-content__textarea{resize:vertical}.swal-button--loading{color:transparent}.swal-button--loading~.swal-button__loader{opacity:1}.swal-button__loader{position:absolute;height:auto;width:43px;z-index:2;left:50%;top:50%;-webkit-transform:translateX(-50%) translateY(-50%);transform:translateX(-50%) translateY(-50%);text-align:center;pointer-events:none;opacity:0}.swal-button__loader div{display:inline-block;float:none;vertical-align:baseline;width:9px;height:9px;padding:0;border:none;margin:2px;opacity:.4;border-radius:7px;background-color:hsla(0,0%,100%,.9);transition:background .2s;-webkit-animation:swal-loading-anim 1s infinite;animation:swal-loading-anim 1s infinite}.swal-button__loader div:nth-child(3n+2){-webkit-animation-delay:.15s;animation-delay:.15s}.swal-button__loader div:nth-child(3n+3){-webkit-animation-delay:.3s;animation-delay:.3s}@-webkit-keyframes swal-loading-anim{0%{opacity:.4}20%{opacity:.4}50%{opacity:1}to{opacity:.4}}@keyframes swal-loading-anim{0%{opacity:.4}20%{opacity:.4}50%{opacity:1}to{opacity:.4}}.swal-overlay{position:fixed;top:0;bottom:0;left:0;right:0;text-align:center;font-size:0;overflow-y:auto;background-color:rgba(0,0,0,.4);z-index:10000;pointer-events:none;opacity:0;transition:opacity .3s}.swal-overlay:before{content:" ";display:inline-block;vertical-align:middle;height:100%}.swal-overlay--show-modal{opacity:1;pointer-events:auto}.swal-overlay--show-modal .swal-modal{opacity:1;pointer-events:auto;box-sizing:border-box;-webkit-animation:showSweetAlert .3s;animation:showSweetAlert .3s;will-change:transform}.swal-modal{width:478px;opacity:0;pointer-events:none;background-color:#fff;text-align:center;border-radius:5px;position:static;margin:20px auto;display:inline-block;vertical-align:middle;-webkit-transform:scale(1);transform:scale(1);-webkit-transform-origin:50% 50%;transform-origin:50% 50%;z-index:10001;transition:opacity .2s,-webkit-transform .3s;transition:transform .3s,opacity .2s;transition:transform .3s,opacity .2s,-webkit-transform .3s}@media (max-width:500px){.swal-modal{width:calc(100% - 20px)}}@-webkit-keyframes showSweetAlert{0%{-webkit-transform:scale(1);transform:scale(1)}1%{-webkit-transform:scale(.5);transform:scale(.5)}45%{-webkit-transform:scale(1.05);transform:scale(1.05)}80%{-webkit-transform:scale(.95);transform:scale(.95)}to{-webkit-transform:scale(1);transform:scale(1)}}@keyframes showSweetAlert{0%{-webkit-transform:scale(1);transform:scale(1)}1%{-webkit-transform:scale(.5);transform:scale(.5)}45%{-webkit-transform:scale(1.05);transform:scale(1.05)}80%{-webkit-transform:scale(.95);transform:scale(.95)}to{-webkit-transform:scale(1);transform:scale(1)}}</style>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-L4793DFM64"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-L4793DFM64');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1;">
+
+
+    <link rel="apple-touch-icon" sizes="57x57" href="/assets/images/fav/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/assets/images/fav/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/assets/images/fav/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/assets/images/fav/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/assets/images/fav/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/assets/images/fav/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/assets/images/fav/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/assets/images/fav/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/fav/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/fav/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/fav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/fav/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/fav/favicon-16x16.png">
+    <link rel="manifest" href="/assets/images/fav/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/assets/images/fav/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+    <meta property="og:image" content="/Images/EmailLogo.png">
+
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Playfair+Display:400,400i,500,500i,600,600i,700,700i,800,800i,900,900i&amp;display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/animate.css">
+
+
+            <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
+
+
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/chosen.min.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/jquery.scrollbar.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/lightbox.min.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/magnific-popup.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/slick.min.css">
+    <link rel="stylesheet" type="text/css" href="/assets/fonts/flaticon.css">
+    <link href="/assets/fonts/fonticon/flaticon-new.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/assets/css/megamenu.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/dreaming-attribute.css">
+    <link href="/assets/css/floating-wpp.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css?v=1.015">
+
+
+    <title>GUL  : Home</title>
+
+    
+</head>
+<body><div class="akasha-menu-clone-wrap"><div class="akasha-menu-panels-actions-wrap"><a href="/"><img src="/assets/images/logo.png" style="height:40px;"></a><a class="akasha-menu-close-btn akasha-menu-close-panels" href="#">x</a></div><div class="akasha-menu-panels"><div id="akasha-menu-panel-main" class="akasha-menu-panel akasha-menu-panel-main"><ul class="depth-01">
+        <li id="akasha-menu-clone-menu-item-230" class="menu-item menu-item-type-post_type menu-item-object-megamenu menu-item-230 parent clone-menu-item">
+            <a class="akasha-menu-item-title" title="Home" href="/Home/Index">Home</a>
+        </li>
+        <li id="akasha-menu-clone-menu-item-228" class="menu-item menu-item-type-post_type menu-item-object-megamenu menu-item-228 parent parent-megamenu item-megamenu menu-item-has-children clone-menu-item"><a class="akasha-menu-next-panel" href="#akasha-menu-panel-0" data-target="#akasha-menu-panel-0"></a>
+            <a class="akasha-menu-item-title" title="Shop" href="/Home/Products">Shop</a>
+            
+        </li>
+        <li id="akasha-menu-clone-menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237 parent clone-menu-item">
+            <a class="akasha-menu-item-title" title="OurStory" href="/Home/About">Our Story</a>
+
+        </li>
+        <li id="akasha-menu-clone-menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237 parent clone-menu-item">
+            <a class="akasha-menu-item-title" title="Gallery" href="/Home/Gallery">Gallery</a>
+
+        </li>
+        <li id="akasha-menu-clone-menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237 parent parent-megamenu item-megamenu menu-item-has-children clone-menu-item"><a class="akasha-menu-next-panel" href="#akasha-menu-panel-1" data-target="#akasha-menu-panel-1"></a>
+            <a class="akasha-menu-item-title" title="Contact" href="/Home/Contact">Contact Us</a>
+            
+        </li>
+    </ul></div><div id="akasha-menu-panel-0" class="akasha-menu-panel akasha-menu-sub-panel akasha-menu-hidden"><ul class="submenu">
+
+                <li class="menu-item clone-menu-item">
+                    <a class="akasha-menu-item-title custom-color" title="Shop" href="/Home/Products">View All</a>
+                </li>
+
+                <li class="menu-item clone-menu-item">
+
+                        <a class="akasha-menu-item-title custom-color" title="Abayas" href="javascript:void(0);">Abayas </a>
+                                            <ul class="submenu">
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="BOTANICAL 01" href="/Categories/botanical-01">BOTANICAL 01 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="THREADS OF TRADITION" href="/Categories/threads-of-tradition">THREADS OF TRADITION </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Capsule '23" href="/Categories/capsule-23">Capsule '23 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid Al Fitr 2025" href="/Categories/eid-al-fitr-2025">Eid Al Fitr 2025 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '22" href="/Categories/eid-aladha-22">Eid AlAdha '22 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="FW'22" href="/Categories/fw22">FW'22 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '21" href="/Categories/ss-21">SS '21 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="FW '21" href="/Categories/fw-21">FW '21 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '20" href="/Categories/eid-aladha-20">Eid AlAdha '20 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="FW '20" href="/Categories/fw-20">FW '20 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '20" href="/Categories/ss-20">SS '20 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '19" href="/Categories/eid-aladha-19">Eid AlAdha '19 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '19" href="/Categories/ss-19">SS '19 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '18" href="/Categories/ss-18">SS '18 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="FW '18" href="/Categories/fw-18">FW '18 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '18" href="/Categories/eid-aladha-18">Eid AlAdha '18 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Exclusive" href="/Categories/exclusive">Exclusive </a>
+                                </li>
+                        </ul>
+                </li>
+                <li class="menu-item clone-menu-item">
+
+                        <a class="akasha-menu-item-title custom-color" title="Accessories" href="/Categories/accessories">Accessories </a>
+                                    </li>
+                <li class="menu-item clone-menu-item">
+
+                        <a class="akasha-menu-item-title custom-color" title="Caftans" href="javascript:void(0);">Caftans </a>
+                                            <ul class="submenu">
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Ramadhan 21" href="/Categories/ramadhan-21">Ramadhan 21 </a>
+                                </li>
+                                <li class="menu-item clone-menu-item">
+                                    <a class="akasha-menu-item-title" title="Ramadhan  '24" href="/Categories/ramadhan-24">Ramadhan  '24 </a>
+                                </li>
+                        </ul>
+                </li>
+
+
+            </ul></div><div id="akasha-menu-panel-1" class="akasha-menu-panel akasha-menu-sub-panel akasha-menu-hidden"><ul class="submenu">
+
+                <li class="menu-item clone-menu-item">
+                    <a class="akasha-menu-item-title" title="Shop" href="/Home/Contact">Contact Us</a>
+                </li>
+                <li class="menu-item clone-menu-item">
+                    <a class="akasha-menu-item-title" title="Shop" href="/Home/Terms">Terms &amp; Conditions</a>
+                </li>
+                <li class="menu-item clone-menu-item">
+                    <a class="akasha-menu-item-title" title="Shop" href="/Home/ReturnPolicy">Return Policy</a>
+                </li>
+            </ul></div></div></div>
+    
+
+
+    <!-- Preloader -->
+    <div class="tm-preloader" style="display: none;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-6">
+
+                        <div class="tm-preloader-logo">
+
+
+                            <img src="/assets/images/loader.png" height="300">
+
+
+
+                        </div>
+                        <p class="loadingtext mt-2" data-text="By Fatma AlQaed &amp; Fatma Engineer">By Fatma AlQaed &amp; Fatma Engineer</p>
+
+
+                </div>
+            </div>
+        </div>
+        <!-- <button class="tm-button tm-button-small">Cancel Preloader</button> -->
+    </div>
+    <!--// Preloader -->
+
+
+
+    <header id="header" class="header style-02 header-dark header-sticky">
+        <div class="header-wrap-stick" style="height: 20px;">
+            <div class="header-position">
+                <div class="header-middle">
+                    <div class="akasha-menu-wapper"></div>
+                    <div class="header-middle-inner">
+                        <div class="header-menu col-5 pull-left">
+                            <div class="box-header-nav menu-nocenter">
+
+
+    <ul id="menu-primary-menu" class="clone-main-menu akasha-clone-mobile-menu akasha-nav main-menu">
+        <li id="menu-item-230" class="menu-item menu-item-type-post_type menu-item-object-megamenu menu-item-230 parent">
+            <a class="akasha-menu-item-title" title="Home" href="/Home/Index">Home</a>
+        </li>
+        <li id="menu-item-228" class="menu-item menu-item-type-post_type menu-item-object-megamenu menu-item-228 parent parent-megamenu item-megamenu menu-item-has-children">
+            <a class="akasha-menu-item-title" title="Shop" href="/Home/Products">Shop</a>
+            <ul class="submenu">
+
+                <li class="menu-item">
+                    <a class="akasha-menu-item-title custom-color" title="Shop" href="/Home/Products">View All</a>
+                </li>
+
+                <li class="menu-item">
+
+                        <a class="akasha-menu-item-title custom-color" title="Abayas" href="javascript:void(0);">Abayas </a>
+                                            <ul class="submenu">
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="BOTANICAL 01" href="/Categories/botanical-01">BOTANICAL 01 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="THREADS OF TRADITION" href="/Categories/threads-of-tradition">THREADS OF TRADITION </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Capsule '23" href="/Categories/capsule-23">Capsule '23 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid Al Fitr 2025" href="/Categories/eid-al-fitr-2025">Eid Al Fitr 2025 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '22" href="/Categories/eid-aladha-22">Eid AlAdha '22 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="FW'22" href="/Categories/fw22">FW'22 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '21" href="/Categories/ss-21">SS '21 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="FW '21" href="/Categories/fw-21">FW '21 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '20" href="/Categories/eid-aladha-20">Eid AlAdha '20 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="FW '20" href="/Categories/fw-20">FW '20 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '20" href="/Categories/ss-20">SS '20 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '19" href="/Categories/eid-aladha-19">Eid AlAdha '19 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '19" href="/Categories/ss-19">SS '19 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="SS '18" href="/Categories/ss-18">SS '18 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="FW '18" href="/Categories/fw-18">FW '18 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Eid AlAdha '18" href="/Categories/eid-aladha-18">Eid AlAdha '18 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Exclusive" href="/Categories/exclusive">Exclusive </a>
+                                </li>
+                        </ul>
+                </li>
+                <li class="menu-item">
+
+                        <a class="akasha-menu-item-title custom-color" title="Accessories" href="/Categories/accessories">Accessories </a>
+                                    </li>
+                <li class="menu-item">
+
+                        <a class="akasha-menu-item-title custom-color" title="Caftans" href="javascript:void(0);">Caftans </a>
+                                            <ul class="submenu">
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Ramadhan 21" href="/Categories/ramadhan-21">Ramadhan 21 </a>
+                                </li>
+                                <li class="menu-item">
+                                    <a class="akasha-menu-item-title" title="Ramadhan  '24" href="/Categories/ramadhan-24">Ramadhan  '24 </a>
+                                </li>
+                        </ul>
+                </li>
+
+
+            </ul>
+        </li>
+        <li id="menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237 parent">
+            <a class="akasha-menu-item-title" title="OurStory" href="/Home/About">Our Story</a>
+
+        </li>
+        <li id="menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237 parent">
+            <a class="akasha-menu-item-title" title="Gallery" href="/Home/Gallery">Gallery</a>
+
+        </li>
+        <li id="menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237 parent parent-megamenu item-megamenu menu-item-has-children">
+            <a class="akasha-menu-item-title" title="Contact" href="/Home/Contact">Contact Us</a>
+            <ul class="submenu">
+
+                <li class="menu-item">
+                    <a class="akasha-menu-item-title" title="Shop" href="/Home/Contact">Contact Us</a>
+                </li>
+                <li class="menu-item">
+                    <a class="akasha-menu-item-title" title="Shop" href="/Home/Terms">Terms &amp; Conditions</a>
+                </li>
+                <li class="menu-item">
+                    <a class="akasha-menu-item-title" title="Shop" href="/Home/ReturnPolicy">Return Policy</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+
+
+                            </div>
+                            <div class="block-menu-bar">
+                                <a class="menu-bar menu-toggle" href="#">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="header-logo mt-1 col-3 pull-left pl-5">
+                            <a href="/">
+                                <img alt="GUL" src="/assets/images/logo.png" class="logo">
+                            </a>
+                        </div>
+                        <div class="header-control col-4 pull-left">
+                            <div class="header-control-inner pt-3">
+                                <div class="meta-dreaming">
+                                    <ul class="wpml-menu">
+                                        <li style="padding-top: 5px;" class="menu-item akasha-dropdown block-language">
+                                            <a href="/Home/ChangeLanguage?LanguageAbbrevation=en&amp;returnurl=/" data-akasha="akasha-dropdown">
+
+                                                EN
+                                            </a>
+                                            <span class="toggle-submenu"></span>
+                                            <ul class="sub-menu">
+                                                <li class="menu-item">
+
+                                                    <a href="/Home/ChangeLanguage?LanguageAbbrevation=en&amp;returnurl=/">
+
+                                                        EN
+                                                    </a>
+
+                                                    <a href="/Home/ChangeLanguage?LanguageAbbrevation=ar&amp;returnurl=/">
+
+                                                        العربية
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                        <li class="menu-item akasha-dropdown block-language">
+                                            <div class="wcml-dropdown product wcml_currency_switcher">
+                                                <ul>
+                                                    <li class="wcml-cs-active-currency">
+                                                        <a class="wcml-cs-item-toggle">BHD </a>
+                                                        <ul class="wcml-cs-submenu">
+
+                                                            <li>
+
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=BHD&amp;returnurl=/">   <img src="/assets/img/bahrain.png">BHD</a>
+                                                            </li>
+                                                            <li>
+
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=SAR&amp;returnurl=/"> <img src="/assets/img/001-saudi-arabia.png">SAR</a>
+                                                            </li>
+                                                            <li>
+
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=OMR&amp;returnurl=/"> <img src="/assets/img/002-oman.png"> OMR</a>
+                                                            </li>
+                                                            <li>
+
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=KWD&amp;returnurl=/">  <img src="/assets/img/003-kuwait.png">KWD</a>
+                                                            </li>
+                                                            <li>
+
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=AED&amp;returnurl=/"> <img src="/assets/img/004-united-arab-emirates.png"> AED</a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=QAR&amp;returnurl=/"> <img src="/assets/img/qatar.png"> QAR</a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="/Home/ChangeCurrency?CurrencyAbbrevation=USD&amp;returnurl=/">  <img src="/assets/img/flag.png">   USD</a>
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <div class="header-search akasha-dropdown">
+                                        
+                                        <div class="block-search">
+                                            <form role="search" method="get" class="form-search block-search-form akasha-live-search-form">
+                                                <div class="form-content search-box results-search">
+                                                    <div class="inner">
+                                                        <input autocomplete="off" class="searchfield txt-livesearch input" name="s" value="" placeholder="Search here..." type="text">
+                                                    </div>
+                                                </div>
+                                                <input name="post_type" value="product" type="hidden">
+                                                <input name="taxonomy" value="product_cat" type="hidden">
+                                                <div class="category">
+                                                    <select title="product_cat" name="product_cat" id="64788262" class="category-search-option" tabindex="-1" style="display: none;">
+                                                        <option value="0">All Categories</option>
+                                                        <option class="level-0" value="light">Abayas</option>
+                                                        <option class="level-0" value="chair">Accessories</option>
+
+                                                        <option class="level-0" value="bed">Life style</option>
+                                                        <option class="level-0" value="new-arrivals">New arrivals</option>
+                                                        <option class="level-0" value="lamp">Summer Sale</option>
+                                                        <option class="level-0" value="specials">Specials</option>
+
+                                                    </select><div class="chosen-container chosen-container-single" title="product_cat" id="64788262_chosen" style="width: 0px;"><a class="chosen-single">
+  <span>All Categories</span>
+  <div><b></b></div>
+</a>
+<div class="chosen-drop">
+  <div class="chosen-search">
+    <input title="chosen-search-input" class="chosen-search-input" type="text" autocomplete="off" tabindex="-1">
+  </div>
+  <div class="scroll-wrapper chosen-results" style="position: relative;"><ul class="chosen-results scroll-content" style="height: auto; margin-bottom: 0px; margin-right: 0px; max-height: 0px;"></ul><div class="scroll-element scroll-x"><div class="scroll-element_outer"><div class="scroll-element_size"></div><div class="scroll-element_track"></div><div class="scroll-bar"></div></div></div><div class="scroll-element scroll-y"><div class="scroll-element_outer"><div class="scroll-element_size"></div><div class="scroll-element_track"></div><div class="scroll-bar"></div></div></div></div>
+</div></div>
+                                                </div>
+                                                <button type="submit" class="btn-submit">
+                                                    <span class="flaticon-magnifying-glass-1"></span>
+                                                </button>
+                                            </form><!-- block search -->
+                                        </div>
+                                    </div>
+                                    <div class="akasha-dropdown-close">x</div>
+                                    <div class="menu-item block-user block-dreaming akasha-dropdown">
+
+
+
+                                        <a class="block-link" href="/Shopping/login">
+                                            <span class="flaticon-profile"></span>
+                                        </a>
+
+
+                                    </div>
+                                    <div class="block-minicart block-dreaming akasha-mini-cart akasha-dropdown">
+                                        <div class="shopcart-dropdown block-cart-link" data-akasha="akasha-dropdown">
+                                            <a class="block-link link-dropdown" href="cart.html">
+                                                <span class="flaticon-bag"></span>
+
+
+
+                                            </a>
+                                        </div>
+                                        <div class="widget akasha widget_shopping_cart">
+                                            <div class="widget_shopping_cart_content">
+                                                <h3 class="minicart-title">
+                                                    Cart
+
+
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="header-logo text-center mt-1 d-lg-none d-xl-none">
+            <a href="/">
+                <img alt="GUL" src="/assets/images/logo.png" style="width:90px;" class="logo">
+            </a>
+        </div>
+        <div class="header-mobile">
+
+            <div class="header-mobile-left">
+                <div class="block-menu-bar">
+                    <a class="menu-bar menu-toggle" href="#">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </a>
+                </div>
+                
+                <ul class="wpml-menu pull-right">
+                    <li class="menu-item akasha-dropdown block-language">
+                        <a href="#" data-akasha="akasha-dropdown">
+                            
+                            EN
+                        </a>
+                        <span class="toggle-submenu"></span>
+                        <ul class="sub-menu">
+
+                            <li class="menu-item">
+
+                                <a href="/Home/ChangeLanguage?LanguageAbbrevation=en&amp;returnurl=/">
+
+                                    EN
+                                </a>
+
+                                <a href="/Home/ChangeLanguage?LanguageAbbrevation=ar&amp;returnurl=/">
+
+                                    العربية
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-item">
+                        <div class="wcml-dropdown product wcml_currency_switcher">
+                            <ul>
+                                <li class="wcml-cs-active-currency">
+                                    <a class="wcml-cs-item-toggle">BHD</a>
+                                    <ul class="wcml-cs-submenu">
+                                        <li>
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=BHD&amp;returnurl=/">   <img src="/assets/img/bahrain.png">BHD</a>
+                                        </li>
+                                        <li>
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=SAR&amp;returnurl=/"> <img src="/assets/img/001-saudi-arabia.png">SAR</a>
+                                        </li>
+                                        <li>
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=OMR&amp;returnurl=/"> <img src="/assets/img/002-oman.png"> OMR</a>
+                                        </li>
+                                        <li>
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=KWD&amp;returnurl=/">  <img src="/assets/img/003-kuwait.png">KWD</a>
+                                        </li>
+                                        <li>
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=AED&amp;returnurl=/"> <img src="/assets/img/004-united-arab-emirates.png"> AED</a>
+                                        </li>
+                                        <li>
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=QAR&amp;returnurl=/"> <img src="/assets/img/qatar.png"> QAR</a>
+                                        </li>
+                                        <li>
+
+
+                                            <a href="/Home/ChangeCurrency?CurrencyAbbrevation=USD&amp;returnurl=/">  <img src="/assets/img/flag.png">   USD</a>
+
+
+
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="header-mobile-right">
+                <div class="header-control-inner">
+                    <div class="meta-dreaming">
+                        
+                        <div class="block-minicart block-dreaming akasha-mini-cart akasha-dropdown" id="cartModel">
+                            
+                            <div class="widget akasha widget_shopping_cart">
+                                <div class="widget_shopping_cart_content">
+                                    <h3 class="minicart-title">
+                                        Cart
+                                    </h3>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+
+
+    
+
+
+<style>
+    .header {
+        position: absolute;
+        width: 100%;
+        z-index: 999;
+       
+        background: rgba(255,255,255,0.2) !important;
+    }
+    .footer-device-mobile {
+    
+        z-index: 99 !important;
+    }
+</style>
+
+<div class="vertical-center ">
+
+        <a class="fami-btn" href="/Home/Products">Shop Now</a>
+       
+
+</div>
+
+    <div class="fullwidth-template">
+
+            <video autoplay="" loop="" muted="" playsinline="" class="video-background ">
+
+
+                <source src="/assets/video/intro.mp4" type="video/mp4">
+
+            </video>
+
+
+
+        
+
+
+        
+        <!--  <div class="section-003 section-002">
+              <div class="container">
+                  <div class="row">
+                      <div class="col-md-12 col-lg-6">
+                          <div class="akasha-banner style-01 left-center">
+                              <div class="banner-inner">
+                                  <figure class="banner-thumb">
+                                      <img src="~/assets/images/banner11.jpg"
+                                           class="attachment-full size-full" alt="img">
+                                  </figure>
+                                  <div class="banner-info ">
+                                      <div class="banner-content">
+                                          <div class="title-wrap">
+                                              <h6 class="title">
+                                                  <a target="_self" href="#">Abayas</a>
+                                              </h6>
+                                          </div>
+                                          <div class="button-wrap">
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="col-md-12 col-lg-6">
+                          <div class="akasha-banner style-01 right-top">
+                              <div class="banner-inner">
+                                  <figure class="banner-thumb">
+                                      <img src="~/assets/images/banner12.jpg"
+                                           class="attachment-full size-full" alt="img">
+                                  </figure>
+                                  <div class="banner-info ">
+                                      <div class="banner-content">
+                                          <div class="title-wrap">
+                                              <h6 class="title">
+                                                  <a target="_self" href="#">Kaftans</a>
+                                              </h6>
+                                          </div>
+                                          <div class="button-wrap">
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="akasha-banner style-01 left-bottom">
+                              <div class="banner-inner">
+                                  <figure class="banner-thumb">
+                                      <img src="~/assets/images/banner13.jpg"
+                                           class="attachment-full size-full" alt="img">
+                                  </figure>
+                                  <div class="banner-info ">
+                                      <div class="banner-content">
+                                          <div class="title-wrap">
+                                              <h6 class="title">
+                                                  <a target="_self" href="#">Modern Dresses</a>
+                                              </h6>
+                                          </div>
+                                          <div class="button-wrap">
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        <div class="section-001">
+            <div class="container">
+                <div class="akasha-heading style-01">
+                    <div class="heading-inner">
+                        <h3 class="title">Best Seller</h3>
+                        <div class="subtitle">
+                            Made with care for your little ones, our products are perfect for every occasion. Check it out.
+                        </div>
+                    </div>
+                </div>
+                <div class="akasha-products style-02">
+                    <div class="response-product product-list-owl owl-slick equal-container better-height"
+                         data-slick="{&quot;arrows&quot;:true, &quot;slidesMargin&quot;:30,&quot;dots&quot;:true,&quot;infinite&quot;:false,&quot;speed&quot;:300,&quot;slidesToShow&quot;:4,&quot;rows&quot;:1}"
+                         data-responsive="[{&quot;breakpoint&quot;:480, &quot;settings&quot;:{&quot;slidesToShow&quot;:2,&quot;slidesMargin&quot;:&quot;10&quot;}},{&quot;breakpoint&quot;:768,&quot;settings&quot;:{&quot;slidesToShow&quot;:2,&quot;slidesMargin&quot;:&quot;10&quot;}},{&quot;breakpoint&quot;:992,&quot;settings&quot;:{&quot;slidesToShow&quot;:3,&quot;slidesMargin&quot;:&quot;20&quot;}},{&quot;breakpoint&quot;:1200,&quot;settings&quot;:{&quot;slidesToShow&quot;:3,&quot;slidesMargin&quot;:&quot;20&quot;}},{&quot;breakpoint&quot;:1500,&quot;settings&quot;:{&quot;slidesToShow&quot;:4,&quot;slidesMargin&quot;:&quot;30&quot;}}]">
+
+
+                        <div class="product-item featured_products style-02 rows-space-30 post-34 product type-product status-publish has-post-thumbnail product_cat-light product_cat-new-arrivals product_tag-light product_tag-hat product_tag-sock first instock sale featured shipping-taxable product-type-grouped">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#" tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/1.jpg"
+                                             alt="Maternity Shoulder" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+
+
+
+
+                        <div class="product-item featured_products style-02 rows-space-30 post-32 product type-product status-publish has-post-thumbnail product_cat-light product_cat-chair product_cat-sofas product_tag-hat product_tag-sock  instock sale featured shipping-taxable purchasable product-type-simple">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/2.jpg"
+                                             alt="Women Bags" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onsale"><span class="number">-18%</span></span>
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-30 product type-product status-publish has-post-thumbnail product_cat-light product_cat-bed product_cat-specials product_tag-light product_tag-table product_tag-sock last instock featured downloadable shipping-taxable purchasable product-type-simple">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/3.jpg"
+                                             alt="Long Oversized" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button" data-product_id="30"
+                                       tabindex="0">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-31 product type-product status-publish has-post-thumbnail product_cat-light product_cat-sofas product_tag-hat first instock sale featured shipping-taxable product-type-grouped">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/4.jpg"
+                                             alt="Swing Dress" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-29 product type-product status-publish has-post-thumbnail product_cat-new-arrivals product_cat-specials product_tag-light product_tag-sock  instock featured downloadable shipping-taxable purchasable product-type-simple">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/5.jpg"
+                                             alt="Abstract Sweatshirt" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-28 product type-product status-publish has-post-thumbnail product_cat-light product_cat-chair product_cat-sofas product_tag-light product_tag-sock last instock sale featured shipping-taxable purchasable product-type-simple">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/6.jpg"
+                                             alt="Classic Shirt" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onsale"><span class="number">-14%</span></span>
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-26 product type-product status-publish has-post-thumbnail product_cat-light product_cat-chair product_cat-sofas product_tag-light product_tag-hat first instock featured shipping-taxable product-type-external">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/7.jpg"
+                                             alt="Mini Dress" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-25 product type-product status-publish has-post-thumbnail product_cat-light product_cat-chair product_cat-specials product_tag-light product_tag-sock  instock sale featured shipping-taxable purchasable product-type-simple">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="0">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/8.jpg"
+                                             alt="Utility Pockets" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onsale"><span class="number">-11%</span></span>
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button" data-product_id="25"
+                                       tabindex="0">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-24 product type-product status-publish has-post-thumbnail product_cat-chair product_cat-table product_cat-new-arrivals product_tag-light product_tag-hat product_tag-sock last instock featured shipping-taxable purchasable product-type-variable has-default-attributes">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#" tabindex="-1">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/3.jpg"
+                                             alt="Women Bags" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <form class="variations_form cart">
+                                        <table class="variations">
+                                            <tbody>
+                                                <tr>
+                                                    <td class="value">
+                                                        <select title="box_style" data-attributetype="box_style"
+                                                                data-id="pa_color" class="attribute-select "
+                                                                name="attribute_pa_color"
+                                                                data-attribute_name="attribute_pa_color"
+                                                                data-show_option_none="yes" tabindex="-1">
+                                                            <option data-type="" data-pa_color="" value="">
+                                                                Choose an option
+                                                            </option>
+                                                            <option data-width="30" data-height="30"
+                                                                    data-type="color" data-pa_color="#3155e2"
+                                                                    value="blue">
+                                                                Blue
+                                                            </option>
+                                                            <option data-width="30" data-height="30"
+                                                                    data-type="color" data-pa_color="#49aa51"
+                                                                    value="green">
+                                                                Green
+                                                            </option>
+                                                            <option data-width="30" data-height="30"
+                                                                    data-type="color" data-pa_color="#ff63cb"
+                                                                    value="pink">
+                                                                Pink
+                                                            </option>
+                                                        </select>
+                                                        <div class="data-val attribute-pa_color"
+                                                             data-attributetype="box_style">
+                                                            <a class="change-value color" href="#"
+                                                               style="background: #3155e2;"
+                                                               data-value="blue"></a><a class="change-value color" href="#"
+                                                                                        style="background: #49aa51;"
+                                                                                        data-value="green"></a><a class="change-value color" href="#"
+                                                                                                                  style="background: #ff63cb;"
+                                                                                                                  data-value="pink"></a>
+                                                        </div>
+                                                        <a class="reset_variations" href="#"
+                                                           tabindex="-1">Clear</a>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </form>
+                                    <a href="#" class="button yith-wcqv-button">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                <div class="group-button clearfix">
+                                    <div class="yith-wcwl-add-to-wishlist">
+                                        <div class="yith-wcwl-add-button show">
+                                            <a href="#" class="add_to_wishlist">Add to Wishlist</a>
+                                        </div>
+                                    </div>
+                                    <div class="add-to-cart">
+                                        <a href="#" class="button product_type_grouped">
+                                            Select options
+                                        </a>
+                                    </div>
+                                    <div class="akasha product compare-button">
+                                        <a href="#" class="compare button">Compare</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="product-item featured_products style-02 rows-space-30 post-22 product type-product status-publish has-post-thumbnail product_cat-table product_cat-bed product_cat-lamp product_tag-table product_tag-hat product_tag-sock first instock featured downloadable shipping-taxable purchasable product-type-simple">
+                            <div class="product-inner tooltip-top">
+                                <div class="product-thumb">
+                                    <a class="thumb-link"
+                                       href="#"
+                                       tabindex="-1">
+                                        <img class="img-responsive"
+                                             src="~/assets/images/products/2.jpg"
+                                             alt="Floral Stripe" width="270" height="350">
+                                    </a>
+                                    <div class="flash">
+                                        <span class="onnew"><span class="text">New</span></span>
+                                    </div>
+                                    <a href="#" class="button yith-wcqv-button" data-product_id="22"
+                                       tabindex="-1">Quick View</a>
+                                </div>
+                                <div class="product-info">
+
+                                    <h3 class="product-name product_title">
+                                        <a href="#"
+                                           tabindex="0">Abayas</a>
+                                    </h3>
+                                    <span class="price">
+                                        <span class="akasha-Price-amount amount">
+                                            <span class="akasha-Price-currencySymbol">BHD </span>20.0
+                                        </span>
+                                </div>
+                                <div class="group-button clearfix">
+                                    <div class="yith-wcwl-add-to-wishlist">
+                                        <div class="yith-wcwl-add-button show">
+                                            <a href="#" class="add_to_wishlist">Add to cart</a>
+                                        </div>
+                                    </div>
+                                    <div class="add-to-cart">
+                                        <a href="#" class="button product_type_grouped">
+                                            Add to cart
+                                        </a>
+                                    </div>
+                                    <div class="akasha product compare-button">
+                                        <a href="#" class="compare button">Compare</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="akasha-banner style-02 left-center">
+                <div class="banner-inner">
+                    <figure class="banner-thumb">
+                        <img src="~/assets/images/banner101.jpg"
+                             class="attachment-full size-full" alt="img">
+                    </figure>
+                    <div class="banner-info container">
+                        <div class="banner-content">
+                            <div class="title-wrap">
+                                <div class="banner-label">
+                                    Modern Dresses
+                                </div>
+                                <h6 class="title">
+                                    Best Seller
+                                </h6>
+                            </div>
+                            <div class="button-wrap">
+                                <div class="subtitle">
+                                    Made with care for your little ones, our products are perfect for every occasion. Check it out.
+                                </div>
+                                <a class="button" target="_self" href="#"><span>Shop Now</span></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>-->
+        <!-- <div class="section-001"> -->
+        <!-- <div class="container"> -->
+        <!-- <div class="akasha-heading style-01"> -->
+        <!-- <div class="heading-inner"> -->
+        <!-- <h3 class="title">New Arrival</h3> -->
+        <!-- <div class="subtitle"> -->
+        <!-- Made with care for your little ones, our products are perfect for every occasion. Check it out. -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha-products style-01"> -->
+        <!-- <div class="response-product product-list-owl owl-slick equal-container better-height" -->
+        <!-- data-slick="{&quot;arrows&quot;:true,&quot;slidesMargin&quot;:30,&quot;dots&quot;:true,&quot;infinite&quot;:false,&quot;speed&quot;:300,&quot;slidesToShow&quot;:4,&quot;rows&quot;:1}" -->
+        <!-- data-responsive="[{&quot;breakpoint&quot;:480,&quot;settings&quot;:{&quot;slidesToShow&quot;:2,&quot;slidesMargin&quot;:&quot;10&quot;}},{&quot;breakpoint&quot;:768,&quot;settings&quot;:{&quot;slidesToShow&quot;:2,&quot;slidesMargin&quot;:&quot;10&quot;}},{&quot;breakpoint&quot;:992,&quot;settings&quot;:{&quot;slidesToShow&quot;:3,&quot;slidesMargin&quot;:&quot;20&quot;}},{&quot;breakpoint&quot;:1200,&quot;settings&quot;:{&quot;slidesToShow&quot;:3,&quot;slidesMargin&quot;:&quot;20&quot;}},{&quot;breakpoint&quot;:1500,&quot;settings&quot;:{&quot;slidesToShow&quot;:4,&quot;slidesMargin&quot;:&quot;30&quot;}}]"> -->
+        <!-- <div class="product-item recent-product style-01 rows-space-0 post-93 product type-product status-publish has-post-thumbnail product_cat-light product_cat-table product_cat-new-arrivals product_tag-table product_tag-sock first instock shipping-taxable purchasable product-type-simple  "> -->
+        <!-- <div class="product-inner tooltip-left"> -->
+        <!-- <div class="product-thumb"> -->
+        <!-- <a class="thumb-link" -->
+        <!-- href="#" tabindex="0"> -->
+        <!-- <img class="img-responsive" -->
+        <!-- src="~/assets/images/apro13-1-270x350.jpg" -->
+        <!-- alt="Black Shirt" width="270" height="350"> -->
+        <!-- </a> -->
+        <!-- <div class="flash"> -->
+        <!-- <span class="onnew"><span class="text">New</span></span></div> -->
+        <!-- <div class="group-button"> -->
+        <!-- <div class="yith-wcwl-add-to-wishlist"> -->
+        <!-- <div class="yith-wcwl-add-button show"> -->
+        <!-- <a href="#" class="add_to_wishlist">Add to Wishlist</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha product compare-button"> -->
+        <!-- <a href="#" class="compare button">Compare</a> -->
+        <!-- </div> -->
+        <!-- <a href="#" class="button yith-wcqv-button">Quick View</a> -->
+        <!-- <div class="add-to-cart"> -->
+        <!-- <a href="#" class="button product_type_simple add_to_cart_button">Add to cart</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-info equal-elem"> -->
+        <!-- <h3 class="product-name product_title"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0">Black Shirt</a> -->
+        <!-- </h3> -->
+        <!-- <div class="rating-wapper nostar"> -->
+        <!-- <div class="star-rating"><span style="width:0%">Rated <strong -->
+        <!-- class="rating">0</strong> out of 5</span></div> -->
+        <!-- <span class="review">(0)</span></div> -->
+        <!-- <span class="price"><span class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>109.00</span></span> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-item recent-product style-01 rows-space-0 post-49 product type-product status-publish has-post-thumbnail product_cat-light product_cat-bed product_cat-sofas product_tag-multi product_tag-lamp  instock shipping-taxable purchasable product-type-simple"> -->
+        <!-- <div class="product-inner tooltip-left"> -->
+        <!-- <div class="product-thumb"> -->
+        <!-- <a class="thumb-link" -->
+        <!-- href="#" tabindex="0"> -->
+        <!-- <img class="img-responsive" -->
+        <!-- src="~/assets/images/apro302-270x350.jpg" -->
+        <!-- alt="Smock Dress" width="270" height="350"> -->
+        <!-- </a> -->
+        <!-- <div class="flash"> -->
+        <!-- <span class="onnew"><span class="text">New</span></span></div> -->
+        <!-- <div class="group-button"> -->
+        <!-- <div class="yith-wcwl-add-to-wishlist"> -->
+        <!-- <div class="yith-wcwl-add-button show"> -->
+        <!-- <a href="#" class="add_to_wishlist">Add to Wishlist</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha product compare-button"> -->
+        <!-- <a href="#" class="compare button">Compare</a> -->
+        <!-- </div> -->
+        <!-- <a href="#" class="button yith-wcqv-button">Quick View</a> -->
+        <!-- <div class="add-to-cart"> -->
+        <!-- <a href="#" class="button product_type_simple add_to_cart_button">Add to cart</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-info equal-elem"> -->
+        <!-- <h3 class="product-name product_title"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0">Smock Dress</a> -->
+        <!-- </h3> -->
+        <!-- <div class="rating-wapper nostar"> -->
+        <!-- <div class="star-rating"><span style="width:0%">Rated <strong -->
+        <!-- class="rating">0</strong> out of 5</span></div> -->
+        <!-- <span class="review">(0)</span></div> -->
+        <!-- <span class="price"><span class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>79.00</span></span> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-item recent-product style-01 rows-space-0 post-37 product type-product status-publish has-post-thumbnail product_cat-chair product_cat-bed product_tag-light product_tag-hat product_tag-sock last instock shipping-taxable purchasable product-type-simple"> -->
+        <!-- <div class="product-inner tooltip-left"> -->
+        <!-- <div class="product-thumb"> -->
+        <!-- <a class="thumb-link" href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- <img class="img-responsive" -->
+        <!-- src="~/assets/images/apro31-1-270x350.jpg" -->
+        <!-- alt="Shirred Front" width="270" height="350"> -->
+        <!-- </a> -->
+        <!-- <div class="flash"> -->
+        <!-- <span class="onnew"><span class="text">New</span></span></div> -->
+        <!-- <div class="group-button"> -->
+        <!-- <div class="yith-wcwl-add-to-wishlist"> -->
+        <!-- <div class="yith-wcwl-add-button show"> -->
+        <!-- <a href="#" class="add_to_wishlist">Add to Wishlist</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha product compare-button"> -->
+        <!-- <a href="#" class="compare button">Compare</a> -->
+        <!-- </div> -->
+        <!-- <a href="#" class="button yith-wcqv-button">Quick View</a> -->
+        <!-- <div class="add-to-cart"> -->
+        <!-- <a href="#" class="button product_type_simple add_to_cart_button">Add to cart</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-info equal-elem"> -->
+        <!-- <h3 class="product-name product_title"> -->
+        <!-- <a href="#" tabindex="0">Shirred Front</a> -->
+        <!-- </h3> -->
+        <!-- <div class="rating-wapper nostar"> -->
+        <!-- <div class="star-rating"><span style="width:0%">Rated <strong -->
+        <!-- class="rating">0</strong> out of 5</span></div> -->
+        <!-- <span class="review">(0)</span></div> -->
+        <!-- <span class="price"><span class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>120.00</span></span> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-item recent-product style-01 rows-space-0 post-35 product type-product status-publish has-post-thumbnail product_cat-chair product_cat-new-arrivals product_cat-lamp product_tag-light product_tag-hat product_tag-sock first instock shipping-taxable purchasable product-type-simple"> -->
+        <!-- <div class="product-inner tooltip-left"> -->
+        <!-- <div class="product-thumb"> -->
+        <!-- <a class="thumb-link" href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- <img class="img-responsive" -->
+        <!-- src="~/assets/images/apro41-1-270x350.jpg" -->
+        <!-- alt="Brown Shirt" width="270" height="350"> -->
+        <!-- </a> -->
+        <!-- <div class="flash"> -->
+        <!-- <span class="onnew"><span class="text">New</span></span></div> -->
+        <!-- <div class="group-button"> -->
+        <!-- <div class="yith-wcwl-add-to-wishlist"> -->
+        <!-- <div class="yith-wcwl-add-button show"> -->
+        <!-- <a href="#" class="add_to_wishlist">Add to Wishlist</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha product compare-button"> -->
+        <!-- <a href="#" class="compare button">Compare</a> -->
+        <!-- </div> -->
+        <!-- <a href="#" class="button yith-wcqv-button">Quick View</a> -->
+        <!-- <div class="add-to-cart"> -->
+        <!-- <a href="#" class="button product_type_simple add_to_cart_button">Add to cart</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-info equal-elem"> -->
+        <!-- <h3 class="product-name product_title"> -->
+        <!-- <a href="#" tabindex="0">Brown Shirt</a> -->
+        <!-- </h3> -->
+        <!-- <div class="rating-wapper nostar"> -->
+        <!-- <div class="star-rating"><span style="width:0%">Rated <strong -->
+        <!-- class="rating">0</strong> out of 5</span></div> -->
+        <!-- <span class="review">(0)</span></div> -->
+        <!-- <span class="price"><span class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>134.00</span></span> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-item recent-product style-01 rows-space-0 post-36 product type-product status-publish has-post-thumbnail product_cat-table product_cat-bed product_tag-light product_tag-table product_tag-sock  instock sale shipping-taxable purchasable product-type-simple"> -->
+        <!-- <div class="product-inner tooltip-left"> -->
+        <!-- <div class="product-thumb"> -->
+        <!-- <a class="thumb-link" href="#" -->
+        <!-- tabindex="-1"> -->
+        <!-- <img class="img-responsive" -->
+        <!-- src="~/assets/images/apro51012-1-270x350.jpg" -->
+        <!-- alt="Print In White" width="270" height="350"> -->
+        <!-- </a> -->
+        <!-- <div class="flash"> -->
+        <!-- <span class="onsale"><span class="number">-21%</span></span> -->
+        <!-- <span class="onnew"><span class="text">New</span></span></div> -->
+        <!-- <div class="group-button"> -->
+        <!-- <div class="yith-wcwl-add-to-wishlist"> -->
+        <!-- <div class="yith-wcwl-add-button show"> -->
+        <!-- <a href="#" class="add_to_wishlist">Add to Wishlist</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha product compare-button"> -->
+        <!-- <a href="#" class="compare button">Compare</a> -->
+        <!-- </div> -->
+        <!-- <a href="#" class="button yith-wcqv-button">Quick View</a> -->
+        <!-- <div class="add-to-cart"> -->
+        <!-- <a href="#" class="button product_type_simple add_to_cart_button">Add to cart</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-info equal-elem"> -->
+        <!-- <h3 class="product-name product_title"> -->
+        <!-- <a href="#" tabindex="-1">Print In White</a> -->
+        <!-- </h3> -->
+        <!-- <div class="rating-wapper nostar"> -->
+        <!-- <div class="star-rating"><span style="width:0%">Rated <strong -->
+        <!-- class="rating">0</strong> out of 5</span></div> -->
+        <!-- <span class="review">(0)</span></div> -->
+        <!-- <span class="price"><del><span class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>125.00</span></del> <ins><span -->
+        <!-- class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>99.00</span></ins></span> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-item recent-product style-01 rows-space-0 post-34 product type-product status-publish has-post-thumbnail product_cat-light product_cat-new-arrivals product_tag-light product_tag-hat product_tag-sock last instock sale featured shipping-taxable product-type-grouped"> -->
+        <!-- <div class="product-inner tooltip-left"> -->
+        <!-- <div class="product-thumb"> -->
+        <!-- <a class="thumb-link" href="#" -->
+        <!-- tabindex="-1"> -->
+        <!-- <img class="img-responsive" -->
+        <!-- src="~/assets/images/apro61-1-270x350.jpg" -->
+        <!-- alt="Maternity Shoulder" width="270" height="350"> -->
+        <!-- </a> -->
+        <!-- <div class="flash"> -->
+        <!-- <span class="onnew"><span class="text">New</span></span></div> -->
+        <!-- <div class="group-button"> -->
+        <!-- <div class="yith-wcwl-add-to-wishlist"> -->
+        <!-- <div class="yith-wcwl-add-button show"> -->
+        <!-- <a href="#" class="add_to_wishlist">Add to Wishlist</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha product compare-button"> -->
+        <!-- <a href="#" class="compare button">Compare</a> -->
+        <!-- </div> -->
+        <!-- <a href="#" class="button yith-wcqv-button">Quick View</a> -->
+        <!-- <div class="add-to-cart"> -->
+        <!-- <a href="#" -->
+        <!-- class="button product_type_simple add_to_cart_button">Viewproducts</a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="product-info equal-elem"> -->
+        <!-- <h3 class="product-name product_title"> -->
+        <!-- <a href="#" tabindex="-1">Maternity Shoulder</a> -->
+        <!-- </h3> -->
+        <!-- <div class="rating-wapper nostar"> -->
+        <!-- <div class="star-rating"><span style="width:0%">Rated <strong -->
+        <!-- class="rating">0</strong> out of 5</span></div> -->
+        <!-- <span class="review">(0)</span></div> -->
+        <!-- <span class="price"><span class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>79.00</span> – <span -->
+        <!-- class="akasha-Price-amount amount"><span -->
+        <!-- class="akasha-Price-currencySymbol">$</span>139.00</span></span> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="section-038"> -->
+        <!-- <div class="akasha-banner style-07 left-center"> -->
+        <!-- <div class="banner-inner"> -->
+        <!-- <figure class="banner-thumb"> -->
+        <!-- <img src="~/assets/images/banner28.jpg" -->
+        <!-- class="attachment-full size-full" alt="img"></figure> -->
+        <!-- <div class="banner-info container"> -->
+        <!-- <div class="banner-content"> -->
+        <!-- <div class="title-wrap"> -->
+        <!-- <div class="banner-label"> -->
+        <!-- 30 Nov - 03 Dec -->
+        <!-- </div> -->
+        <!-- <h6 class="title"> -->
+        <!-- New Collection </h6> -->
+        <!-- </div> -->
+        <!-- <div class="cate"> -->
+        <!-- 50% Off / Selected items -->
+        <!-- </div> -->
+        <!-- <div class="button-wrap"> -->
+        <!-- <div class="subtitle"> -->
+        <!-- Mus venenatis habitasse leo malesuada lacus commodo faucibus torquent donec -->
+        <!-- </div> -->
+        <!-- <a class="button" target="_self" href="#"><span>Shop now</span></a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="section-001"> -->
+        <!-- <div class="container"> -->
+        <!-- <div class="akasha-heading style-01"> -->
+        <!-- <div class="heading-inner"> -->
+        <!-- <h3 class="title"> -->
+        <!-- From Our Blog </h3> -->
+        <!-- <div class="subtitle"> -->
+        <!-- Lorem ipsum dolor sit amet consectetur adipiscing elit erat vehicula ad, mollis viverra -->
+        <!-- vulputate -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="akasha-blog style-01"> -->
+        <!-- <div class="blog-list-owl owl-slick equal-container better-height" -->
+        <!-- data-slick="{&quot;arrows&quot;:false,&quot;slidesMargin&quot;:30,&quot;dots&quot;:true,&quot;infinite&quot;:false,&quot;speed&quot;:300,&quot;slidesToShow&quot;:3,&quot;rows&quot;:1}" -->
+        <!-- data-responsive="[{&quot;breakpoint&quot;:480,&quot;settings&quot;:{&quot;slidesToShow&quot;:1,&quot;slidesMargin&quot;:&quot;10&quot;}},{&quot;breakpoint&quot;:768,&quot;settings&quot;:{&quot;slidesToShow&quot;:2,&quot;slidesMargin&quot;:&quot;10&quot;}},{&quot;breakpoint&quot;:992,&quot;settings&quot;:{&quot;slidesToShow&quot;:2,&quot;slidesMargin&quot;:&quot;20&quot;}},{&quot;breakpoint&quot;:1200,&quot;settings&quot;:{&quot;slidesToShow&quot;:3,&quot;slidesMargin&quot;:&quot;20&quot;}},{&quot;breakpoint&quot;:1500,&quot;settings&quot;:{&quot;slidesToShow&quot;:3,&quot;slidesMargin&quot;:&quot;30&quot;}}]"> -->
+        <!-- <article -->
+        <!-- class="post-item post-grid rows-space-0 post-195 post type-post status-publish format-standard has-post-thumbnail hentry category-light category-table category-life-style tag-light tag-life-style"> -->
+        <!-- <div class="post-inner blog-grid"> -->
+        <!-- <div class="post-thumb"> -->
+        <!-- <a href="#" tabindex="0"> -->
+        <!-- <img src="~/assets/images/blogpost1-370x330.jpg" -->
+        <!-- class="img-responsive attachment-370x330 size-370x330" alt="img" -->
+        <!-- width="370" height="330"> </a> -->
+        <!-- <a class="datebox" href="#" tabindex="0"> -->
+        <!-- <span>19</span> -->
+        <!-- <span>Dec</span> -->
+        <!-- </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-content"> -->
+        <!-- <div class="post-meta"> -->
+        <!-- <div class="post-author"> -->
+        <!-- By:<a href="#" tabindex="0"> -->
+        <!-- admin </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-comment-icon"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- 0 </a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="post-info equal-elem"> -->
+        <!-- <h2 class="post-title"><a -->
+        <!-- href="#" -->
+        <!-- tabindex="0">Not your ordinary multi service.</a></h2> -->
+        <!-- Lorem ipsum dolor sit amet, consectetur adipiscing elit. Malesuada sodales -->
+        <!-- quisque litora dapibus primis lacinia -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </article> -->
+        <!-- <article -->
+        <!-- class="post-item post-grid rows-space-0 post-192 post type-post status-publish format-standard has-post-thumbnail hentry category-light category-fashion category-multi category-life-style tag-light tag-fashion tag-multi"> -->
+        <!-- <div class="post-inner blog-grid"> -->
+        <!-- <div class="post-thumb"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- <img src="~/assets/images/blogpost5-370x330.jpg" -->
+        <!-- class="img-responsive attachment-370x330 size-370x330" alt="img" -->
+        <!-- width="370" height="330"> </a> -->
+        <!-- <a class="datebox" href="#" tabindex="0"> -->
+        <!-- <span>19</span> -->
+        <!-- <span>Dec</span> -->
+        <!-- </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-content"> -->
+        <!-- <div class="post-meta"> -->
+        <!-- <div class="post-author"> -->
+        <!-- By:<a href="#" tabindex="0"> -->
+        <!-- admin </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-comment-icon"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- 0 </a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="post-info equal-elem"> -->
+        <!-- <h2 class="post-title"><a -->
+        <!-- href="#" -->
+        <!-- tabindex="0">We bring you the best by working</a></h2> -->
+        <!-- Lorem ipsum dolor sit amet, consectetur adipiscing elit. Malesuada sodales -->
+        <!-- quisque litora dapibus primis lacinia -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </article> -->
+        <!-- <article -->
+        <!-- class="post-item post-grid rows-space-0 post-189 post type-post status-publish format-video has-post-thumbnail hentry category-table category-life-style tag-multi tag-life-style post_format-post-format-video"> -->
+        <!-- <div class="post-inner blog-grid"> -->
+        <!-- <div class="post-thumb"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- <img src="~/assets/images/blogpost9-370x330.jpg" -->
+        <!-- class="img-responsive attachment-370x330 size-370x330" alt="img" -->
+        <!-- width="370" height="330"> </a> -->
+        <!-- <a class="datebox" href="#" tabindex="0"> -->
+        <!-- <span>19</span> -->
+        <!-- <span>Dec</span> -->
+        <!-- </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-content"> -->
+        <!-- <div class="post-meta"> -->
+        <!-- <div class="post-author"> -->
+        <!-- By:<a href="#" tabindex="0"> -->
+        <!-- admin </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-comment-icon"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="0"> -->
+        <!-- 0 </a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="post-info equal-elem"> -->
+        <!-- <h2 class="post-title"><a -->
+        <!-- href="#" -->
+        <!-- tabindex="0">We design functional best multi</a></h2> -->
+        <!-- Lorem ipsum dolor sit amet, consectetur adipiscing elit. Malesuada sodales -->
+        <!-- quisque litora dapibus primis lacinia -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </article> -->
+        <!-- <article -->
+        <!-- class="post-item post-grid rows-space-0 post-186 post type-post status-publish format-standard has-post-thumbnail hentry category-light category-life-style tag-life-style"> -->
+        <!-- <div class="post-inner blog-grid"> -->
+        <!-- <div class="post-thumb"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="-1"> -->
+        <!-- <img src="~/assets/images/blogpost4-370x330.jpg" -->
+        <!-- class="img-responsive attachment-370x330 size-370x330" alt="img" -->
+        <!-- width="370" height="330"> </a> -->
+        <!-- <a class="datebox" href="#" tabindex="-1"> -->
+        <!-- <span>19</span> -->
+        <!-- <span>Dec</span> -->
+        <!-- </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-content"> -->
+        <!-- <div class="post-meta"> -->
+        <!-- <div class="post-author"> -->
+        <!-- By:<a href="#" tabindex="-1"> -->
+        <!-- admin </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-comment-icon"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="-1"> -->
+        <!-- 0 </a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="post-info equal-elem"> -->
+        <!-- <h2 class="post-title"><a -->
+        <!-- href="#" -->
+        <!-- tabindex="-1">The child is swimming with a buoy</a></h2> -->
+        <!-- Lorem ipsum dolor sit amet, consectetur adipiscing elit. Malesuada sodales -->
+        <!-- quisque litora dapibus primis lacinia -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </article> -->
+        <!-- <article -->
+        <!-- class="post-item post-grid rows-space-0 post-183 post type-post status-publish format-standard has-post-thumbnail hentry category-light category-fashion tag-light tag-multi"> -->
+        <!-- <div class="post-inner blog-grid"> -->
+        <!-- <div class="post-thumb"> -->
+        <!-- <a href="#" tabindex="-1"> -->
+        <!-- <img src="~/assets/images/blogpost2-370x330.jpg" -->
+        <!-- class="img-responsive attachment-370x330 size-370x330" alt="img" -->
+        <!-- width="370" height="330"> </a> -->
+        <!-- <a class="datebox" href="#" tabindex="-1"> -->
+        <!-- <span>19</span> -->
+        <!-- <span>Dec</span> -->
+        <!-- </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-content"> -->
+        <!-- <div class="post-meta"> -->
+        <!-- <div class="post-author"> -->
+        <!-- By:<a href="#" tabindex="-1"> -->
+        <!-- admin </a> -->
+        <!-- </div> -->
+        <!-- <div class="post-comment-icon"> -->
+        <!-- <a href="#" -->
+        <!-- tabindex="-1"> -->
+        <!-- 0 </a> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="post-info equal-elem"> -->
+        <!-- <h2 class="post-title"><a -->
+        <!-- href="#" -->
+        <!-- tabindex="-1">Collection hiding beside beige wall</a></h2> -->
+        <!-- Lorem ipsum dolor sit amet, consectetur adipiscing elit. Malesuada sodales -->
+        <!-- quisque litora dapibus primis lacinia -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </article> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="section-014">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="akasha-iconbox style-02">
+                            <div class="iconbox-inner">
+                                <div class="icon">
+                                    <span class="flaticon-rocket-ship"></span>
+                                </div>
+                                <div class="content">
+                                    <h4 class="title">WORLDWIDE DELIVERY</h4>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="akasha-iconbox style-02">
+                            <div class="iconbox-inner">
+                                <div class="icon">
+                                    <span class="flaticon-padlock"></span>
+                                </div>
+                                <div class="content">
+                                    <h4 class="title">SAFE SHIPPING</h4>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="akasha-iconbox style-02">
+                            <div class="iconbox-inner">
+                                <div class="icon">
+                                    <span class="flaticon-recycle"></span>
+                                </div>
+                                <div class="content">
+                                    <h4 class="title">30 DAYS RETURN</h4>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="akasha-iconbox style-02">
+                            <div class="iconbox-inner">
+                                <div class="icon">
+                                    <span class="flaticon-support"></span>
+                                </div>
+                                <div class="content">
+                                    <h4 class="title">SHOP CONFIDENCE</h4>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            -->
+        
+    </div>
+
+
+
+
+    <footer id="footer" class="footer style-01">
+        
+        <div class="section-010">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="row">
+                            <div class="col-md-10">
+                                <ul class="bottom-menu bottom-terms p-0" style="font-size:10px;">
+                                    <li><a href="/Home/Terms">Terms &amp; Conditions</a></li>
+                                    <li><a href="/Home/privacypolicy">Privacy Policy</a></li>
+                                </ul>
+                                <p style="font-size:12px; padding-top:0px;" class="pl-1">© 2026 <a href="#" style="font-size:12px;">GUL</a>. All Rights Reserved.</p>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div id="efadaDiv"></div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="akasha-socials style-01">
+                                <div class="content-socials">
+
+                                    <ul class="socials-list">
+                                        
+                                        <li>
+                                            <a href="https://www.instagram.com/gul.bh" target="_blank">
+                                                <i class="fa fa-instagram"></i>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="https://api.whatsapp.com/send?text=Hello%20GUL%20Team&amp;phone=+97338445666" target="_blank">
+                                                <i class="fa fa-whatsapp"></i>
+                                            </a>
+                                        </li>
+                                        
+
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+        <div id="whatsAppDiv"></div>
+    </footer>
+    <div class="footer-device-mobile">
+        <div class="wapper">
+            <div class="footer-device-mobile-item device-home">
+                <a href="/Home/Index">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve" width="22px" height="22px"><g><g>
+                        <g>
+                        <path d="M503.401,228.884l-43.253-39.411V58.79c0-8.315-6.741-15.057-15.057-15.057H340.976c-8.315,0-15.057,6.741-15.057,15.057    v8.374l-52.236-47.597c-10.083-9.189-25.288-9.188-35.367-0.001L8.598,228.885c-8.076,7.36-10.745,18.7-6.799,28.889    c3.947,10.189,13.557,16.772,24.484,16.772h36.689v209.721c0,8.315,6.741,15.057,15.057,15.057h125.913    c8.315,0,15.057-6.741,15.057-15.057V356.931H293v127.337c0,8.315,6.741,15.057,15.057,15.057h125.908    c8.315,0,15.057-6.741,15.056-15.057V274.547h36.697c10.926,0,20.537-6.584,24.484-16.772    C514.147,247.585,511.479,236.245,503.401,228.884z M433.965,244.433c-8.315,0-15.057,6.741-15.057,15.057v209.721h-95.793    V341.874c0-8.315-6.742-15.057-15.057-15.057H203.942c-8.315,0-15.057,6.741-15.057,15.057v127.337h-95.8V259.49    c0-8.315-6.741-15.057-15.057-15.057H36.245l219.756-200.24l74.836,68.191c4.408,4.016,10.771,5.051,16.224,2.644    c5.454-2.41,8.973-7.812,8.973-13.774V73.847h74.002v122.276c0,4.237,1.784,8.276,4.916,11.13l40.803,37.18H433.965z" data-original="#000000" class="active-path" data-old_color="#000000" fill="#222222"></path>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	</g>
+</g></g> </svg>
+                    </span>
+                    Home
+                </a>
+            </div>
+            <div class="footer-device-mobile-item device-home device-wishlist">
+                <a href="/Shopping/WishList">
+                    <span class="icon">
+                        <i class="flaticon-heart" aria-hidden="true"></i>
+                    </span>
+                    Wishlist
+                </a>
+            </div>
+            <div class="footer-device-mobile-item device-home device-cart">
+                <a href="javascript:openModal();">
+                    <span class="icon">
+                        <i class="flaticon-bag" aria-hidden="true"></i>
+
+                    </span>
+                    <span class="text"> Cart</span>
+                </a>
+            </div>
+            <div class="footer-device-mobile-item device-home device-user">
+
+                    <a href="/Shopping/Login">
+                        <span class="icon">
+                            <i class="flaticon-profile" aria-hidden="true"></i>
+                        </span>
+                        Login
+                    </a>
+
+
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" style="z-index:999999;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                        <h2 class="text-center p-5 p-md-0" style=" color: #8d6f4a;">Meet our team </h2>
+                    <button type="button" class="close" style="position: absolute; right: 15px; font-size: 50px;" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                
+                <div class="modal-footer">
+                        <a href="/Home/About" class="single_add_to_cart_button button mt-3" style="border: solid 2px #8d6f4a;    color: #8d6f4a; padding: 8px;">
+                            Read More
+                        </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="mdlEditSize" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-size: 14px;padding: 0;line-height: 0;margin-top: 10px;" id="exampleModalLongTitle">Edit size</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row sizeguide">
+
+                        <div class="col-xs-12 col-md-6 text-center">
+                                <img src="/assets/images/size.jpeg" width="220">
+                        </div>
+                        <div class="col-xs-12 col-md-6">
+                            <form id="frmEditSize">
+                                <div class="row">
+                                    <div class="col-6">
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="nickname" class="">
+                                                Name&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="nickname1" id="nickname1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+                                    </div>
+                                    <div class="col-6">
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="shoulder" class="">
+                                                Shoulder&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="shoulder1" id="shoulder1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+                                    </div>
+
+
+                                </div>
+                                <div class="row">
+
+                                    <div class="col-6">
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="Hand" class="">
+                                                Hand/Sleeve Length&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="Hand1" id="Hand1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+                                    </div>
+
+
+                                    <div class="col-6">
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="Hand" class="">
+                                                Round Arm&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="RoundArm1" id="RoundArm1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+                                    </div>
+
+
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-6">
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="AbayaLength" class="">
+                                                Abaya Length&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="AbayaLength1" id="AbayaLength1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+                                    </div>
+                                    <div class="col-6">
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="RoundChest" class="">
+                                                Round Bust&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="RoundChest1" id="RoundChest1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+                                    </div>
+
+
+                                </div>
+
+                                <div class="row mt-2">
+                                    <div class="col-6">
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="RoundWaist" class="">
+                                                Round Waist&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="RoundWaist1" id="RoundWaist1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+
+                                    </div>
+                                    <div class="col-6">
+
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="RoundHips" class="">
+                                                Round Hips&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="RoundHips1" id="RoundHips1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+
+
+                                    </div>
+
+
+                                </div>
+
+                                <div class="row">
+
+                                    <div class="col-6">
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="Hand" class="">
+                                                Round Wrist&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="RoundWrist1" id="RoundWrist1" placeholder="" value="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+                                    </div>
+
+
+                                    <div class="col-6">
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="Hand" class="">
+                                                Headscarf Size&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="checkbox" id="standardsize1" name="standardsize1" checked="" class="form-check-input"> <span for="standardsize">
+                                                    Standard Size
+                                                </span>
+                                            </span>
+                                        </p>
+                                    </div>
+
+
+                                </div>
+
+
+                                <div class="row mt-2 d-none headscarfsection">
+                                    <div class="col-6">
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="HeadscarfWidth" class="">
+                                                Headscarf Width&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="HeadscarfWidth1" id="HeadscarfWidth1" value="80" placeholder="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+
+                                    </div>
+                                    <div class="col-6">
+
+
+                                        <p class="form-row form-row-wide adchair-field validate-required" id="billing_city_field" data-priority="70" data-o_class="form-row form-row-wide adchair-field validate-required">
+                                            <label for="HeadscarfHeight" class="">
+                                                Headscarf Height&nbsp;<abbr class="required" title="required">*</abbr>
+                                            </label><span class="akasha-input-wrapper">
+                                                <input type="text" class="input-text border-gray" name="HeadscarfHeight1" value="25" id="HeadscarfHeight1" placeholder="" required="" autocomplete="adchair-level2">
+                                            </span>
+                                        </p>
+
+
+
+                                    </div>
+
+
+                                </div>
+
+
+
+                            </form>
+
+
+
+
+
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+
+                    <button type="button" data-proid="" data-variants="" data-variants_str="" data-qty="" id="updateSize" class="single_add_to_cart_button button">
+                        Save
+                    </button>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="/assets/js/jquery-1.12.4.min.js"></script>
+    <script src="/assets/js/bootstrap.min.js"></script>
+    <script src="/assets/js/chosen.min.js"></script>
+    <script src="/assets/js/countdown.min.js"></script>
+    <script src="/assets/js/jquery.scrollbar.min.js"></script>
+    <script src="/assets/js/lightbox.min.js"></script>
+    <script src="/assets/js/magnific-popup.min.js"></script>
+    <script src="/assets/js/slick.js"></script>
+    <script src="/assets/js/jquery.zoom.min.js"></script>
+    <script src="/assets/js/threesixty.min.js"></script>
+    <script src="/assets/js/jquery-ui.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="https://service.moic.gov.bh/newefadaapi/api/Seal/image?s=https://gulbh.com/&amp;sz=2" async=""></script>
+            <script src="/assets/js/mobilemenu.js"></script>
+
+
+    <script src="/assets/js/functions.js"></script>
+
+    <script src="/assets/js/floating-wpp.min.js"></script>
+    <input type="hidden" id="hdnSizeId">
+
+    
+
+        <script>
+
+            $(document).ready(function () {
+
+                 //  $("#exampleModal").modal();
+            });
+
+        </script>
+
+
+    
+    <script>
+        $(function () {
+            
+
+
+
+            $('#subscribeNewsletter').click(function () {
+                var subscriber_email = $('.subscriber_email').val()
+                $.ajax({
+                    type: 'post',
+                    url: '/Home/insNewsLetter',
+                    data: { 'subscriber_email': subscriber_email },
+                    dataType: 'json',
+                    success: function (data) {
+                        $('#newsletterSubscribeResponse').text(data.Message);
+                    },
+                    error: function (data) {
+                        var errors = data.responseJSON;
+                        $('#newsletterSubscribeResponse').text(errors.message);
+                        console.log(errors);
+                    }
+                });
+            });
+
+
+
+        });
+
+
+
+    </script>
+
+    <script>
+
+
+
+        function openModal() {
+            $(".akasha-mini-cart").addClass("open");
+            $("body").addClass("open");
+        }
+
+        //$(document).on('click', '.device-cart', function () {
+
+        //    console.log("menu clicked");
+        //    //   document.getElementById("cartModel").addClass
+
+        //    //    $("#cartModel").toggleClass("open");
+
+
+
+        //});
+
+        $(document).ready(function () {
+
+
+
+
+            var $cartModel = $(".akasha-mini-cart");
+
+            //     $(".akasha-mini-cart").addClass("open");
+
+            var url_string = location.href; //window.location.href
+            var url = new URL(url_string);
+            var c = url.searchParams.get("C");
+            if (c == "1") {
+                $(".akasha-mini-cart").addClass("open");
+                $("body").addClass("open");
+            }
+
+
+            $(document).on("click", ".AddToCart", function () {
+                var productid = $(this).attr("data-pid");
+                $.ajax({
+                    method: "post",
+                    url: '/Shopping/AddToCart',
+                    data: { id: productid, Qty: '1' },
+                    success: function (data) {
+                        if (data.Status == "1") {
+                            location.reload();
+                            //mdlCart = $('#mdlAddCart').modal();
+                            //var instance = M.Modal.getInstance(mdlCart);
+                            //instance.open();
+
+                            //$(".sidenav-trigger").trigger("click");
+
+                            //alert("Add to cart Successfull");
+                            //var url = window.location.href.split("?")[0];
+
+                            //window.location.href = url + "?c=1&category=" + selectedcats;
+
+
+                            // window.location.reload();
+                        }
+                    }
+                });
+            });
+
+
+            $(document).on("click", ".DeleteCartItem", function () {
+                var productid = $(this).attr("data-pid");
+                var skuid = $(this).attr("data-skuid");
+
+                $.ajax({
+                    method: "post",
+                    url: '/Shopping/DeleteCartItem',
+                    data: { id: productid, skuid: skuid },
+                    success: function (data) {
+                        if (data.Status == "1") {
+                            location.reload();
+                            //alert("Added Successfuly");
+                            //var url = window.location.href.split("?")[0];
+
+                            //window.location.href = url + "?c=1&category=" + selectedcats;
+
+
+                            // window.location.reload();
+                        }
+                    }
+                });
+            });
+
+            $(".dropdown-trigger").dropdown();
+
+
+            $(document).ready(function (e) {
+                //$('#numericcontrol input[type="text"]').val("1");
+                $('.numericcontrol a.plus').click(function () {
+                    $val = $(this).parent('.numericcontrol').find('input[type="text"]').val();
+                    $val++;
+                    //  $(this).parent('.numericcontrol').find('input[type="text"]').val($val);
+                    var Qty = $(this).parent('.numericcontrol').find('input[type="text"]');
+
+                    var productid = $(Qty).attr("data-pid");
+                    var skuid = $(Qty).attr("data-skuid");
+                    $.ajax({
+                        method: "post",
+                        url: '/Shopping/UpdateCart',
+                        data: { id: productid, skuid: skuid, Qty: $val },
+                        success: function (data) {
+                            if (data.Status == "1") {
+                                location.reload();
+
+
+                                //$(".sidenav-trigger").trigger("click");
+                                //$('.sidenav').sidenav({ edge: 'right' }).open();
+
+                                //var url = window.location.href.split("?")[0];
+
+                                //window.location.href = url + "?c=1&category=" + selectedcats;
+
+
+                                // window.location.reload();
+                            }
+                            else if (data.Status == "2") {
+                                $val--;
+                                $(Qty).val($val)
+                                document.getElementById("divStockError1").style.display = "block";
+                                document.getElementById("spnStockError1").innerHTML = data.Message;
+                            }
+                        }
+                    });
+                });
+                $('.numericcontrol a.minus').click(function () {
+                    $val = $(this).parent('.numericcontrol').find('input[type="text"]').val();
+                    if ($val > 1) {
+                        $val--;
+                        //    $(this).parent('.numericcontrol').find('input[type="text"]').val($val);
+                        var Qty = $(this).parent('.numericcontrol').find('input[type="text"]');
+
+                        var productid = $(Qty).attr("data-pid");
+                        var skuid = $(Qty).attr("data-skuid");
+                        $.ajax({
+                            method: "post",
+                            url: '/Shopping/UpdateCart',
+                            data: { id: productid, skuid: skuid, Qty: $val },
+                            success: function (data) {
+                                if (data.Status == "1") {
+                                    location.reload();
+
+
+                                    //$(".sidenav-trigger").trigger("click");
+                                    //$('.sidenav').sidenav({ edge: 'right' }).open();
+
+                                    //var url = window.location.href.split("?")[0];
+
+                                    //window.location.href = url + "?c=1&category=" + selectedcats;
+
+
+                                    // window.location.reload();
+                                }
+                                else if (data.Status == "2") {
+                                    $val--;
+                                    $(Qty).val($val)
+                                    document.getElementById("divStockError1").style.display = "block";
+                                    document.getElementById("spnStockError1").innerHTML = data.Message;
+                                }
+                            }
+                        });
+                    }
+                    else {
+                        //alert("Value can't be less then 0");
+                    }
+                });
+            });
+
+
+
+
+
+        });
+
+        function ShowEditSize(id) {
+            document.getElementById("hdnSizeId").value = id;
+
+                $.ajax({
+                    url: "/Shopping/getSizeDetails?id=" + id,
+                    success: function (data) {
+
+                        if (data.Result == "Success") {
+
+                            document.getElementById("nickname1").value = data.sizes.nickname;
+                            document.getElementById("shoulder1").value = data.sizes.shoulder;
+                            document.getElementById("Hand1").value = data.sizes.Hand;
+                            document.getElementById("AbayaLength1").value = data.sizes.AbayaLength;
+                            document.getElementById("RoundChest1").value = data.sizes.RoundChest;
+                            document.getElementById("RoundWaist1").value = data.sizes.RoundWaist;
+                            document.getElementById("RoundHips1").value = data.sizes.RoundHips;
+                            document.getElementById("RoundArm1").value = data.sizes.RoundArm;
+                            document.getElementById("RoundWrist1").value = data.sizes.RoundWrist;
+                            document.getElementById("HeadscarfWidth1").value = data.sizes.HeadscarfWidth;
+                            document.getElementById("HeadscarfHeight1").value = data.sizes.HeadscarfHeight;
+
+                            $("#mdlEditSize").modal();
+                        }
+                    },
+                    error: function () {
+
+                    }
+
+                });
+
+        }
+
+
+        $(document).on("click", "#updateSize", function ()
+            {
+
+
+                //if ($("#frmEditSize").valid()) {
+
+
+                    var size = {
+                        id: $("#hdnSizeId").val(),
+                        nickname: $("#nickname1").val(),
+                        shoulder: $("#shoulder1").val(),
+                        Hand: $("#Hand1").val(),
+                        AbayaLength: $("#AbayaLength1").val(),
+                        RoundChest: $("#RoundChest1").val(),
+                        RoundWaist: $("#RoundWaist1").val(),
+                        RoundHips: $("#RoundHips1").val(),
+                        RoundArm: $("#RoundArm1").val(),
+                        RoundWrist: $("#RoundWrist1").val(),
+                        HeadscarfWidth: $("#HeadscarfWidth1").val(),
+                        HeadscarfHeight: $("#HeadscarfHeight1").val(),
+
+                    }
+                    $.ajax({
+                        method: "post",
+                        url: '/Shopping/updateSize',
+                        data: { size},
+                        success: function (data) {
+                            if (data.Status == "1") {
+                                $("#divStockError").hide();
+                                location.reload();
+                            }
+                            else {
+                                document.getElementById("divStockError").style.display = "block";
+                                document.getElementById("spnStockError").innerHTML = data.Message;
+                            }
+                        }
+                    });
+
+                //}
+                //else {
+                //    return false;
+                //}
+            });
+    </script>
+
+
+
+<div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"><div style="border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div></div></body></html>

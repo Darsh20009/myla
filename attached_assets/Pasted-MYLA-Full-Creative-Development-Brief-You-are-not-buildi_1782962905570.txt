@@ -1,0 +1,284 @@
+MYLA – Full Creative Development Brief
+
+You are not building a normal e-commerce website.
+
+You are building the first impression of a luxury abaya fashion brand.
+
+The visitor should feel they entered a premium international fashion house.
+
+Everything must be elegant, minimal, cinematic and smooth.
+
+Never use cheap animations or generic website effects.
+
+The experience should feel handcrafted.
+
+⸻
+
+HERO SECTION
+
+Do NOT use a pre-rendered video.
+
+Everything must be created using HTML, CSS and JavaScript animations.
+
+Use GSAP, SVG, Canvas and Three.js only if necessary.
+
+Performance is extremely important.
+
+The Hero section should look alive.
+
+I will provide:
+
+* Multiple high-quality images of models wearing different abayas.
+* A few high-quality fabric textures.
+* One background music file.
+* The MYLA logo.
+
+Create an artistic cinematic presentation using these assets.
+
+⸻
+
+Animation Story
+
+When the visitor opens the website, the Hero section immediately feels alive.
+
+The first model appears elegantly.
+
+The camera slowly zooms toward her.
+
+Very small breathing movement should be simulated using scale and position animations.
+
+Nothing should look static.
+
+The movement must be almost invisible but enough to make the scene feel alive.
+
+The lighting should softly move across the image.
+
+Very subtle depth should exist between foreground and background.
+
+Then the transition starts.
+
+Instead of switching directly…
+
+A soft piece of fabric enters the screen naturally.
+
+The fabric moves like silk floating in air.
+
+It briefly covers part of the scene.
+
+Behind it the next model is revealed.
+
+The transition should feel like luxury fashion advertising.
+
+Repeat this style for all provided model images.
+
+Every transition should feel unique.
+
+Sometimes fabric enters from left.
+
+Sometimes from right.
+
+Sometimes from top.
+
+Sometimes diagonally.
+
+Never repeat identical movements.
+
+The movement must remain elegant and slow.
+
+No fast motion.
+
+No aggressive effects.
+
+No flashy animations.
+
+⸻
+
+Camera Effects
+
+Very slow zoom.
+
+Very slow pan.
+
+Parallax movement.
+
+Depth effect.
+
+Floating movement.
+
+Smooth opacity transitions.
+
+Luxury easing.
+
+No hard cuts.
+
+⸻
+
+Fabric
+
+I will provide only a few fabric images.
+
+Use them creatively.
+
+They should float naturally across the screen.
+
+Sometimes rotating slightly.
+
+Sometimes folding.
+
+Sometimes revealing the next image.
+
+Sometimes acting as foreground depth.
+
+The fabric should become part of the storytelling.
+
+⸻
+
+Music
+
+I will provide one soundtrack.
+
+Play it only inside the Hero section.
+
+Volume should be around 10%.
+
+Create a beautiful fade-in.
+
+Loop seamlessly.
+
+Add a minimal sound toggle button.
+
+⸻
+
+Performance
+
+No video.
+
+Everything rendered in browser.
+
+60 FPS whenever possible.
+
+Responsive.
+
+GPU accelerated animations.
+
+Lazy load images.
+
+Optimize memory usage.
+
+⸻
+
+LOADING EXPERIENCE
+
+This is NOT a loading spinner.
+
+This is part of the MYLA identity.
+
+The loading experience should feel like watching luxury craftsmanship.
+
+⸻
+
+Story
+
+The screen starts completely white.
+
+Silence.
+
+A very thin black line appears.
+
+The line begins drawing by itself.
+
+It is not drawing an abaya.
+
+It is drawing the word:
+
+MYLA
+
+Each letter should be drawn slowly as if by a master fashion illustrator.
+
+When one letter finishes…
+
+A sewing animation starts following the exact line that was drawn.
+
+The sewing thread follows every curve of the letter.
+
+Tiny elegant stitches appear behind the moving needle.
+
+When the stitching finishes…
+
+The inside of that letter slowly fills using one of the provided luxury fabric textures.
+
+Then the next letter begins.
+
+Repeat until all four letters are completed.
+
+Now the complete MYLA word exists.
+
+Every letter looks like it was handcrafted from premium fabric.
+
+After that…
+
+A final sewing thread passes across the whole logo connecting every letter together.
+
+The thread disappears naturally.
+
+A soft luxury light sweep passes over the logo.
+
+The logo remains visible for approximately one second.
+
+Then the loading screen smoothly fades into the homepage.
+
+⸻
+
+Visual Style
+
+Luxury.
+
+Minimal.
+
+Premium.
+
+Fashion.
+
+Elegant.
+
+Modern.
+
+No cartoon effects.
+
+No gaming effects.
+
+No neon.
+
+No exaggerated particles.
+
+No random animations.
+
+Every movement should feel intentional.
+
+⸻
+
+Technologies
+
+HTML5
+
+CSS3
+
+JavaScript
+
+GSAP
+
+SVG Animation
+
+Canvas where needed
+
+Three.js only if it improves the experience without hurting performance.
+
+⸻
+
+Final Goal
+
+When someone visits the website, they should immediately feel that MYLA is a premium luxury fashion brand.
+
+The animations should not distract the visitor.
+
+They should quietly communicate elegance, craftsmanship, quality and attention to detail.
