@@ -5604,7 +5604,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
         dir="rtl"
       >
         {/* Header / Logo */}
-        <div className="relative z-10 flex items-center gap-3 px-4 py-4 border-b border-slate-200">
+        <div className="relative z-10 flex items-center gap-3 px-4 py-4 border-b border-slate-200 safe-top">
           <img src={logoDarkImg} alt="Myla" className="w-9 h-9 rounded-xl object-cover shrink-0" />
           {!collapsed && (
             <div className="overflow-hidden">
@@ -5830,7 +5830,7 @@ export default function Admin() {
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Header */}
-        <header className="h-14 bg-white/90 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-3 lg:px-6 shrink-0 gap-2">
+        <header className="min-h-14 bg-white/90 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-3 lg:px-6 shrink-0 gap-2 safe-top">
           <div className="flex items-center gap-2 min-w-0">
             {/* Hamburger — mobile only */}
             <button
