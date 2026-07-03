@@ -25,16 +25,7 @@ const HERO_IMAGES = [
 ];
 
 const SLIDE_DURATION = 6500;         // ms each image holds
-const TRANS_DURATION  = 1.7;         // seconds for the wipe
-
-/* Four distinct wipe directions — pick by index */
-type WipeDir = { fromX: string; fromY: string; toX: string; toY: string; skewX: number; skewY: number };
-const WIPE_DIRS: WipeDir[] = [
-  { fromX: "-115%", fromY: "0%",    toX: "115%",  toY: "0%",    skewX: -4, skewY: 0  },  // L → R
-  { fromX: "115%",  fromY: "0%",    toX: "-115%", toY: "0%",    skewX:  4, skewY: 0  },  // R → L
-  { fromX: "0%",    fromY: "115%",  toX: "0%",    toY: "-115%", skewX: 0,  skewY: -3 },  // B → T
-  { fromX: "-115%", fromY: "-60%",  toX: "115%",  toY: "60%",   skewX: -3, skewY:  2 },  // diagonal
-];
+const TRANS_DURATION  = 1.7;         // seconds for the crossfade
 
 /* ─── CSS ────────────────────────────────────────────────────────── */
 const HERO_CSS = `
@@ -72,26 +63,6 @@ const HERO_CSS = `
   @keyframes breathe {
     0%, 100% { filter: brightness(1);    }
     50%       { filter: brightness(1.03); }
-  }
-
-  /* ── Fabric wipe overlay ── */
-  .myla-wipe {
-    position: absolute;
-    /* slightly oversized so skew doesn't reveal edges */
-    inset: -5%;
-    width: 110%; height: 110%;
-    z-index: 8;
-    pointer-events: none;
-    will-change: transform;
-    opacity: 0;
-    background: linear-gradient(
-      135deg,
-      #0e0a07 0%,
-      #1c1008 30%,
-      #0d0907 55%,
-      #1a0e08 80%,
-      #0e0a07 100%
-    );
   }
 
   /* ── Depth overlays ── */
@@ -215,10 +186,9 @@ export function HeroCinematic({
 }) {
   const [curIdx, setCurIdx]   = useState(0);
   const [nxtIdx, setNxtIdx]   = useState(1);
-  const [dirIdx, setDirIdx]   = useState(0);
   const [muted, setMuted]     = useState(true);
 
-  const wipeRef  = useRef<HTMLDivElement>(null);
+  const curSlideRef = useRef<HTMLDivElement>(null);
   const rayRef   = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const wordRef  = useRef<HTMLDivElement>(null);
@@ -266,53 +236,36 @@ export function HeroCinematic({
     return () => clearInterval(lightIntRef.current);
   }, []);
 
-  /* ── Fabric wipe transition ─────────────────────────────────────── */
+  /* ── Crossfade transition (dissolve, no cuts/wipes) ───────────────── */
   const doTransition = useCallback(() => {
     if (inTransRef.current) return;
     inTransRef.current = true;
 
-    const wipe = wipeRef.current;
-    if (!wipe) { inTransRef.current = false; return; }
-
-    const dir  = WIPE_DIRS[dirIdx % WIPE_DIRS.length];
+    const curSlide = curSlideRef.current;
     const newN = (nxtIdx + 1) % HERO_IMAGES.length;
 
-    /* Position wipe off-screen */
-    gsap.set(wipe, {
-      opacity: 0,
-      x: dir.fromX,
-      y: dir.fromY,
-      skewX: dir.skewX,
-      skewY: dir.skewY,
-    });
+    if (!curSlide) {
+      setCurIdx(nxtIdx);
+      setNxtIdx(newN);
+      inTransRef.current = false;
+      return;
+    }
 
-    const tl = gsap.timeline({
+    /* The "next" image already sits behind the current one, so simply
+       dissolving the front image's opacity to 0 blends the two together —
+       a true crossfade rather than a hard slide cut. */
+    gsap.to(curSlide, {
+      opacity: 0,
+      duration: TRANS_DURATION,
+      ease: "sine.inOut",
       onComplete() {
+        gsap.set(curSlide, { opacity: 1 });
         setCurIdx(nxtIdx);
         setNxtIdx(newN);
-        setDirIdx(d => d + 1);
         inTransRef.current = false;
       },
     });
-
-    /* Enter: wipe covers screen */
-    tl.to(wipe, {
-      opacity: 1, x: "0%", y: "0%",
-      duration: TRANS_DURATION * 0.52,
-      ease: "power2.inOut",
-    });
-
-    /* Brief hold — image swap happens here */
-    tl.to({}, { duration: 0.06 });
-
-    /* Exit: wipe leaves screen */
-    tl.to(wipe, {
-      x: dir.toX, y: dir.toY,
-      duration: TRANS_DURATION * 0.48,
-      ease: "power2.inOut",
-      onComplete() { gsap.set(wipe, { opacity: 0 }); },
-    });
-  }, [dirIdx, nxtIdx]);
+  }, [nxtIdx]);
 
   /* ── Advance timer ──────────────────────────────────────────────── */
   useEffect(() => {
@@ -344,7 +297,7 @@ export function HeroCinematic({
         <audio ref={audioRef} src="/hero/ambient.mp3" preload="none" />
 
         {/* ── Current slide ── */}
-        <div className="myla-slide" style={{ zIndex: 1 }}>
+        <div ref={curSlideRef} className="myla-slide" style={{ zIndex: 1 }}>
           <img
             key={`c${curIdx}`}
             src={HERO_IMAGES[curIdx]}
@@ -355,7 +308,7 @@ export function HeroCinematic({
           />
         </div>
 
-        {/* ── Next slide (preloaded, sits behind) ── */}
+        {/* ── Next slide (preloaded, sits behind — crossfades in as current fades out) ── */}
         <div className="myla-slide" style={{ zIndex: 0 }}>
           <img
             key={`n${nxtIdx}`}
@@ -366,9 +319,6 @@ export function HeroCinematic({
             style={{ transform: "scale(1.08)" }}
           />
         </div>
-
-        {/* ── Silk fabric wipe ── */}
-        <div ref={wipeRef} className="myla-wipe" />
 
         {/* ── Depth ── */}
         <div className="myla-vignette" />
