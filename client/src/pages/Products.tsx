@@ -603,7 +603,7 @@ export default function Products() {
               className="w-full"
             >
               {/* Frameless, soft-rounded image — no crop (matches Home page) */}
-              <div className="relative w-full mb-4 flex items-center justify-center">
+              <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 mb-4 flex items-center justify-center overflow-hidden">
                 <img
                   src={(() => {
                     if (activeSubCategory) {
@@ -613,8 +613,7 @@ export default function Products() {
                     return activeCatData.img;
                   })()}
                   alt={isRtl ? activeCatData.label_ar : activeCatData.label_en}
-                  className="w-full h-auto max-h-72 sm:max-h-80 md:max-h-96 lg:max-h-[28rem] object-contain rounded-3xl mx-auto"
-                  loading="lazy"
+                  className="w-full h-full object-contain rounded-3xl mx-auto"
                 />
               </div>
 
