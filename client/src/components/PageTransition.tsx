@@ -68,7 +68,7 @@ export function PageTransition() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#EEEEEC]"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#D8D8D4]"
           data-testid="page-transition-overlay"
         >
           <video
