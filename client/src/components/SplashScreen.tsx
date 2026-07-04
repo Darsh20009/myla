@@ -114,7 +114,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
         onFinish();
       },
     });
-    tl.timeScale(6);
+    tl.timeScale(12);
 
     /* Per-letter sequence */
     LETTERS.forEach((_, idx) => {

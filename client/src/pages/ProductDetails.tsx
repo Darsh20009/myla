@@ -270,6 +270,21 @@ export default function ProductDetails() {
       colorImages[color] = variant.image;
     }
   });
+
+  // Color wrap: get nearest neighbor colors (by index proximity)
+  const getNearbyColors = (color: string, allColors: string[], count = 4): string[] => {
+    const idx = allColors.indexOf(color);
+    if (idx === -1 || allColors.length <= 1) return [];
+    const result: string[] = [];
+    for (let offset = 1; result.length < count && result.length < allColors.length - 1; offset++) {
+      if (idx - offset >= 0) result.push(allColors[idx - offset]);
+      if (result.length < count && idx + offset < allColors.length) result.push(allColors[idx + offset]);
+    }
+    return result;
+  };
+
+  // Satellite orbit positions (fan above + sides of selected swatch)
+  const ORBIT_ANGLES = [200, 240, 300, 340]; // degrees from center
   
   // Auto select first color if not selected or if current selection is no longer valid
   useEffect(() => {
@@ -567,21 +582,74 @@ export default function ProductDetails() {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-6 text-black/40">{t('colorLabel')}</label>
                 <div className={`flex flex-wrap gap-4 ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-                  {colors.map((color: string, idx: number) => (
+                  {colors.map((color: string, idx: number) => {
+                    const isSelected = selectedColor === color;
+                    const nearby = isSelected ? getNearbyColors(color, colors, 4) : [];
+                    return (
                     <motion.div
                       key={color}
                       className="relative group"
+                      style={{ overflow: "visible" }}
                       initial={{ opacity: 0, x: language === 'ar' ? 60 : -60, scale: 0.6, rotate: language === 'ar' ? 15 : -15 }}
                       animate={{ opacity: 1, x: 0, scale: 1, rotate: 0 }}
                       transition={{ delay: idx * 0.1, type: "spring", stiffness: 180, damping: 14 }}
                     >
+                      {/* ── Orbit satellites of nearby colors ── */}
+                      <AnimatePresence>
+                        {isSelected && nearby.map((nc, ni) => {
+                          const angleDeg = ORBIT_ANGLES[ni] ?? (180 + ni * 45);
+                          const rad = (angleDeg * Math.PI) / 180;
+                          const r = 54;
+                          const cx = Math.cos(rad) * r;
+                          const cy = Math.sin(rad) * r;
+                          return (
+                            <motion.button
+                              key={nc}
+                              onClick={() => setSelectedColor(nc)}
+                              initial={{ scale: 0, x: 0, y: 0, opacity: 0 }}
+                              animate={{ scale: 1, x: cx, y: cy, opacity: 1 }}
+                              exit={{ scale: 0, x: 0, y: 0, opacity: 0 }}
+                              transition={{ delay: ni * 0.07, type: "spring", stiffness: 340, damping: 20 }}
+                              title={nc}
+                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-lg z-30 ring-1 ring-black/15 hover:scale-110 transition-transform"
+                              style={{ transformOrigin: "center center" }}
+                            >
+                              {colorImages[nc] ? (
+                                <img src={colorImages[nc]} alt={nc} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-black/8 flex items-center justify-center text-[7px] font-black text-center leading-none px-0.5">
+                                  {nc.slice(0, 3)}
+                                </div>
+                              )}
+                            </motion.button>
+                          );
+                        })}
+                      </AnimatePresence>
+
+                      {/* ── Glow ring behind selected swatch ── */}
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1.7, opacity: 1 }}
+                            exit={{ scale: 0.5, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                            className="absolute inset-0 rounded-full pointer-events-none z-0"
+                            style={{
+                              background: "radial-gradient(circle, rgba(0,0,0,0.12) 0%, transparent 70%)",
+                              boxShadow: "0 0 0 6px rgba(0,0,0,0.07), 0 0 24px 4px rgba(0,0,0,0.1)",
+                            }}
+                          />
+                        )}
+                      </AnimatePresence>
+
                       <motion.button
                         onClick={() => setSelectedColor(color)}
                         whileHover={{ scale: 1.15, rotate: 5 }}
                         whileTap={{ scale: 0.92 }}
                         className={`
-                          relative w-20 h-20 rounded-full overflow-hidden transition-all duration-300 p-0.5 border-2
-                          ${selectedColor === color 
+                          relative w-20 h-20 rounded-full overflow-hidden transition-all duration-300 p-0.5 border-2 z-10
+                          ${isSelected 
                             ? 'border-black scale-110 shadow-xl ring-4 ring-black/10' 
                             : 'border-transparent hover:border-black/20'}
                         `}
@@ -601,7 +669,7 @@ export default function ProductDetails() {
                           </div>
                         )}
                         
-                        {selectedColor === color && (
+                        {isSelected && (
                           <motion.div
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
@@ -615,15 +683,16 @@ export default function ProductDetails() {
                       
                       {/* Tooltip-like label */}
                       <div className={`
-                        absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap transition-all duration-300 pointer-events-none
-                        ${selectedColor === color ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'}
+                        absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap transition-all duration-300 pointer-events-none z-20
+                        ${isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'}
                       `}>
                         <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-2 py-0.5">
                           {color}
                         </span>
                       </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               )}

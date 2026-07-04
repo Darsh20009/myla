@@ -24,8 +24,8 @@ const IMAGES = [
   "/hero/model-19.png",
 ];
 
-const SLIDE_DURATION = 5000; // ms each image stays visible
-const FADE_DURATION  = 1.4;  // seconds for opacity crossfade
+const SLIDE_DURATION = 3500; // ms each image stays visible
+const FADE_DURATION  = 1.1;  // seconds for opacity crossfade
 
 /* ─── Styles ──────────────────────────────────────────────────────── */
 const CSS = `
@@ -52,6 +52,15 @@ const CSS = `
     object-fit: cover;
     object-position: center top;
     display: block;
+    transform-origin: center center;
+    will-change: transform;
+  }
+  .myla-slot img.kb-play {
+    animation: mylaKenBurns var(--kb-dur, 5s) ease-out forwards;
+  }
+  @keyframes mylaKenBurns {
+    from { transform: scale(1)    translateY(0px); }
+    to   { transform: scale(1.08) translateY(-12px); }
   }
 
   /* Depth overlays */
@@ -71,13 +80,14 @@ const CSS = `
   /* Golden shimmer flash on transition */
   .myla-shimmer {
     position: absolute; inset: 0; z-index: 11; pointer-events: none;
-    background: radial-gradient(
-      ellipse at 50% 35%,
-      rgba(210,175,120,0.16) 0%,
-      rgba(180,140,90,0.07) 50%,
-      transparent 75%
-    );
     will-change: opacity;
+    background:
+      linear-gradient(
+        108deg,
+        transparent 0%, rgba(255,245,220,0.28) 48%,
+        rgba(255,255,255,0.38) 50%,
+        rgba(255,245,220,0.28) 52%, transparent 100%
+      );
   }
 
   /* Light ray sweep */
@@ -242,22 +252,23 @@ export function HeroCinematic({
     backImg.src = IMAGES[next];
     gsap.set(backSlot, { zIndex: 3 });
 
-    /* Shimmer flash */
+    /* Ken Burns: reset back slot's img scale, start after it fades in */
+    const backImgEl = isAFront ? imgB.current : imgA.current;
+    const frontImgEl = isAFront ? imgA.current : imgB.current;
+    if (frontImgEl) {
+      frontImgEl.classList.remove("kb-play");
+      frontImgEl.style.removeProperty("--kb-dur");
+    }
+
+    /* Shimmer sweep — translates left → right like a camera shutter */
     if (shimRef.current) {
       gsap.fromTo(shimRef.current,
-        { opacity: 0 },
+        { x: "-110%", opacity: 0 },
         {
+          x: "110%",
           opacity: 1,
-          duration: FADE_DURATION * 0.4,
-          ease: "power2.in",
-          onComplete() {
-            if (!mounted.current || !shimRef.current) return;
-            gsap.to(shimRef.current, {
-              opacity: 0,
-              duration: FADE_DURATION * 0.7,
-              ease: "power2.out",
-            });
-          },
+          duration: FADE_DURATION * 0.9,
+          ease: "power2.inOut",
         }
       );
     }
@@ -270,13 +281,21 @@ export function HeroCinematic({
         duration: FADE_DURATION,
         ease: "sine.inOut",
         onComplete() {
-          if (!mounted.current) return; // component unmounted — stop all work
+          if (!mounted.current) return;
 
           gsap.set(frontSlot, { zIndex: 1, opacity: 0 });
           frontIsA.current = !isAFront;
           curIdx.current   = next;
           inTrans.current  = false;
           setActiveIdx(next);
+
+          /* Start Ken Burns on newly visible image */
+          if (backImgEl) {
+            backImgEl.classList.remove("kb-play");
+            void backImgEl.offsetWidth; // reflow to restart animation
+            backImgEl.style.setProperty("--kb-dur", `${(SLIDE_DURATION + 1000) / 1000}s`);
+            backImgEl.classList.add("kb-play");
+          }
 
           preload(IMAGES[(next + 1) % IMAGES.length]);
           timerRef.current = setTimeout(doTransition, SLIDE_DURATION);
