@@ -27,6 +27,29 @@ const IMAGES = [
 const SLIDE_DURATION = 3500; // ms each image stays visible
 const FADE_DURATION  = 1.1;  // seconds for opacity crossfade
 
+/* ─── Per-slide abaya color tints ─────────────────────────────── */
+const SLIDE_COLORS: { nameAr: string; nameEn: string; filter: string }[] = [
+  { nameAr: "أسود",        nameEn: "Noir",         filter: "none" },
+  { nameAr: "كحلي",        nameEn: "Navy",         filter: "sepia(0.85) hue-rotate(215deg) saturate(3) brightness(0.9)" },
+  { nameAr: "عنابي",       nameEn: "Bordeaux",     filter: "sepia(0.9) hue-rotate(305deg) saturate(2.8) brightness(0.85)" },
+  { nameAr: "أخضر زيتي",  nameEn: "Olive",        filter: "sepia(0.75) hue-rotate(78deg) saturate(2.2) brightness(0.88)" },
+  { nameAr: "موف",         nameEn: "Mauve",        filter: "sepia(0.8) hue-rotate(270deg) saturate(2.5) brightness(1.0)" },
+  { nameAr: "بيج فاتح",   nameEn: "Ivory",        filter: "sepia(1) hue-rotate(28deg) saturate(0.5) brightness(1.55)" },
+  { nameAr: "سماوي",       nameEn: "Teal",         filter: "sepia(0.7) hue-rotate(162deg) saturate(2.8) brightness(0.92)" },
+  { nameAr: "وردي سكري",  nameEn: "Blush",        filter: "sepia(0.85) hue-rotate(330deg) saturate(2) brightness(1.25)" },
+  { nameAr: "رمادي",       nameEn: "Gris",         filter: "grayscale(0.75) brightness(0.82)" },
+  { nameAr: "أزرق ملكي",  nameEn: "Royal Blue",   filter: "sepia(0.75) hue-rotate(232deg) saturate(3.2) brightness(0.88)" },
+  { nameAr: "شوكولاتة",   nameEn: "Chocolat",     filter: "sepia(1) hue-rotate(5deg) saturate(1.6) brightness(0.68)" },
+  { nameAr: "أرجواني",    nameEn: "Violet",       filter: "sepia(0.8) hue-rotate(252deg) saturate(3) brightness(0.9)" },
+  { nameAr: "ذهبي",        nameEn: "Or",           filter: "sepia(1) hue-rotate(44deg) saturate(1.4) brightness(1.28)" },
+  { nameAr: "خمري",        nameEn: "Maroon",       filter: "sepia(0.9) hue-rotate(340deg) saturate(2.4) brightness(0.8)" },
+  { nameAr: "أخضر داكن",  nameEn: "Forest",       filter: "sepia(0.8) hue-rotate(100deg) saturate(2.2) brightness(0.75)" },
+  { nameAr: "تركواز",      nameEn: "Turquoise",    filter: "sepia(0.6) hue-rotate(155deg) saturate(3.2) brightness(1.0)" },
+  { nameAr: "بنفسجي",      nameEn: "Lavande",      filter: "sepia(0.65) hue-rotate(265deg) saturate(2.2) brightness(1.1)" },
+  { nameAr: "نحاسي",       nameEn: "Cuivre",       filter: "sepia(1) hue-rotate(18deg) saturate(2) brightness(1.1)" },
+  { nameAr: "فحمي",        nameEn: "Charcoal",     filter: "grayscale(0.4) brightness(0.6) contrast(1.1)" },
+];
+
 /* ─── Styles ──────────────────────────────────────────────────────── */
 const CSS = `
   .myla-hero {
@@ -154,6 +177,33 @@ const CSS = `
   .myla-btn-outline:hover  { background: rgba(201,168,130,0.08); }
   .myla-btn-outline:active { transform: scale(0.97); }
 
+  /* Color label */
+  .myla-color-label {
+    position: absolute; left: 2rem; bottom: 12%; z-index: 22;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .myla-color-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #C9A882;
+    display: inline-block; margin-bottom: 0.4rem;
+  }
+  .myla-color-ar {
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem; font-weight: 300; color: #FAF7F2;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 12px rgba(0,0,0,0.5);
+    direction: rtl;
+  }
+  .myla-color-en {
+    font-family: 'Georgia', serif;
+    font-size: 0.55rem; letter-spacing: 0.42em; font-weight: 400;
+    color: #C9A882; text-transform: uppercase;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+  }
+
   /* Progress dots */
   .myla-dots {
     position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%);
@@ -197,11 +247,14 @@ export function HeroCinematic({
   const slotB   = useRef<HTMLDivElement>(null);
   const imgA    = useRef<HTMLImageElement>(null);
   const imgB    = useRef<HTMLImageElement>(null);
-  const shimRef = useRef<HTMLDivElement>(null);
-  const rayRef  = useRef<HTMLDivElement>(null);
-  const wordRef = useRef<HTMLDivElement>(null);
-  const tagRef  = useRef<HTMLDivElement>(null);
-  const ctaRef  = useRef<HTMLDivElement>(null);
+  const shimRef      = useRef<HTMLDivElement>(null);
+  const rayRef       = useRef<HTMLDivElement>(null);
+  const wordRef      = useRef<HTMLDivElement>(null);
+  const tagRef       = useRef<HTMLDivElement>(null);
+  const ctaRef       = useRef<HTMLDivElement>(null);
+  const colorLabelRef = useRef<HTMLDivElement>(null);
+  const colorArRef    = useRef<HTMLSpanElement>(null);
+  const colorEnRef    = useRef<HTMLSpanElement>(null);
 
   /* Stable bookkeeping */
   const frontIsA  = useRef(true);
@@ -258,6 +311,25 @@ export function HeroCinematic({
     if (frontImgEl) {
       frontImgEl.classList.remove("kb-play");
       frontImgEl.style.removeProperty("--kb-dur");
+    }
+
+    /* Apply abaya color filter to incoming image */
+    const slideColor = SLIDE_COLORS[next] ?? SLIDE_COLORS[0];
+    if (backImgEl) {
+      backImgEl.style.filter = slideColor.filter;
+    }
+
+    /* Animate color label out, then update text and fade in */
+    if (colorLabelRef.current) {
+      gsap.to(colorLabelRef.current, {
+        opacity: 0, y: 6, duration: 0.3, ease: "power2.in",
+        onComplete() {
+          if (!mounted.current) return;
+          if (colorArRef.current) colorArRef.current.textContent = slideColor.nameAr;
+          if (colorEnRef.current) colorEnRef.current.textContent = slideColor.nameEn;
+          gsap.to(colorLabelRef.current!, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out", delay: FADE_DURATION * 0.6 });
+        },
+      });
     }
 
     /* Shimmer sweep — translates left → right like a camera shutter */
@@ -321,16 +393,25 @@ export function HeroCinematic({
     };
   }, [doTransition, preload, clearTimer, killAllTweens]);
 
-  /* ── Content entrance ────────────────────────────────────────── */
+  /* ── Content entrance + first slide color ───────────────────── */
   useEffect(() => {
+    /* Apply first slide's filter */
+    if (imgA.current) {
+      imgA.current.style.filter = SLIDE_COLORS[0].filter;
+    }
     const t = setTimeout(() => {
       if (!mounted.current) return;
       gsap.to(
         [wordRef.current, tagRef.current, ctaRef.current].filter(Boolean),
         { opacity: 1, y: 0, duration: 1.3, ease: "power3.out", stagger: 0.2 }
       );
+      /* Fade in color label with first slide's info */
+      if (colorArRef.current) colorArRef.current.textContent = SLIDE_COLORS[0].nameAr;
+      if (colorEnRef.current) colorEnRef.current.textContent = SLIDE_COLORS[0].nameEn;
+      gsap.to(colorLabelRef.current, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" });
     }, 900);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ── Light ray sweep ─────────────────────────────────────────── */
@@ -361,8 +442,24 @@ export function HeroCinematic({
     if (!frontSlot || !backSlot || !backImg) return;
     inTrans.current = true;
 
+    const jumpBackImgEl = isAFront ? imgB.current : imgA.current;
     backImg.src = IMAGES[idx];
+    const jumpColor = SLIDE_COLORS[idx] ?? SLIDE_COLORS[0];
+    if (jumpBackImgEl) jumpBackImgEl.style.filter = jumpColor.filter;
     gsap.set(backSlot, { zIndex: 3 });
+
+    /* Update color label */
+    if (colorLabelRef.current) {
+      gsap.to(colorLabelRef.current, {
+        opacity: 0, y: 6, duration: 0.25, ease: "power2.in",
+        onComplete() {
+          if (!mounted.current) return;
+          if (colorArRef.current) colorArRef.current.textContent = jumpColor.nameAr;
+          if (colorEnRef.current) colorEnRef.current.textContent = jumpColor.nameEn;
+          gsap.to(colorLabelRef.current!, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" });
+        },
+      });
+    }
 
     gsap.fromTo(backSlot,
       { opacity: 0 },
@@ -412,6 +509,13 @@ export function HeroCinematic({
 
         {/* Ray */}
         <div ref={rayRef} className="myla-ray" />
+
+        {/* Color label — bottom left */}
+        <div ref={colorLabelRef} className="myla-color-label">
+          <span className="myla-color-dot" />
+          <span ref={colorArRef} className="myla-color-ar">{SLIDE_COLORS[0].nameAr}</span>
+          <span ref={colorEnRef} className="myla-color-en">{SLIDE_COLORS[0].nameEn}</span>
+        </div>
 
         {/* Content */}
         <div className="myla-content">
