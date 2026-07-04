@@ -154,7 +154,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
             href="/"
             className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center hover:opacity-80 active:scale-95 transition-all"
           >
-            <img src={logoImg} alt="Myla" className="h-14 w-auto object-contain drop-shadow-lg" />
+            <img src={logoImg} alt="Myla" className="h-20 w-auto object-contain drop-shadow-lg" />
           </Link>
 
           <div className="flex items-center gap-2 md:gap-4">
