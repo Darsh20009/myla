@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
 const SPLASH_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
   .myla-splash-root {
     position: fixed; inset: 0; z-index: 9999;
     background: #281408;
@@ -10,27 +12,69 @@ const SPLASH_CSS = `
     overflow: hidden;
     will-change: opacity;
   }
-  .myla-splash-logo-wrap {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
+  .myla-splash-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0;
     opacity: 0;
-    transform: scale(1.02);
+    transform: scale(0.97);
   }
-  .myla-splash-logo {
-    /* fill the shorter dimension so the logo is centered with matching bg */
-    width: min(100vw, 100vh);
-    height: min(100vw, 100vh);
-    object-fit: cover;
-    object-position: center;
+  .myla-splash-title {
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(64px, 14vw, 110px);
+    color: #F5EDE3;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .myla-splash-rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    margin-bottom: 10px;
+    width: 100%;
+    justify-content: center;
+  }
+  .myla-splash-rule-line {
+    flex: 1;
+    max-width: 80px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #C9A88280, #C9A882, #C9A88280, transparent);
+  }
+  .myla-splash-diamond {
+    width: 5px; height: 5px;
+    background: #C9A882;
+    transform: rotate(45deg);
+    opacity: 0.8;
+    flex-shrink: 0;
+  }
+  .myla-splash-sub {
+    font-family: 'Alexandria', sans-serif;
+    font-size: clamp(8px, 1.6vw, 11px);
+    font-weight: 400;
+    color: #C9A882;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .myla-splash-sub-city {
+    font-family: 'Alexandria', sans-serif;
+    font-size: clamp(6px, 1.1vw, 8px);
+    font-weight: 300;
+    color: #A08060;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 3px;
   }
 `;
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
-  const rootRef  = useRef<HTMLDivElement>(null);
-  const wrapRef  = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    /* ── Failsafe: always call onFinish after 8s max ── */
     const failsafe = setTimeout(onFinish, 8_000);
 
     const tl = gsap.timeline({
@@ -40,18 +84,15 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
       },
     });
 
-    /* Fade + scale in */
     tl.to(wrapRef.current, {
       opacity: 1,
       scale: 1,
-      duration: 0.9,
+      duration: 1.0,
       ease: "power2.out",
     });
 
-    /* Hold */
-    tl.to({}, { duration: 1.2 });
+    tl.to({}, { duration: 1.4 });
 
-    /* Fade out */
     tl.to(rootRef.current, {
       opacity: 0,
       duration: 0.7,
@@ -69,12 +110,15 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
     <>
       <style>{SPLASH_CSS}</style>
       <div ref={rootRef} className="myla-splash-root">
-        <div ref={wrapRef} className="myla-splash-logo-wrap">
-          <img
-            src="/myla-logo.png"
-            alt="Myla"
-            className="myla-splash-logo"
-          />
+        <div ref={wrapRef} className="myla-splash-wrap">
+          <span className="myla-splash-title">Myla</span>
+          <div className="myla-splash-rule">
+            <div className="myla-splash-rule-line" />
+            <div className="myla-splash-diamond" />
+            <div className="myla-splash-rule-line" />
+          </div>
+          <span className="myla-splash-sub">Abayas by HMBL</span>
+          <span className="myla-splash-sub-city">Riyadh</span>
         </div>
       </div>
     </>
