@@ -80,7 +80,7 @@ async function tick() {
             amount: walletApplied,
             description: `استرجاع رصيد المحفظة بعد إلغاء الطلب #${shortRef} (انتهت مهلة الدفع)`,
             orderId,
-          }).catch(() => {});
+          } as any).catch(() => {});
         }
 
         // ── 4) One-shot customer notification.

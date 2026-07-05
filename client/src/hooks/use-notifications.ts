@@ -63,7 +63,14 @@ async function subscribeToPush(userId: string) {
 }
 
 // ─── Main Hook ────────────────────────────────────────────────────────────────
-export function useNotifications() {
+export interface UseNotificationsOptions {
+  userType?: string;
+  userId?: string;
+  branchId?: string;
+  autoSubscribe?: boolean;
+}
+
+export function useNotifications(_opts?: UseNotificationsOptions) {
   const { user } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -192,11 +199,22 @@ export function useNotifications() {
     };
   }, [userId, connectWs]);
 
+  const requestPermission = async () => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      const perm = await Notification.requestPermission();
+      if (perm === "granted" && userId) subscribeToPush(String(userId));
+    } else if (Notification.permission === "granted" && userId) {
+      subscribeToPush(String(userId));
+    }
+  };
+
   return {
     notifications: data?.notifications || [],
     unreadCount: data?.unreadCount || 0,
     markRead: (id: string) => markRead.mutate(id),
     markAllRead: () => markAllRead.mutate(),
     deleteNotif: (id: string) => deleteNotif.mutate(id),
+    requestPermission,
   };
 }

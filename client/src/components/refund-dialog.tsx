@@ -132,7 +132,8 @@ export default function RefundDialog({ open, onOpenChange, branchId, employeeId,
     onSuccess: async () => {
       try {
         await printRefundThermal({
-          orderNumber: String(foundOrder.orderNumber || foundOrder.dailyNumber || "—"),
+          refundId: `REF-${Date.now()}`,
+          originalOrderNumber: String(foundOrder.orderNumber || foundOrder.dailyNumber || "—"),
           items: selectedRefundItems.map((item: any, idx: number) => {
             const id = item.coffeeItemId || item.productId || String(idx);
             return {
@@ -142,8 +143,8 @@ export default function RefundDialog({ open, onOpenChange, branchId, employeeId,
               subtotal: Number(item.price || item.unitPrice || 0) * (refundQtys[id] || item.quantity),
             };
           }),
-          totalRefund: refundTotal,
-          payMethod,
+          refundAmount: refundTotal,
+          paymentMethod: payMethod,
           reason,
           employeeName: employeeName || tc("الكاشير","Cashier"),
           date: new Date().toISOString(),

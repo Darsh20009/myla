@@ -1227,7 +1227,7 @@ ${allUrls.map(u => `  <url>
           if (calc.savings > 0) {
             bundleApplications = calc.applications;
             // Reduce the order total by the calculated bundle savings
-            parsed.data.total = Math.max(0, Number(parsed.data.total) - calc.savings);
+            parsed.data.total = String(Math.max(0, Number(parsed.data.total) - calc.savings));
             (parsed.data as any).bundleDiscount = calc.savings;
             (parsed.data as any).bundleApplications = calc.applications;
           }
@@ -1414,7 +1414,7 @@ ${allUrls.map(u => `  <url>
       });
 
       // Invalidate product cache so updated stock is visible immediately
-      try { invalidateTags(["products"]); } catch {}
+      try { invalidateTags("products"); } catch {}
 
       res.status(201).json(order);
     } catch (err: any) {
@@ -2157,7 +2157,7 @@ ${allUrls.map(u => `  <url>
   app.get("/api/admin/branches/:id/managers", checkPermission("settings.manage"), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const all = await storage.getAllUsers();
+      const all = await storage.getUsers();
       const list = (all || []).filter((u: any) => u.branchId === req.params.id && u.role !== "customer");
       res.json(list.map((u: any) => ({
         id: u.id, name: u.name, phone: u.phone, role: u.role, isActive: u.isActive,
@@ -4350,13 +4350,13 @@ ${allUrls.map(u => `  <url>
       // and fire the deferred customer/admin notifications, email, invoice.
       if (result.success && result.orderId) {
         try {
-          await storage.updateOrder(result.orderId, {
+          await storage.updateOrder(String(result.orderId || ""), {
             paymentStatus: "paid",
-            paymentTransactionId: result.transactionId,
+            paymentTransactionId: result.transactionId || "",
           } as any);
-          const ord = await storage.getOrder(result.orderId);
-          if (ord && ord.status === "pending_payment") {
-            await storage.updateOrderStatus(result.orderId, "new" as any);
+          const ord = await storage.getOrder(String(result.orderId || ""));
+          if (ord && (ord as any).status === "pending_payment") {
+            await storage.updateOrderStatus(String(result.orderId || ""), "new" as any);
           }
           await dispatchOrderPaidSideEffects(String(result.orderId));
         } catch (e: any) {
@@ -6813,8 +6813,9 @@ ${allUrls.map(u => `  <url>
 
       const { groqChatFor } = await import("./groq");
       const result = await groqChatFor(
+        "employee",
         [{ role: "system", content: systemPrompt }, { role: "user", content: userMsg }],
-        1500, "employee"
+        1500
       );
       res.json({ ok: true, text: result });
     } catch (err: any) {
@@ -6840,18 +6841,20 @@ ${allUrls.map(u => `  <url>
 
       const [summary, repliesRaw] = await Promise.all([
         groqChatFor(
+          "employee",
           [
             { role: "system", content: systemPrompt },
             { role: "user", content: `لخّص الرسالة التالية في جملتين أو ثلاث موجزة بالعربية:\n\n${contextHeader}\n\n${body}` },
           ],
-          300, "employee"
+          300
         ),
         groqChatFor(
+          "employee",
           [
             { role: "system", content: systemPrompt },
             { role: "user", content: `اقترح 3 ردود قصيرة ومناسبة على هذه الرسالة. أعدها كقائمة، كل رد في سطر يبدأ بـ -\n\n${contextHeader}\n\n${body}` },
           ],
-          400, "employee"
+          400
         ),
       ]);
 
@@ -7200,7 +7203,7 @@ ${allUrls.map(u => `  <url>
   // ── POS: Payment Methods ──────────────────────────────────────────────────
   app.get("/api/payment-methods", async (_req, res) => {
     try {
-      const { PaymentMethodModel } = await import("./models").catch(() => ({ PaymentMethodModel: null }));
+      const { PaymentMethodModel } = (await import("./models").catch(() => ({ PaymentMethodModel: null }))) as any;
       if (PaymentMethodModel) {
         const methods = await (PaymentMethodModel as any).find({ isActive: true }).lean();
         return res.json(methods || []);

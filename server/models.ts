@@ -35,16 +35,18 @@ const userSchema = new Schema<User>(
     totalSpent: { type: Number, default: 0 },
 
     // ── Account activation (employees) ──
-    activationToken: { type: String, index: true, sparse: true },
-    activationExpires: { type: Date },
+    // Cast as any: these fields exist in Mongoose schema but are internal-only
+    // and not part of the shared User TypeScript type (no need to expose them).
+    activationToken: { type: String, index: true, sparse: true } as any,
+    activationExpires: { type: Date } as any,
 
     // ── Password reset (customers + employees) ──
-    passwordResetCode: { type: String },        // 6-digit OTP (email path)
-    passwordResetCodeExpires: { type: Date },
-    passwordResetToken: { type: String, index: true, sparse: true }, // single-use token after verify
-    passwordResetTokenExpires: { type: Date },
-    passwordResetAttempts: { type: Number, default: 0 }, // throttle brute force on OTP / verify
-  },
+    passwordResetCode: { type: String } as any,
+    passwordResetCodeExpires: { type: Date } as any,
+    passwordResetToken: { type: String, index: true, sparse: true } as any,
+    passwordResetTokenExpires: { type: Date } as any,
+    passwordResetAttempts: { type: Number, default: 0 } as any,
+  } as any,
   { timestamps: true }
 );
 
@@ -110,7 +112,7 @@ const productSchema = new Schema<Product>(
     isOnSale: { type: Boolean, default: false },
     salePrice: { type: String, default: "" },
     aiNotes: { type: String, default: "" },
-  },
+  } as any,
   { timestamps: true }
 );
 
@@ -168,7 +170,7 @@ const orderSchema = new Schema<Order>(
     paymentMethod: { type: String, enum: ["cod", "bank_transfer", "apple_pay", "card", "cash", "wallet", "tap", "stc_pay", "tamara", "tabby"], required: true },
     bankTransferReceipt: String,
     paymentStatus: { type: String, default: "pending" },
-    paymentTransactionId: { type: String, index: true, sparse: true },
+    paymentTransactionId: { type: String, index: true, sparse: true } as any,
     paidNotificationsSent: { type: Boolean, default: false },
     // Paymob's internal order/transaction id, captured at checkout initiation.
     // Used to bind the signed callback `order` field (which Paymob HMAC covers)
@@ -225,7 +227,7 @@ const orderSchema = new Schema<Order>(
       carColor:    { type: String, default: null },
       plateNumber: { type: String, default: null },
     },
-  },
+  } as any,
   { timestamps: true }
 );
 
@@ -338,7 +340,7 @@ const shippingCompanySchema = new Schema<ShippingCompany>(
     trackingUrlTemplate: { type: String, default: "" },
     // Optional: support phone for the shipping company shown to customers
     supportPhone: { type: String, default: "" },
-  },
+  } as any,
   { timestamps: true, strict: false }
 );
 

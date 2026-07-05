@@ -91,7 +91,7 @@ export function MarketingBanners() {
                     className="w-full h-full object-cover transition-transform duration-1000"
                     loading="eager"
                     decoding="async"
-                    fetchpriority="high"
+                    fetchPriority="high"
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-8 text-white text-right">

@@ -1042,7 +1042,7 @@ export class MongoDBStorage implements IStorage {
   }
   async createPromoStripItem(data: any): Promise<any> {
     const item = await PromoStripItemModel.create(data);
-    return { ...item.toObject(), id: (item as any)._id.toString() };
+    return { ...(item as any).toObject(), id: (item as any)._id.toString() };
   }
   async updatePromoStripItem(id: string, update: any): Promise<any> {
     const item = await PromoStripItemModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
@@ -1060,7 +1060,7 @@ export class MongoDBStorage implements IStorage {
   }
   async createStatItem(data: any): Promise<any> {
     const item = await StatItemModel.create(data);
-    return { ...item.toObject(), id: (item as any)._id.toString() };
+    return { ...(item as any).toObject(), id: (item as any)._id.toString() };
   }
   async updateStatItem(id: string, update: any): Promise<any> {
     const item = await StatItemModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
@@ -1084,7 +1084,7 @@ export class MongoDBStorage implements IStorage {
   }
   async createCustomPage(data: any): Promise<any> {
     const item = await CustomPageModel.create(data);
-    return { ...item.toObject(), id: (item as any)._id.toString() };
+    return { ...(item as any).toObject(), id: (item as any)._id.toString() };
   }
   async updateCustomPage(id: string, update: any): Promise<any> {
     const item = await CustomPageModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
@@ -1257,7 +1257,7 @@ export class MongoDBStorage implements IStorage {
 
   async createBundleOffer(data: any): Promise<any> {
     const b = await BundleOfferModel.create(data);
-    return { ...b.toObject(), id: (b as any)._id.toString() };
+    return { ...(b as any).toObject(), id: (b as any)._id.toString() };
   }
 
   async updateBundleOffer(id: string, update: any): Promise<any> {

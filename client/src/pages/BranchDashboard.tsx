@@ -627,7 +627,7 @@ function BranchOrdersTab() {
           <ShoppingBag className="h-12 w-12 text-gray-700 mx-auto mb-3" />
           <p className="font-black text-gray-800">لا توجد طلبات مطابقة</p>
           {(hasActiveAdvanced || search) && (
-            <Button variant="link" size="sm" onClick={clearFilters} className="mt-2">مسح الفلاتر</Button>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="mt-2 text-primary">مسح الفلاتر</Button>
           )}
         </Card>
       ) : (

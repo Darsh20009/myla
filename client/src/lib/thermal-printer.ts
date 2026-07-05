@@ -4,6 +4,17 @@
  *           Browser Print fallback (window.print via iframe)
  */
 
+// ─── WebUSB / WebBluetooth type stubs ────────────────────────────────────────
+// These APIs are not yet included in standard TypeScript lib.dom.d.ts.
+// Using `any` aliases avoids pulling in @types/w3c-web-usb / @types/web-bluetooth.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type USBDevice = any;
+type BluetoothDevice = any;
+type BluetoothRemoteGATTCharacteristic = any;
+type BluetoothRemoteGATTServer = any;
+type Bluetooth = any;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 const ESC = 0x1b;
 const GS  = 0x1d;
 

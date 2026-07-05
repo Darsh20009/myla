@@ -181,7 +181,7 @@ process.on('uncaughtException', (err: any) => {
         pickupEnabled: true,
         image: "",
         sortOrder: 0,
-      });
+      } as any);
       console.log("[Seed] Myla Riyadh branch created");
     }
   } catch (e: any) {

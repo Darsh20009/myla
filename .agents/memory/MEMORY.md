@@ -3,3 +3,4 @@
 - [Myla rebrand](myla-rebrand.md) — 3 brand eras layered (Fuji Cafe→RF Perfume→Myla abayas); grep all 3 for leaks, but keep internal identifiers/contracts as-is.
 - [Order item variant fields & cart line identity](order-item-variant-fields.md) — order-item fields need BOTH Zod (shared/schema) + Mongoose subdoc or they're stripped; cart line key = productId+variantSku+length, keep consistent across add/remove/update/merge/render.
 - [RF Perfume rebrand](rf-rebrand.md) — Myla → RF Perfume / رفيف العود brand values, Arabic word-boundary replace gotcha, and what was left out (artwork, content, DB).
+- [TypeScript config gotchas](ts-config-gotchas.md) — tsconfig had no target (defaulted to ES3), breaking iterators, regex /u, top-level await; Mongoose Schema<T> body needs whole-object `as any` cast (not per-field value cast) to suppress TS2353; groqChatFor arg order is (audience, messages, maxTokens).

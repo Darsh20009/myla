@@ -89,6 +89,13 @@ const emptyStaff: InsertUser = {
   branchId: "",
   loginType: "dashboard",
   isActive: true,
+  mustChangePassword: false,
+  loyaltyPoints: 0,
+  loyaltyTier: "bronze",
+  totalSpent: 0,
+  phoneDiscountEligible: false,
+  walletBalance: "0",
+  addresses: [],
 };
 
 function StatTile({ icon: Icon, label, value, accent = "text-[#6B3F2A]" }: { icon: any; label: string; value: number | string; accent?: string }) {

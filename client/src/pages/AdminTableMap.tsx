@@ -185,11 +185,11 @@ export default function AdminTableMap() {
       {/* Stats Bar */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         {[
-          { label: "الإجمالي", value: stats.total, ...STATUS_CONFIG.free, color: "text-[#6B3F2A]", bg: "bg-[#FAF8F4]", border: "border-[#6B3F2A]/20" },
-          { label: "متاحة", value: stats.free, ...STATUS_CONFIG.free },
-          { label: "مشغولة", value: stats.occupied, ...STATUS_CONFIG.occupied },
-          { label: "محجوزة", value: stats.reserved, ...STATUS_CONFIG.reserved },
-          { label: "تنظيف", value: stats.cleaning, ...STATUS_CONFIG.cleaning },
+          { value: stats.total, ...STATUS_CONFIG.free, label: "الإجمالي", color: "text-[#6B3F2A]", bg: "bg-[#FAF8F4]", border: "border-[#6B3F2A]/20" },
+          { value: stats.free, ...STATUS_CONFIG.free, label: "متاحة" },
+          { value: stats.occupied, ...STATUS_CONFIG.occupied, label: "مشغولة" },
+          { value: stats.reserved, ...STATUS_CONFIG.reserved, label: "محجوزة" },
+          { value: stats.cleaning, ...STATUS_CONFIG.cleaning, label: "تنظيف" },
           { label: "ضيوف الآن", value: stats.guests, color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
         ].map(s => (
           <Card key={s.label} className={`p-3 text-center border ${s.border} ${s.bg}`}>

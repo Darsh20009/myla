@@ -2167,7 +2167,7 @@ const OrdersTable = memo(() => {
                               <p className="text-sm font-black text-[#6B3F2A] font-mono tracking-wide" dir="ltr">{order.shipoxTrackingNumber}</p>
                               {order.shipoxServiceType && (
                                 <p className="text-[9px] text-slate-400 font-bold">
-                                  {{STANDARD:"شحنات الإرسال",RETURN:"شحنات الإرجاع",EXPRESS_SMSA:"خارج التغطية (سمسا)",EXPRESS_JT:"خارج التغطية (J&T)"}[order.shipoxServiceType] || order.shipoxServiceType}
+                                  {({"STANDARD":"شحنات الإرسال","RETURN":"شحنات الإرجاع","EXPRESS_SMSA":"خارج التغطية (سمسا)","EXPRESS_JT":"خارج التغطية (J&T)"} as Record<string,string>)[order.shipoxServiceType] || order.shipoxServiceType}
                                 </p>
                               )}
                             </div>

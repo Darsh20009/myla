@@ -98,7 +98,7 @@ export default function PosSystem() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const employee = useMemo(() => {
+  const employee = useMemo((): (Employee & { branchId?: string; tenantId?: string }) | null => {
     try {
       const data = localStorage.getItem("currentEmployee");
       if (data) return JSON.parse(data) as Employee;
@@ -786,7 +786,7 @@ export default function PosSystem() {
   }, [kitchenOrdersForAlert, toast]);
 
   const getItemDisplayName = useCallback((item: any) => {
-    if (i18n.language === 'en') return item.nameEn || item.nameAr || '';
+    if ((i18n.language as string) === 'en') return item.nameEn || item.nameAr || '';
     return item.nameAr || item.nameEn || '';
   }, [i18n.language]);
 
@@ -1040,7 +1040,7 @@ export default function PosSystem() {
     customerName,
     customerPhone,
     orderNote,
-    paymentMethod,
+    paymentMethod: paymentMethod as import("@/lib/pos-engine").PaymentMethod | undefined,
     splitCashAmount,
     personPayments,
     itemDiscounts,
@@ -2031,7 +2031,7 @@ export default function PosSystem() {
           </Button>
         </div>
       </header>
-      <PosShiftBar />
+      <PosShiftBar employee={employee as any} />
 
       <main className="flex-1 flex overflow-hidden">
 
@@ -3968,19 +3968,18 @@ export default function PosSystem() {
       )}
 
       <DrinkCustomizationDialog
-        coffeeItem={posCustomizationItem?.item || null}
-        variants={posCustomizationItem?.group || []}
+        item={posCustomizationItem?.item || null}
+        group={posCustomizationItem?.group || []}
         open={!!posCustomizationItem}
-        modal={false}
         initialCustomization={posCustomizationItem?.initialCustomization}
         onClose={() => setPosCustomizationItem(null)}
-        onConfirm={(customization: DrinkCustomization, quantity: number, selectedVariant?: CoffeeItem) => {
-          const targetItem = selectedVariant || posCustomizationItem?.item;
+        onAdd={(customization: DrinkCustomization, _size: string | null, quantity: number) => {
+          const targetItem = posCustomizationItem?.item;
           if (!targetItem) return;
-          const selectedItemAddons = customization.selectedAddons.map(addon => ({
-            nameAr: addon.nameAr + (addon.quantity > 1 ? ` ×${addon.quantity}` : ''),
+          const selectedItemAddons = (customization.selectedItemAddons || []).map((addon: any) => ({
+            nameAr: addon.nameAr,
             nameEn: addon.nameAr,
-            price: addon.price * addon.quantity,
+            price: addon.price,
           }));
           addToOrder(targetItem, selectedItemAddons.length > 0 ? { selectedItemAddons } : undefined, customization.selectedSize || null, quantity, customization);
           setPosCustomizationItem(null);

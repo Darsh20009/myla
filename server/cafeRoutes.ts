@@ -159,7 +159,7 @@ export function registerCafeRoutes(app: Express) {
         status: "pending",
       });
 
-      res.status(201).json({ ...leave.toObject(), id: String(leave._id) });
+      res.status(201).json({ ...(leave as any).toObject(), id: String(leave._id) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -172,7 +172,7 @@ export function registerCafeRoutes(app: Express) {
         { new: true }
       );
       if (!updated) return res.status(404).json({ error: "الطلب غير موجود" });
-      res.json({ ...updated.toObject(), id: String(updated._id) });
+      res.json({ ...(updated as any).toObject(), id: String(updated._id) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -190,7 +190,7 @@ export function registerCafeRoutes(app: Express) {
   app.post("/api/inventory/raw-materials", requireAdmin, async (req: AuthRequest, res) => {
     try {
       const item = await RawMaterialModel.create(req.body);
-      res.status(201).json({ ...item.toObject(), id: String(item._id) });
+      res.status(201).json({ ...(item as any).toObject(), id: String((item as any)._id) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -198,7 +198,7 @@ export function registerCafeRoutes(app: Express) {
     try {
       const item = await RawMaterialModel.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
       if (!item) return res.status(404).json({ error: "العنصر غير موجود" });
-      res.json({ ...item.toObject(), id: String(item._id) });
+      res.json({ ...(item as any).toObject(), id: String(item._id) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -290,7 +290,7 @@ export function registerCafeRoutes(app: Express) {
   app.post("/api/inventory/suppliers", requireAdmin, async (req, res) => {
     try {
       const supplier = await SupplierModel.create(req.body);
-      res.status(201).json({ ...supplier.toObject(), id: String(supplier._id) });
+      res.status(201).json({ ...(supplier as any).toObject(), id: String((supplier as any)._id) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

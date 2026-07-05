@@ -295,7 +295,7 @@ async function execTool(name: string, args: any, _user: any): Promise<any> {
         const byStatus: Record<string, number> = {};
         for (const o of orders as any[]) byStatus[o.status] = (byStatus[o.status] || 0) + 1;
         const productsCount = await ProductModel.countDocuments();
-        const customersCount = await UserModel.countDocuments({ role: { $in: ["customer", null, undefined] } });
+        const customersCount = await UserModel.countDocuments({ role: { $in: ["customer", null, undefined] as any[] } });
         return {
           ok: true,
           periodDays: days,
@@ -589,8 +589,8 @@ async function execTool(name: string, args: any, _user: any): Promise<any> {
           name: args.nameEn || args.name,
           nameAr: args.name,
           nameEn: args.nameEn || args.name,
-        });
-        return { ok: true, categoryId: cat._id.toString(), message: `Category "${args.name}" created.` };
+        } as any);
+        return { ok: true, categoryId: (cat as any)._id.toString(), message: `Category "${args.name}" created.` };
       }
 
       case "send_email_to_customer": {
