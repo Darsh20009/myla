@@ -19,6 +19,10 @@ export function AppleMapEmbed({ lat, lng, label = "", height = 200, zoom = 15 }:
     if (!ready || !containerRef.current || mapRef.current) return;
 
     const mk = window.mapkit;
+    // Guard: mapkit might not be fully attached yet despite ready=true (race condition on mobile)
+    if (!mk || !mk.Coordinate) return;
+    // Guard: skip if coordinates are invalid (NaN/0/undefined)
+    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
 
     const center = new mk.Coordinate(lat, lng);
     const region = new mk.CoordinateRegion(

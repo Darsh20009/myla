@@ -96,8 +96,24 @@ const CreativeDashboardBanner = memo(({ totalOrders, totalRevenue }: { totalOrde
   const hour = now.getHours();
   const greetingAr = hour < 5 ? "مساء النور" : hour < 12 ? "صباح الأناقة ✨" : hour < 17 ? "نهارك بخير ☀️" : hour < 21 ? "مساء الأنس 🌙" : "ليلة هادئة ✨";
   const greetingEn = hour < 5 ? "Good Evening" : hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : hour < 21 ? "Good Evening" : "Good Night";
-  const dateAr = now.toLocaleDateString("ar-SA-u-ca-islamic", { weekday: "long", day: "numeric", month: "long" });
-  const timeAr = now.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+  // Wrap Islamic calendar in try-catch — older Android Chrome throws RangeError
+  // for unsupported "u-ca-islamic" extension, crashing the ErrorBoundary.
+  let dateAr = "";
+  try {
+    dateAr = now.toLocaleDateString("ar-SA-u-ca-islamic", { weekday: "long", day: "numeric", month: "long" });
+  } catch {
+    try {
+      dateAr = now.toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" });
+    } catch {
+      dateAr = now.toLocaleDateString();
+    }
+  }
+  let timeAr = "";
+  try {
+    timeAr = now.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    timeAr = now.toLocaleTimeString();
+  }
 
   return (
     <motion.div
