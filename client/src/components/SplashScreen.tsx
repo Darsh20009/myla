@@ -34,6 +34,7 @@ const SPLASH_CSS = `
     letter-spacing: 0.01em;
     white-space: nowrap;
     display: inline-flex;
+    direction: ltr;
   }
 
   /* Each letter starts invisible and slides in */
