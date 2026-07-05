@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
-import gsap from "gsap";
 
 const SPLASH_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+  @font-face {
+    font-family: 'Great Vibes';
+    src: url('https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN-XCg6UKDXlCZA.woff2') format('woff2');
+    font-display: block;
+  }
 
   .myla-splash-root {
     position: fixed; inset: 0; z-index: 9999;
@@ -10,14 +13,15 @@ const SPLASH_CSS = `
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     overflow: hidden;
-    will-change: opacity;
   }
   .myla-splash-wrap {
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 0;
-    opacity: 0;
-    transform: scale(0.97);
+    visibility: hidden;
+  }
+  .myla-splash-wrap.ready {
+    visibility: visible;
   }
   .myla-splash-title {
     font-family: 'Great Vibes', cursive;
@@ -75,32 +79,45 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const failsafe = setTimeout(onFinish, 8_000);
+    const failsafe = setTimeout(onFinish, 6_000);
+    let cancelled = false;
 
-    const tl = gsap.timeline({
-      onComplete() {
+    async function run() {
+      // Wait for Great Vibes to load so there's no font flash
+      try {
+        await document.fonts.load("1em 'Great Vibes'");
+      } catch {
+        // font API not supported — just continue
+      }
+
+      if (cancelled) return;
+
+      // Show text only after font is ready — no flash
+      if (wrapRef.current) wrapRef.current.classList.add("ready");
+
+      // Hold for 2 seconds, then fade out the whole splash
+      await new Promise<void>(r => setTimeout(r, 2_000));
+      if (cancelled) return;
+
+      const root = rootRef.current;
+      if (!root) { clearTimeout(failsafe); onFinish(); return; }
+
+      root.style.transition = "opacity 0.5s ease";
+      root.style.opacity = "0";
+
+      root.addEventListener("transitionend", () => {
         clearTimeout(failsafe);
         onFinish();
-      },
-    });
+      }, { once: true });
 
-    tl.to(wrapRef.current, {
-      opacity: 1,
-      scale: 1,
-      duration: 1.0,
-      ease: "power2.out",
-    });
+      // Fallback if transitionend doesn't fire
+      setTimeout(() => { clearTimeout(failsafe); onFinish(); }, 700);
+    }
 
-    tl.to({}, { duration: 1.4 });
-
-    tl.to(rootRef.current, {
-      opacity: 0,
-      duration: 0.7,
-      ease: "power2.inOut",
-    });
+    run();
 
     return () => {
-      tl.kill();
+      cancelled = true;
       clearTimeout(failsafe);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

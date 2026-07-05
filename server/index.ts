@@ -84,8 +84,13 @@ import fs from "fs";
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use("/uploads", express.static(uploadsDir, {
-  maxAge: "1d",
+  maxAge: "30d",        // cache product images for 30 days
+  immutable: false,
   etag: true,
+  lastModified: true,
+  setHeaders(res) {
+    res.setHeader("Cache-Control", "public, max-age=2592000, stale-while-revalidate=86400");
+  },
 }));
 
 export function log(message: string, source = "express") {
