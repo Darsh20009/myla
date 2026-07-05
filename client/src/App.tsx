@@ -97,23 +97,53 @@ function LazyFallback() {
   );
 }
 
+function isChunkLoadError(error: Error): boolean {
+  return (
+    error.name === "ChunkLoadError" ||
+    /loading chunk/i.test(error.message) ||
+    /failed to fetch dynamically imported module/i.test(error.message) ||
+    /error loading dynamically imported module/i.test(error.message) ||
+    /importing a module script failed/i.test(error.message)
+  );
+}
+
 class ErrorBoundary extends Component<
   { children: ReactNode },
-  { hasError: boolean; error?: Error; retryCount: number }
+  { hasError: boolean; error?: Error; retryCount: number; isChunkError: boolean }
 > {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { hasError: false, retryCount: 0 };
+    this.state = { hasError: false, retryCount: 0, isChunkError: false };
   }
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+    // Keep pure — just record the error type; side effects go in componentDidCatch
+    return { hasError: true, error, isChunkError: isChunkLoadError(error) };
   }
 
   componentDidCatch(error: Error, info: any) {
     console.error("[ErrorBoundary] Caught error:", error.message, "\nInfo:", info?.componentStack);
+
+    // ChunkLoadError — happens after a redeploy when the browser has a stale
+    // HTML file whose JS chunk hashes no longer exist on the server.
+    // Auto-reload once so the browser fetches fresh chunks.
+    if (isChunkLoadError(error)) {
+      try {
+        const lastReload = Number(sessionStorage.getItem("_chunk_reload") || 0);
+        const now = Date.now();
+        if (now - lastReload > 30_000) {
+          sessionStorage.setItem("_chunk_reload", String(now));
+          window.location.reload();
+          return; // reload in progress
+        }
+        // Guard triggered — too soon to reload again; let error UI show
+      } catch {
+        // sessionStorage unavailable (privacy mode etc.) — just reload once
+        window.location.reload();
+      }
+    }
   }
 
   componentWillUnmount() {
