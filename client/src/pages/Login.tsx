@@ -127,18 +127,18 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4 relative overflow-hidden" dir="rtl">
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, rgba(201,169,110,0.4) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
-      <div className="absolute top-0 left-1/3 w-96 h-96 bg-[#E8637A]/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#E8637A]/3 rounded-full blur-[100px]" />
+      <div className="absolute top-0 left-1/3 w-96 h-96 bg-[#2C1810]/5 rounded-full blur-[120px]" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#2C1810]/3 rounded-full blur-[100px]" />
 
       <div className="w-full max-w-md space-y-8 relative z-10">
         <div className="text-center">
           <Link href="/">
             <img src={logoDarkImg} alt="Myla" className="h-20 w-auto mx-auto mb-4 cursor-pointer object-contain" />
           </Link>
-          <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#E8637A] to-transparent mx-auto mb-4" />
+          <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#C9A882] to-transparent mx-auto mb-4" />
           {branchContext ? (
             <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6B3F2A] text-[#E8637A] text-[11px] font-black uppercase tracking-widest" data-testid="badge-branch-login">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6B3F2A] text-[#6B3F2A] text-[11px] font-black uppercase tracking-widest" data-testid="badge-branch-login">
                 <Building2 className="h-3.5 w-3.5" />
                 دخول مسؤول الفرع
               </div>
@@ -202,7 +202,7 @@ export default function Login() {
                   <FormItem className="text-right">
                     <FormLabel className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B3F2A]">رقم الهاتف</FormLabel>
                     <FormControl>
-                      <div dir="ltr" className="flex items-center gap-2 h-14 bg-[#FFFFFF] border border-slate-200 rounded-xl px-4 focus-within:border-[#E8637A] transition-colors">
+                      <div dir="ltr" className="flex items-center gap-2 h-14 bg-[#FFFFFF] border border-slate-200 rounded-xl px-4 focus-within:border-[#6B3F2A] transition-colors">
                         <span className="text-sm font-bold text-slate-700 border-r border-slate-200 pr-2">+966</span>
                           <input
                             type="text"
@@ -234,12 +234,12 @@ export default function Login() {
                   render={({ field }) => (
                     <FormItem className="text-right">
                       <div className="flex justify-between items-center mb-1">
-                        <Link href="/forgot-password" className="text-[10px] font-bold uppercase tracking-widest text-[#6B3F2A] hover:text-[#E8637A]">نسيت كلمة المرور؟</Link>
-                        <FormLabel className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8637A]">كلمة المرور</FormLabel>
+                        <Link href="/forgot-password" className="text-[10px] font-bold uppercase tracking-widest text-[#6B3F2A] hover:text-[#6B3F2A]">نسيت كلمة المرور؟</Link>
+                        <FormLabel className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B3F2A]">كلمة المرور</FormLabel>
                       </div>
                       <FormControl>
                         <div className="relative">
-                          <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="h-14 bg-[#FFFFFF] border-slate-200 rounded-xl focus-visible:ring-[#E8637A]/40 text-[#6B3F2A] pr-12" />
+                          <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="h-14 bg-[#FFFFFF] border-slate-200 rounded-xl focus-visible:ring-[#6B3F2A]/40 text-[#6B3F2A] pr-12" />
                           <Button
                             type="button"
                             variant="ghost"
@@ -257,7 +257,7 @@ export default function Login() {
                 />
               )}
 
-              <Button type="submit" className="w-full h-14 font-bold uppercase tracking-[0.3em] text-xs rounded-xl bg-[#E8637A] text-white hover:bg-[#d44f66] border-none transition-all duration-300 shadow-lg shadow-[#E8637A]/20" disabled={isLoggingIn}>
+              <Button type="submit" className="w-full h-14 font-bold uppercase tracking-[0.3em] text-xs rounded-xl bg-[#2C1810] text-white hover:bg-[#3D2517] border-none transition-all duration-300 shadow-lg shadow-[#2C1810]/20" disabled={isLoggingIn}>
                 {isLoggingIn ? <Loader2 className="animate-spin" /> : "تسجيل الدخول"}
               </Button>
             </form>
@@ -265,7 +265,7 @@ export default function Login() {
 
           <div className="mt-8 text-center text-[10px] font-bold uppercase tracking-widest text-slate-700">
             ليس لديك حساب؟{" "}
-            <Link href="/register" className="text-[#E8637A] hover:text-[#d44f66] mr-1 transition-colors">
+            <Link href="/register" className="text-[#6B3F2A] hover:text-[#4A2A15] mr-1 transition-colors">
               أنشئ حساب جديد
             </Link>
           </div>
@@ -276,7 +276,7 @@ export default function Login() {
             </Link>
           </div>
           <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-            <a href="https://api.whatsapp.com/send/?phone=966507378047" target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-slate-700 hover:text-[#E8637A] transition-colors">
+            <a href="https://api.whatsapp.com/send/?phone=966507378047" target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-slate-700 hover:text-[#6B3F2A] transition-colors">
               هل تواجه مشكلة؟ تواصل مع الدعم الفني
             </a>
           </div>
