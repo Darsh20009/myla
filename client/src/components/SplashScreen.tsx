@@ -9,11 +9,12 @@ const SPLASH_CSS = `
 
   .myla-splash-root {
     position: fixed; inset: 0; z-index: 9999;
-    background: #281408;
+    background: #FAF8F5;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     overflow: hidden;
   }
+
   .myla-splash-wrap {
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -23,23 +24,44 @@ const SPLASH_CSS = `
   .myla-splash-wrap.ready {
     visibility: visible;
   }
+
+  /* The title is built from individual letter spans */
   .myla-splash-title {
     font-family: 'Great Vibes', cursive;
     font-size: clamp(64px, 14vw, 110px);
-    color: #F5EDE3;
+    color: #2C1810;
     line-height: 1;
     letter-spacing: 0.01em;
     white-space: nowrap;
+    display: inline-flex;
   }
+
+  /* Each letter starts invisible and slides in */
+  .myla-splash-letter {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.32s ease, transform 0.32s ease;
+  }
+  .myla-splash-letter.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Rule + sub lines fade in after letters */
   .myla-splash-rule {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 6px;
+    margin-top: 8px;
     margin-bottom: 10px;
     width: 100%;
     justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
   }
+  .myla-splash-rule.show { opacity: 1; }
+
   .myla-splash-rule-line {
     flex: 1;
     max-width: 80px;
@@ -53,65 +75,88 @@ const SPLASH_CSS = `
     opacity: 0.8;
     flex-shrink: 0;
   }
+
   .myla-splash-sub {
     font-family: 'Alexandria', sans-serif;
     font-size: clamp(8px, 1.6vw, 11px);
     font-weight: 400;
-    color: #C9A882;
+    color: #8B6F5E;
     letter-spacing: 0.35em;
     text-transform: uppercase;
     text-align: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
   }
+  .myla-splash-sub.show { opacity: 1; }
+
   .myla-splash-sub-city {
     font-family: 'Alexandria', sans-serif;
     font-size: clamp(6px, 1.1vw, 8px);
     font-weight: 300;
-    color: #A08060;
+    color: #B0A090;
     letter-spacing: 0.5em;
     text-transform: uppercase;
     text-align: center;
     margin-top: 3px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
   }
+  .myla-splash-sub-city.show { opacity: 1; }
 `;
 
+const WORD = "Myla";
+
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const rootRef  = useRef<HTMLDivElement>(null);
+  const wrapRef  = useRef<HTMLDivElement>(null);
+  const ruleRef  = useRef<HTMLDivElement>(null);
+  const subRef   = useRef<HTMLSpanElement>(null);
+  const cityRef  = useRef<HTMLSpanElement>(null);
+  const letRefs  = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
-    const failsafe = setTimeout(onFinish, 6_000);
+    const failsafe = setTimeout(onFinish, 7_000);
     let cancelled = false;
 
+    const delay = (ms: number) =>
+      new Promise<void>(r => setTimeout(r, ms));
+
     async function run() {
-      // Wait for Great Vibes to load so there's no font flash
-      try {
-        await document.fonts.load("1em 'Great Vibes'");
-      } catch {
-        // font API not supported — just continue
+      // 1. Wait for font so no flash
+      try { await document.fonts.load("1em 'Great Vibes'"); } catch {}
+      if (cancelled) return;
+
+      // 2. Make container visible
+      wrapRef.current?.classList.add("ready");
+
+      // 3. Reveal each letter one by one (typewriter feel)
+      for (let i = 0; i < letRefs.current.length; i++) {
+        if (cancelled) return;
+        letRefs.current[i]?.classList.add("show");
+        await delay(120);
       }
 
+      // 4. Fade in rule + subtitle
+      if (cancelled) return;
+      ruleRef.current?.classList.add("show");
+      await delay(80);
+      subRef.current?.classList.add("show");
+      await delay(80);
+      cityRef.current?.classList.add("show");
+
+      // 5. Hold
+      await delay(1_600);
       if (cancelled) return;
 
-      // Show text only after font is ready — no flash
-      if (wrapRef.current) wrapRef.current.classList.add("ready");
-
-      // Hold for 2 seconds, then fade out the whole splash
-      await new Promise<void>(r => setTimeout(r, 2_000));
-      if (cancelled) return;
-
+      // 6. Fade out whole splash
       const root = rootRef.current;
       if (!root) { clearTimeout(failsafe); onFinish(); return; }
-
-      root.style.transition = "opacity 0.5s ease";
+      root.style.transition = "opacity 0.45s ease";
       root.style.opacity = "0";
-
       root.addEventListener("transitionend", () => {
-        clearTimeout(failsafe);
-        onFinish();
+        clearTimeout(failsafe); onFinish();
       }, { once: true });
-
-      // Fallback if transitionend doesn't fire
-      setTimeout(() => { clearTimeout(failsafe); onFinish(); }, 700);
+      setTimeout(() => { clearTimeout(failsafe); onFinish(); }, 600);
     }
 
     run();
@@ -128,14 +173,28 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
       <style>{SPLASH_CSS}</style>
       <div ref={rootRef} className="myla-splash-root">
         <div ref={wrapRef} className="myla-splash-wrap">
-          <span className="myla-splash-title">Myla</span>
-          <div className="myla-splash-rule">
+
+          {/* Title — each letter is its own span */}
+          <span className="myla-splash-title">
+            {WORD.split("").map((ch, i) => (
+              <span
+                key={i}
+                className="myla-splash-letter"
+                ref={el => { letRefs.current[i] = el; }}
+              >
+                {ch}
+              </span>
+            ))}
+          </span>
+
+          <div ref={ruleRef} className="myla-splash-rule">
             <div className="myla-splash-rule-line" />
             <div className="myla-splash-diamond" />
             <div className="myla-splash-rule-line" />
           </div>
-          <span className="myla-splash-sub">Abayas by HMBL</span>
-          <span className="myla-splash-sub-city">Riyadh</span>
+
+          <span ref={subRef}  className="myla-splash-sub">Abayas by HMBL</span>
+          <span ref={cityRef} className="myla-splash-sub-city">Riyadh</span>
         </div>
       </div>
     </>
