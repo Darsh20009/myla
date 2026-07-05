@@ -17,38 +17,51 @@ export async function seed() {
   await UserModel.deleteMany({ phone: "0567326086" });
   await UserModel.deleteMany({ phone: "567326086" });
   await UserModel.deleteMany({ phone: "567891011" });
-  // Clean up stale admin accounts before re-seeding
+  // Remove legacy phone numbers (one-time cleanup only)
   await UserModel.deleteMany({ phone: "0552469643", role: "admin" });
-  await UserModel.deleteMany({ phone: "0507378047", role: "admin" });
 
-  // Create Myla admin user
+  // Atomic upsert for Myla admin — preserves _id (and thus sessions) across restarts.
+  // $setOnInsert: password (only written on first creation, never overwritten by seed).
+  // $set: canonical fields that should stay correct on every boot.
   console.log("Seeding Myla admin user...");
-  const password = await hashPassword("1234567890");
-  await storage.createUser({
-    phone: "0507378047",
-    password,
-    role: "admin",
-    name: "Myla",
-    username: "0507378047",
-    email: "info@myla.sa",
-    walletBalance: "0",
-    addresses: [],
-    permissions: [
-      "orders.view", "orders.edit", "orders.refund",
-      "products.view", "products.edit",
-      "customers.view", "wallet.adjust",
-      "reports.view", "staff.manage",
-      "pos.access", "settings.manage"
-    ],
-    loginType: "both",
-    isActive: true,
-    mustChangePassword: false,
-    loyaltyPoints: 0,
-    loyaltyTier: "bronze",
-    totalSpent: 0,
-    phoneDiscountEligible: false
-  });
-  console.log("Admin user created with phone 0507378047 and password 1234567890");
+  const defaultPassword = await hashPassword("1234567890");
+  const adminResult = await UserModel.findOneAndUpdate(
+    { phone: "0507378047", role: "admin" },
+    {
+      $set: {
+        name: "Myla",
+        username: "0507378047",
+        email: "info@myla.sa",
+        role: "admin",
+        loginType: "both",
+        isActive: true,
+        mustChangePassword: false,
+        permissions: [
+          "orders.view", "orders.edit", "orders.refund",
+          "products.view", "products.edit",
+          "customers.view", "wallet.adjust",
+          "reports.view", "staff.manage",
+          "pos.access", "settings.manage"
+        ],
+      },
+      $setOnInsert: {
+        phone: "0507378047",
+        password: defaultPassword,
+        walletBalance: "0",
+        addresses: [],
+        loyaltyPoints: 0,
+        loyaltyTier: "bronze",
+        totalSpent: 0,
+        phoneDiscountEligible: false,
+      },
+    },
+    { upsert: true, new: false }
+  );
+  if (!adminResult) {
+    console.log("Admin user created with phone 0507378047 and password 1234567890");
+  } else {
+    console.log("Admin user updated (canonical fields refreshed, password preserved)");
+  }
 
   const defaultCategoryData: Record<string, { nameAr: string; image: string }> = {
     abayas:      { nameAr: "عبايات",          image: "https://images.unsplash.com/photo-1608042314453-ae338d682c93?w=400&h=500&fit=crop&auto=format" },
