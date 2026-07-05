@@ -129,8 +129,8 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
       // 2. Make container visible
       wrapRef.current?.classList.add("ready");
 
-      // 3. Reveal each letter from right to left (a → l → y → M)
-      for (let i = letRefs.current.length - 1; i >= 0; i--) {
+      // 3. Reveal each letter left to right (M → y → l → a)
+      for (let i = 0; i < letRefs.current.length; i++) {
         if (cancelled) return;
         letRefs.current[i]?.classList.add("show");
         await delay(120);
