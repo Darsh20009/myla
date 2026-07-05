@@ -170,6 +170,10 @@ export function useNotifications(_opts?: UseNotificationsOptions) {
   // ── Web Push subscription setup ────────────────────────────────────────────
   useEffect(() => {
     if (!userId) return;
+    // Guard: Notification API is undefined on iOS Safari and some mobile browsers.
+    // Accessing Notification.permission without this check throws ReferenceError
+    // which bubbles up through React and crashes the ErrorBoundary.
+    if (typeof Notification === "undefined") return;
     if (Notification.permission === "default") {
       Notification.requestPermission().then((perm) => {
         if (perm === "granted") subscribeToPush(userId);
