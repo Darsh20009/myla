@@ -29,7 +29,7 @@ const SPLASH_CSS = `
   .myla-splash-title {
     font-family: 'Great Vibes', cursive;
     font-size: clamp(64px, 14vw, 110px);
-    color: #2C1810;
+    color: #6B3F2A;
     line-height: 1;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -129,8 +129,8 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
       // 2. Make container visible
       wrapRef.current?.classList.add("ready");
 
-      // 3. Reveal each letter one by one (typewriter feel)
-      for (let i = 0; i < letRefs.current.length; i++) {
+      // 3. Reveal each letter from right to left (a → l → y → M)
+      for (let i = letRefs.current.length - 1; i >= 0; i--) {
         if (cancelled) return;
         letRefs.current[i]?.classList.add("show");
         await delay(120);
