@@ -370,7 +370,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
             </Sheet>
 
             <Link href="/" className="hidden md:flex items-center py-1 hover:opacity-80 transition-opacity active:scale-95 transition-transform">
-              <img src="/myla-logo-artboard.png" alt="Myla" className="h-12 md:h-14 w-auto object-contain drop-shadow-lg" />
+              <img src="/myla-logo-header.png" alt="Myla" className="h-12 md:h-14 w-auto object-contain drop-shadow-lg" />
             </Link>
           </div>
 
