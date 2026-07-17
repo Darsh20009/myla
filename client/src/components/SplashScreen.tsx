@@ -1,12 +1,6 @@
 import { useEffect, useRef } from "react";
 
 const SPLASH_CSS = `
-  @font-face {
-    font-family: 'Great Vibes';
-    src: url('https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN-XCg6UKDXlCZA.woff2') format('woff2');
-    font-display: block;
-  }
-
   .myla-splash-root {
     position: fixed; inset: 0; z-index: 9999;
     background: #FAF8F5;
@@ -25,36 +19,26 @@ const SPLASH_CSS = `
     visibility: visible;
   }
 
-  /* The title is built from individual letter spans */
-  .myla-splash-title {
-    font-family: 'Great Vibes', cursive;
-    font-size: clamp(64px, 14vw, 110px);
-    color: #6B3F2A;
-    line-height: 1;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-    display: inline-flex;
-    direction: ltr;
-  }
-
-  /* Each letter starts invisible and slides in */
-  .myla-splash-letter {
-    display: inline-block;
+  /* Logo image animates in */
+  .myla-splash-logo {
+    width: clamp(160px, 38vw, 280px);
+    height: auto;
     opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.32s ease, transform 0.32s ease;
+    transform: scale(0.94);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+    display: block;
   }
-  .myla-splash-letter.show {
+  .myla-splash-logo.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 
-  /* Rule + sub lines fade in after letters */
+  /* Rule + sub lines fade in after logo */
   .myla-splash-rule {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 8px;
+    margin-top: 10px;
     margin-bottom: 10px;
     width: 100%;
     justify-content: center;
@@ -105,51 +89,48 @@ const SPLASH_CSS = `
   .myla-splash-sub-city.show { opacity: 1; }
 `;
 
-const WORD = "Myla";
-
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const rootRef  = useRef<HTMLDivElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
+  const logoRef  = useRef<HTMLImageElement>(null);
   const ruleRef  = useRef<HTMLDivElement>(null);
   const subRef   = useRef<HTMLSpanElement>(null);
   const cityRef  = useRef<HTMLSpanElement>(null);
-  const letRefs  = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
-    const failsafe = setTimeout(onFinish, 7_000);
+    const failsafe = setTimeout(onFinish, 6_000);
     let cancelled = false;
 
     const delay = (ms: number) =>
       new Promise<void>(r => setTimeout(r, ms));
 
     async function run() {
-      // 1. Wait for font so no flash
-      try { await document.fonts.load("1em 'Great Vibes'"); } catch {}
       if (cancelled) return;
 
-      // 2. Make container visible
+      // Make container visible
       wrapRef.current?.classList.add("ready");
 
-      // 3. Reveal each letter left to right (M → y → l → a)
-      for (let i = 0; i < letRefs.current.length; i++) {
-        if (cancelled) return;
-        letRefs.current[i]?.classList.add("show");
-        await delay(120);
-      }
-
-      // 4. Fade in rule + subtitle
+      // Small breath before animation
+      await delay(80);
       if (cancelled) return;
+
+      // 1. Logo fades in
+      logoRef.current?.classList.add("show");
+      await delay(420);
+      if (cancelled) return;
+
+      // 2. Rule + subtitle
       ruleRef.current?.classList.add("show");
       await delay(80);
       subRef.current?.classList.add("show");
       await delay(80);
       cityRef.current?.classList.add("show");
 
-      // 5. Hold
-      await delay(1_600);
+      // 3. Hold
+      await delay(900);
       if (cancelled) return;
 
-      // 6. Fade out whole splash
+      // 4. Fade out whole splash
       const root = rootRef.current;
       if (!root) { clearTimeout(failsafe); onFinish(); return; }
       root.style.transition = "opacity 0.45s ease";
@@ -175,18 +156,14 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
       <div ref={rootRef} className="myla-splash-root">
         <div ref={wrapRef} className="myla-splash-wrap">
 
-          {/* Title — each letter is its own span */}
-          <span className="myla-splash-title">
-            {WORD.split("").map((ch, i) => (
-              <span
-                key={i}
-                className="myla-splash-letter"
-                ref={el => { letRefs.current[i] = el; }}
-              >
-                {ch}
-              </span>
-            ))}
-          </span>
+          {/* Logo image — exact same font as the header logo */}
+          <img
+            ref={logoRef}
+            src="/myla-logo-transparent.png"
+            alt="Myla"
+            className="myla-splash-logo"
+            draggable={false}
+          />
 
           <div ref={ruleRef} className="myla-splash-rule">
             <div className="myla-splash-rule-line" />

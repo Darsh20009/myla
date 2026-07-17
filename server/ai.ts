@@ -1,14 +1,34 @@
 import { kimiChat } from "./kimi";
+import { geminiChat, isGeminiConfigured } from "./gemini";
 import { detectLang } from "./groq";
 
-async function kimiJSON(prompt: string, maxTokens = 500): Promise<any> {
+/** Call Gemini first (free & fast). Falls back to Kimi if Gemini is unavailable. */
+async function aiJSON(prompt: string, maxTokens = 500): Promise<any> {
+  let raw = "";
   try {
-    const raw = await kimiChat([{ role: "user", content: prompt }], maxTokens, "customer");
+    if (isGeminiConfigured()) {
+      raw = await geminiChat([{ role: "user", content: prompt }], maxTokens);
+    } else {
+      raw = await kimiChat([{ role: "user", content: prompt }], maxTokens, "customer");
+    }
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     return JSON.parse(jsonMatch ? jsonMatch[0] : raw);
   } catch {
+    // If Gemini failed, try Kimi as fallback
+    if (isGeminiConfigured()) {
+      try {
+        raw = await kimiChat([{ role: "user", content: prompt }], maxTokens, "customer");
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        return JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+      } catch { /* fall through */ }
+    }
     return {};
   }
+}
+
+/** @deprecated use aiJSON — kept for internal reference */
+async function kimiJSON(prompt: string, maxTokens = 500): Promise<any> {
+  return aiJSON(prompt, maxTokens);
 }
 
 /** Resolves a target language: explicit param > auto-detect from text > default Arabic */

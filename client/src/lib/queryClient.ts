@@ -75,10 +75,10 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
       refetchOnMount: true,
-      staleTime: 0,
-      gcTime: 5 * 60 * 1000,
+      staleTime: 30_000,      // 30s — reduces redundant network calls
+      gcTime: 10 * 60 * 1000, // 10 min in-memory cache
       // إعادة المحاولة مرة واحدة فقط لأخطاء الشبكة العابرة، لا لأخطاء 4xx
       retry: (failureCount, error: any) => {
         if (failureCount >= 1) return false;
