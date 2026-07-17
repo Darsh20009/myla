@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 const SPLASH_CSS = `
   .myla-splash-root {
     position: fixed; inset: 0; z-index: 9999;
-    background: #FAF8F5;
+    background: #0E0A07;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     overflow: hidden;
@@ -51,22 +51,22 @@ const SPLASH_CSS = `
     flex: 1;
     max-width: 80px;
     height: 1px;
-    background: linear-gradient(to right, transparent, #C9A88280, #C9A882, #C9A88280, transparent);
+    background: linear-gradient(to right, transparent, #C9A88260, #C9A882, #C9A88260, transparent);
   }
   .myla-splash-diamond {
     width: 5px; height: 5px;
     background: #C9A882;
     transform: rotate(45deg);
-    opacity: 0.8;
+    opacity: 0.6;
     flex-shrink: 0;
   }
 
   .myla-splash-sub {
     font-family: 'Alexandria', sans-serif;
     font-size: clamp(8px, 1.6vw, 11px);
-    font-weight: 400;
-    color: #8B6F5E;
-    letter-spacing: 0.35em;
+    font-weight: 300;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.38em;
     text-transform: uppercase;
     text-align: center;
     opacity: 0;
@@ -78,7 +78,7 @@ const SPLASH_CSS = `
     font-family: 'Alexandria', sans-serif;
     font-size: clamp(6px, 1.1vw, 8px);
     font-weight: 300;
-    color: #B0A090;
+    color: rgba(255,255,255,0.30);
     letter-spacing: 0.5em;
     text-transform: uppercase;
     text-align: center;
@@ -156,10 +156,10 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
       <div ref={rootRef} className="myla-splash-root">
         <div ref={wrapRef} className="myla-splash-wrap">
 
-          {/* Logo image — exact same font as the header logo */}
+          {/* Logo image — transparent header version */}
           <img
             ref={logoRef}
-            src="/myla-logo-transparent.png"
+            src="/myla-logo-header.png"
             alt="Myla"
             className="myla-splash-logo"
             draggable={false}
