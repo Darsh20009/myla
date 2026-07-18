@@ -419,7 +419,6 @@ export function HeroCinematic({
         {/* Content */}
         <div className="myla-content">
           <img ref={wordRef} src="/myla-logo-header.png" alt="Myla" className="myla-wordmark" draggable={false} />
-          <div ref={tagRef}  className="myla-tagline">عبايات راقية · Luxury Abayas</div>
           <div ref={ctaRef}  className="myla-ctas">
             <button className="myla-btn-primary" onClick={onShop}>
               ابدأ التسوق · Shop Now
