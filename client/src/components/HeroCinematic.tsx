@@ -115,13 +115,12 @@ const CSS = `
     padding-bottom: 9%; pointer-events: none;
   }
   .myla-wordmark {
-    font-family: 'Great Vibes', cursive;
-    font-size: clamp(4rem, 9vw, 8rem);
-    font-weight: 400; color: #FAF7F2;
-    letter-spacing: 0.04em;
+    width: clamp(160px, 38vw, 280px);
+    height: auto;
+    display: block;
     opacity: 0; transform: translateY(20px);
     margin-bottom: 0.6rem;
-    text-shadow: 0 2px 40px rgba(0,0,0,0.45);
+    filter: drop-shadow(0 2px 24px rgba(0,0,0,0.5));
   }
   .myla-tagline {
     font-size: clamp(0.58rem, 1.1vw, 0.72rem);
@@ -203,7 +202,7 @@ export function HeroCinematic({
   const imgB    = useRef<HTMLImageElement>(null);
   const shimRef      = useRef<HTMLDivElement>(null);
   const rayRef       = useRef<HTMLDivElement>(null);
-  const wordRef      = useRef<HTMLDivElement>(null);
+  const wordRef      = useRef<HTMLImageElement>(null);
   const tagRef       = useRef<HTMLDivElement>(null);
   const ctaRef       = useRef<HTMLDivElement>(null);
 
@@ -419,7 +418,7 @@ export function HeroCinematic({
 
         {/* Content */}
         <div className="myla-content">
-          <div ref={wordRef} className="myla-wordmark">MYLA</div>
+          <img ref={wordRef} src="/myla-logo-header.png" alt="Myla" className="myla-wordmark" draggable={false} />
           <div ref={tagRef}  className="myla-tagline">عبايات راقية · Luxury Abayas</div>
           <div ref={ctaRef}  className="myla-ctas">
             <button className="myla-btn-primary" onClick={onShop}>
