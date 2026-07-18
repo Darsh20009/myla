@@ -143,8 +143,8 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                 borderBottom: "none",
               }
             : {
-                background: "#2C1810",
-                borderBottom: "1px solid rgba(201,168,130,0.15)",
+                background: "#120804",
+                borderBottom: "1px solid rgba(201,168,130,0.12)",
               }
         }
       >

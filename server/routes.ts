@@ -73,7 +73,7 @@ const multerStorage = multer.diskStorage({
 
 const upload = multer({ 
   storage: multerStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit
   fileFilter: (_req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|webp|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -651,7 +651,7 @@ ${allUrls.map(u => `  <url>
     upload.any()(req, res, async (err: any) => {
       if (err) {
         const msg = err?.code === "LIMIT_FILE_SIZE"
-          ? "حجم الملف أكبر من 5MB المسموح"
+          ? "حجم الملف أكبر من 15MB المسموح"
           : err?.message || "فشل رفع الملف";
         return res.status(400).json({ message: msg });
       }

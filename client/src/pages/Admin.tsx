@@ -744,10 +744,10 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 15 * 1024 * 1024) {
       toast({ 
         title: "الملف كبير جداً", 
-        description: "يرجى اختيار صورة أقل من 5 ميجابايت", 
+        description: "يرجى اختيار صورة أقل من 15 ميجابايت", 
         variant: "destructive" 
       });
       return;
@@ -1183,10 +1183,10 @@ const ProductsTable = memo(() => {
     if (!file) return;
 
     // Check file size (limit to 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 15 * 1024 * 1024) {
       toast({ 
         title: "الملف كبير جداً", 
-        description: "يرجى اختيار صورة أقل من 5 ميجابايت", 
+        description: "يرجى اختيار صورة أقل من 15 ميجابايت", 
         variant: "destructive" 
       });
       return;

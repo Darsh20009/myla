@@ -33,7 +33,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [addedToCart, setAddedToCart] = useState(false);
   const images = product.images && product.images.length > 0
     ? product.images
-    : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80"];
+    : [];
 
   const { data: allCategories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
@@ -96,21 +96,34 @@ export function ProductCard({ product }: ProductCardProps) {
     <motion.div className="relative" whileHover={{ y: -5 }} transition={{ duration: 0.3 }}>
       <Link href={`/products/${product.id}`}>
         <Card className="group overflow-hidden border-none rounded-none bg-white hover-elevate transition-all duration-500 cursor-pointer">
-          <div className="relative aspect-[4/5] overflow-hidden bg-secondary/20">
-            <img
-              src={images[0]}
-              alt={product.name}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                const t = e.target as HTMLImageElement;
-                if (!t.dataset.fallback) {
-                  t.dataset.fallback = "1";
-                  t.src = "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&q=80&w=600";
-                }
-              }}
-            />
+          <div className="relative aspect-[4/5] overflow-hidden bg-[#0E0A07]">
+            {images[0] ? (
+              <img
+                src={images[0]}
+                alt={product.name}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={(e) => {
+                  const t = e.target as HTMLImageElement;
+                  t.style.display = "none";
+                  const placeholder = t.nextElementSibling as HTMLElement | null;
+                  if (placeholder) placeholder.style.display = "flex";
+                }}
+              />
+            ) : null}
+            {/* Placeholder shown when no image or image fails to load */}
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ display: images[0] ? "none" : "flex" }}
+            >
+              <img
+                src="/myla-logo-header.png"
+                alt="Myla"
+                className="w-2/3 max-w-[160px] object-contain opacity-60"
+                draggable={false}
+              />
+            </div>
 
             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
