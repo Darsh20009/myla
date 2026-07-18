@@ -115,12 +115,12 @@ const CSS = `
     padding-bottom: 9%; pointer-events: none;
   }
   .myla-wordmark {
-    font-family: 'Georgia','Didot',serif;
-    font-size: clamp(2.8rem, 6.5vw, 5.2rem);
-    font-weight: 300; color: #FAF7F2;
-    letter-spacing: 0.52em;
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(4rem, 9vw, 8rem);
+    font-weight: 400; color: #FAF7F2;
+    letter-spacing: 0.04em;
     opacity: 0; transform: translateY(20px);
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.6rem;
     text-shadow: 0 2px 40px rgba(0,0,0,0.45);
   }
   .myla-tagline {
@@ -128,7 +128,8 @@ const CSS = `
     letter-spacing: 0.38em; color: #C9A882;
     text-transform: uppercase;
     opacity: 0; transform: translateY(12px);
-    margin-bottom: 2.4rem; font-family: 'Georgia',serif;
+    margin-bottom: 2.4rem; font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
   }
   .myla-ctas {
     display: flex; gap: 1rem; flex-wrap: wrap;
