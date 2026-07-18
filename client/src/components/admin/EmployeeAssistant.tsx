@@ -98,21 +98,18 @@ export function EmployeeAssistant() {
 
   return (
     <>
-      {/* Floating trigger */}
+      {/* Floating trigger — positioned on the left to avoid sidebar overlap */}
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.5, type: "spring" }}
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-[60] group"
+        className="fixed bottom-6 left-6 z-[60] group flex items-center gap-2"
         data-testid="button-open-assistant"
+        title="المساعد الذكي — لمسة"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 rounded-full blur-xl opacity-60 group-hover:opacity-90 transition-opacity animate-pulse" />
-        <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#6B3F2A] via-[#243154] to-[#6B3F2A] border-2 border-amber-400/50 shadow-2xl flex items-center justify-center  active:scale-95 transition-transform">
-          <Sparkles className="w-7 h-7 text-amber-300" />
-          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400 border-2 border-[#6B3F2A] flex items-center justify-center">
-            <Wand2 className="w-2.5 h-2.5 text-[#6B3F2A]" />
-          </div>
+        <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 shadow-lg flex items-center justify-center hover:shadow-xl hover:border-[#C9A882] transition-all active:scale-95 group-hover:bg-[#C9A882]/5">
+          <Sparkles className="w-6 h-6 text-[#8B6340]" />
         </div>
       </motion.button>
 
@@ -136,25 +133,23 @@ export function EmployeeAssistant() {
               data-testid="dialog-assistant"
             >
               {/* Header */}
-              <div className="relative bg-gradient-to-br from-[#6B3F2A] via-[#243154] to-[#6B3F2A] px-5 py-4 text-white border-b-2 border-amber-400/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
-                    <Sparkles className="w-5 h-5 text-[#6B3F2A]" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-black text-base tracking-tight">لمسة 🌸</h3>
-                    <p className="text-[11px] text-amber-200/80 font-medium">
-                      مساعدة الموظفين الذكية — تقدر تنفّذ الأوامر مباشرة
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                    data-testid="button-close-assistant"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+              <div className="flex items-center gap-3 px-5 py-4 bg-white border-b border-slate-200">
+                <div className="w-10 h-10 rounded-2xl bg-[#C9A882]/15 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-[#8B6340]" />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-sm text-[#1A0E08] tracking-tight">لمسة — المساعد الذكي</h3>
+                  <p className="text-[11px] text-slate-400 font-medium truncate">
+                    تنفّذ الأوامر مباشرة · منتجات، طلبات، عملاء
+                  </p>
+                </div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0"
+                  data-testid="button-close-assistant"
+                >
+                  <X className="w-4 h-4 text-slate-500" />
+                </button>
               </div>
 
               {/* Messages */}
@@ -163,25 +158,23 @@ export function EmployeeAssistant() {
                 className="flex-1 overflow-y-auto px-4 py-5 space-y-4 bg-gradient-to-b from-stone-50 via-white to-stone-50"
               >
                 {messages.length === 0 && (
-                  <div className="text-center py-6">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 mb-4">
-                      <Bot className="w-7 h-7 text-amber-700" />
+                  <div className="text-center py-8 px-4">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#C9A882]/10 mb-4">
+                      <Bot className="w-7 h-7 text-[#8B6340]" />
                     </div>
-                    <h4 className="font-black text-lg text-stone-900 mb-1">
-                      مرحباً 👋
-                    </h4>
-                    <p className="text-[13px] text-stone-500 mb-5 max-w-sm mx-auto leading-relaxed">
-                      أنا لمسة، مساعدتك. اطلب مني إنشاء منتج، البحث في الطلبات، إرسال إيميل لعميل، تحديث مخزون، وأكثر.
+                    <h4 className="font-black text-base text-[#1A0E08] mb-1.5">مرحباً بك 👋</h4>
+                    <p className="text-[13px] text-slate-500 mb-5 max-w-sm mx-auto leading-relaxed">
+                      أنا لمسة، مساعدك الذكي. اطلب مني إنشاء منتج، البحث في الطلبات، إرسال رسالة لعميل، تحديث مخزون، وأكثر.
                     </p>
                     <div className="grid gap-2 max-w-md mx-auto text-right">
                       {SUGGESTIONS.map((s, i) => (
                         <button
                           key={i}
                           onClick={() => send(s)}
-                          className="px-4 py-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-300 hover:bg-amber-50/50 text-[12px] text-stone-700 font-medium text-right transition-all active:scale-[0.98]"
+                          className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-[#C9A882] hover:bg-[#C9A882]/5 text-[12px] text-slate-700 font-medium text-right transition-all active:scale-[0.98]"
                           data-testid={`button-suggestion-${i}`}
                         >
-                          ✨ {s}
+                          {s}
                         </button>
                       ))}
                     </div>
@@ -193,24 +186,18 @@ export function EmployeeAssistant() {
                 ))}
 
                 {busy && (
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-stone-100 max-w-[80%]">
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 max-w-[80%]">
                     <div className="flex gap-1">
                       {[0, 1, 2].map((i) => (
                         <motion.div
                           key={i}
-                          animate={{ y: [0, -6, 0] }}
-                          transition={{
-                            duration: 0.8,
-                            repeat: Infinity,
-                            delay: i * 0.15,
-                          }}
-                          className="w-2 h-2 rounded-full bg-amber-500"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                          className="w-2 h-2 rounded-full bg-[#C9A882]"
                         />
                       ))}
                     </div>
-                    <span className="text-[12px] text-stone-500 font-medium">
-                      لمسة تفكر...
-                    </span>
+                    <span className="text-[12px] text-slate-500 font-medium">جاري المعالجة...</span>
                   </div>
                 )}
               </div>
@@ -229,13 +216,13 @@ export function EmployeeAssistant() {
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="اطلب شيئاً... مثلاً: أنشئ منتج عود ملكي بسعر 350"
                     disabled={busy}
-                    className="flex-1 rounded-2xl border-stone-200 focus-visible:ring-amber-400 h-11 text-[13px]"
+                    className="flex-1 rounded-xl border-slate-200 focus-visible:ring-[#C9A882] h-11 text-[13px]"
                     data-testid="input-assistant-message"
                   />
                   <Button
                     type="submit"
                     disabled={busy || !input.trim()}
-                    className="rounded-2xl h-11 w-11 p-0 bg-gradient-to-br from-[#6B3F2A] to-[#243154] hover:opacity-90"
+                    className="rounded-xl h-11 w-11 p-0 bg-[#1A0E08] hover:bg-[#2C1A10]"
                     data-testid="button-send-assistant"
                   >
                     {busy ? (
@@ -265,8 +252,8 @@ function MessageBubble({ msg }: { msg: Message }) {
       <div
         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
           isUser
-            ? "bg-stone-200 text-stone-700"
-            : "bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md"
+            ? "bg-slate-200 text-slate-600"
+            : "bg-[#C9A882]/15 text-[#8B6340]"
         }`}
       >
         {isUser ? <UserIcon className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}

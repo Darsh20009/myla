@@ -84,205 +84,45 @@ function PulseRing({ color }: { color: string }) {
 
 const PIE_COLORS = ['#f39c12', '#00a878', '#ef4444', '#6366f1', '#8b5cf6', '#ec4899'];
 
-// ─── Creative Dashboard Hero Banner ─────────────────────────────────────────
+// ─── Clean Dashboard Header (Zid-style) ─────────────────────────────────────
 const CreativeDashboardBanner = memo(({ totalOrders, totalRevenue }: { totalOrders: number; totalRevenue: number }) => {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(t);
   }, []);
 
-  const bottles: string[] = [];
   const hour = now.getHours();
-  const greetingAr = hour < 5 ? "مساء النور" : hour < 12 ? "صباح الأناقة ✨" : hour < 17 ? "نهارك بخير ☀️" : hour < 21 ? "مساء الأنس 🌙" : "ليلة هادئة ✨";
-  const greetingEn = hour < 5 ? "Good Evening" : hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : hour < 21 ? "Good Evening" : "Good Night";
-  // Wrap Islamic calendar in try-catch — older Android Chrome throws RangeError
-  // for unsupported "u-ca-islamic" extension, crashing the ErrorBoundary.
+  const greetingAr = hour < 5 ? "مساء النور" : hour < 12 ? "صباح الخير" : hour < 17 ? "مساء الخير" : "مساء النور";
   let dateAr = "";
   try {
     dateAr = now.toLocaleDateString("ar-SA-u-ca-islamic", { weekday: "long", day: "numeric", month: "long" });
   } catch {
-    try {
-      dateAr = now.toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" });
-    } catch {
-      dateAr = now.toLocaleDateString();
-    }
-  }
-  let timeAr = "";
-  try {
-    timeAr = now.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    timeAr = now.toLocaleTimeString();
+    try { dateAr = now.toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" }); }
+    catch { dateAr = now.toLocaleDateString(); }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-[2.5rem] shadow-2xl"
-      style={{
-        background:
-          "radial-gradient(ellipse at top right, rgba(201,169,110,0.25), transparent 60%), radial-gradient(ellipse at bottom left, rgba(70,90,140,0.4), transparent 60%), linear-gradient(135deg, #0f1729 0%, #6B3F2A 50%, #243556 100%)",
-      }}
-    >
-      {/* Animated background orbs */}
-      <motion.div
-        animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-32 -right-32 w-80 h-80 rounded-full blur-3xl pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(201,169,110,0.45), transparent 70%)" }}
-      />
-      <motion.div
-        animate={{ x: [0, -25, 0], y: [0, 25, 0], scale: [1, 1.15, 1] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(120,150,210,0.35), transparent 70%)" }}
-      />
-
-      {/* Decorative golden ring */}
-      <div className="absolute top-1/2 left-1/3 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-[#E8637A]/10 pointer-events-none" />
-      <div className="absolute top-1/2 left-1/3 -translate-y-1/2 w-[700px] h-[700px] rounded-full border border-[#E8637A]/5 pointer-events-none" />
-
-      {/* Floating perfume bottles — desktop only */}
-      <div className="hidden md:block absolute inset-0 pointer-events-none overflow-hidden">
-        {bottles.slice(0, 4).map((src, i) => (
-          <motion.img
-            key={src}
-            src={src}
-            alt=""
-            loading="lazy"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{
-              y: [0, -12, 0],
-              opacity: [0.55, 0.85, 0.55],
-              rotate: [-3, 3, -3],
-            }}
-            transition={{
-              duration: 5 + i,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.4,
-              opacity: { duration: 1, delay: i * 0.2 },
-            }}
-            className="absolute object-contain drop-shadow-[0_15px_40px_rgba(201,169,110,0.3)]"
-            style={{
-              width: ["110px", "130px", "100px", "120px"][i],
-              right: ["3%", "16%", "30%", "44%"][i],
-              top: ["18%", "8%", "22%", "12%"][i],
-              filter: "brightness(1.05) saturate(1.1)",
-            }}
-          />
-        ))}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" dir="rtl">
+      <div>
+        <p className="text-xs font-medium text-slate-400 mb-0.5">{dateAr}</p>
+        <h2 className="text-2xl font-black text-[#1A0E08] tracking-tight">{greetingAr} 👋</h2>
+        <p className="text-sm text-slate-500 mt-0.5">هذا ملخص أداء متجر Myla</p>
       </div>
-
-      {/* Sparkle particles */}
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full bg-[#E8637A] pointer-events-none"
-          style={{
-            top: `${15 + (i * 11) % 70}%`,
-            left: `${10 + (i * 17) % 80}%`,
-          }}
-          animate={{
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            delay: i * 0.4,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E8637A] to-transparent" />
-
-      {/* Content */}
-      <div className="relative z-10 px-6 md:px-10 py-8 md:py-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-        {/* Right (RTL primary) — branding */}
-        <div className="space-y-4 text-right">
-          <div className="flex items-center gap-3 justify-end">
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-[10px] font-bold tracking-[0.3em] text-[#E8637A] uppercase">{greetingAr}</span>
-              <span className="text-[9px] font-semibold tracking-widest text-white/40 uppercase" dir="ltr">{greetingEn}</span>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-[#E8637A]/30 blur-xl" />
-              <img src="/myla-logo.png" alt="Myla" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(201,169,110,0.5)]" />
-            </div>
-          </div>
-
-          <div>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none">
-              <span className="bg-gradient-to-l from-[#C9A882] via-[#e8d4a3] to-[#C9A882] bg-clip-text text-transparent">
-                لوحة تحكم Myla
-              </span>
-            </h1>
-            <p className="mt-2 text-xs md:text-sm font-semibold text-white/60 tracking-wide" dir="ltr">
-              Myla — Abayas by HMBL · Control Center
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 justify-end flex-wrap">
-            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-              <Clock className="w-3.5 h-3.5 text-[#E8637A]" />
-              <span className="text-xs font-bold text-white/90" dir="ltr">{timeAr}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-              <CalendarClock className="w-3.5 h-3.5 text-[#E8637A]" />
-              <span className="text-xs font-bold text-white/90">{dateAr}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-emerald-500/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-400/20">
-              <PulseRing color="bg-emerald-400" />
-              <span className="text-xs font-bold text-emerald-300">النظام يعمل بكامل طاقته</span>
-            </div>
-          </div>
+      <div className="flex gap-3 flex-wrap justify-end">
+        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 text-center shadow-sm min-w-[130px]">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">إجمالي الطلبات</p>
+          <p className="text-2xl font-black text-[#1A0E08]">{totalOrders.toLocaleString("ar-SA")}</p>
         </div>
-
-        {/* Left — quick stats pill stack */}
-        <div className="grid grid-cols-2 gap-3 md:max-w-sm md:ml-auto">
-          <motion.div
-            whileHover={{ scale: 1.04, y: -2 }}
-            className="relative overflow-hidden bg-gradient-to-br from-[#E8637A]/20 to-[#E8637A]/5 backdrop-blur-xl rounded-2xl p-4 border border-[#E8637A]/30"
-          >
-            <div className="absolute -top-4 -right-4 opacity-10">
-              <ShoppingCart className="w-20 h-20 text-[#E8637A]" />
-            </div>
-            <p className="text-[9px] font-bold tracking-widest uppercase text-[#E8637A]/80 mb-1">إجمالي الطلبات</p>
-            <p className="text-2xl md:text-3xl font-black text-white leading-none">{totalOrders.toLocaleString("ar-SA")}</p>
-            <p className="text-[9px] font-semibold text-white/40 mt-1" dir="ltr">Total Orders</p>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.04, y: -2 }}
-            className="relative overflow-hidden bg-gradient-to-br from-emerald-400/20 to-emerald-400/5 backdrop-blur-xl rounded-2xl p-4 border border-emerald-400/30"
-          >
-            <div className="absolute -top-4 -right-4 opacity-10">
-              <DollarSign className="w-20 h-20 text-emerald-300" />
-            </div>
-            <p className="text-[9px] font-bold tracking-widest uppercase text-emerald-300/80 mb-1">المبيعات الكلية</p>
-            <p className="text-xl md:text-2xl font-black text-white leading-none">
-              {Number(totalRevenue).toLocaleString("ar-SA", { maximumFractionDigits: 0 })}
-              <span className="text-[10px] font-semibold text-white/50 mr-1"><RiyalSign /></span>
-            </p>
-            <p className="text-[9px] font-semibold text-white/40 mt-1" dir="ltr">Total Revenue</p>
-          </motion.div>
+        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 text-center shadow-sm min-w-[130px]">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">المبيعات الكلية</p>
+          <p className="text-2xl font-black text-[#1A0E08]">
+            {Number(totalRevenue).toLocaleString("ar-SA", { maximumFractionDigits: 0 })}
+          </p>
+          <p className="text-[10px] text-slate-400 font-medium">ريال سعودي</p>
         </div>
       </div>
-
-      <div className="relative z-10 border-t border-white/5 bg-black/20 backdrop-blur-md px-6 md:px-10 py-3 flex items-center justify-start flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[10px] font-bold text-white/40 tracking-wider">
-          <Shield className="w-3 h-3 text-[#E8637A]/60" />
-          <span>محمي بأعلى معايير الأمان</span>
-          <span className="text-white/20">•</span>
-          <span dir="ltr">Enterprise-grade Security</span>
-        </div>
-      </div>
-    </motion.div>
+    </div>
   );
 });
 CreativeDashboardBanner.displayName = "CreativeDashboardBanner";
@@ -350,120 +190,72 @@ const OverviewPanel = memo(() => {
       {/* ─── Creative Hero Banner ─────────────────────────────────────────── */}
       <CreativeDashboardBanner totalOrders={displayStats.totalOrders} totalRevenue={displayStats.allTime.totalRevenue} />
 
-      {/* Main Revenue Card */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="border-none shadow-xl bg-gradient-to-br from-[#6B3F2A] to-[#243556] text-white relative overflow-hidden group rounded-[2rem]">
-          <div className="absolute -right-10 -bottom-10 opacity-5  transition-transform duration-700">
-            <DollarSign className="w-64 h-64 text-[#E8637A]" />
-          </div>
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#E8637A] to-transparent" />
-          <CardContent className="relative z-10 flex flex-col items-center text-center space-y-4 py-8">
-            <div className="flex items-center gap-3 bg-[#E8637A]/10 px-4 py-2 rounded-full border border-[#E8637A]/20">
-              <Wallet className="w-4 h-4 text-[#E8637A]" />
-              <span className="text-xs font-bold tracking-wide text-[#E8637A]">إجمالي مبيعات المتجر</span>
+      {/* ─── KPI Cards Row ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "إجمالي المبيعات", value: Number(displayStats.allTime.totalRevenue).toLocaleString("ar-SA", { maximumFractionDigits: 0 }), unit: "ر.س", sub: "منذ البداية", icon: <DollarSign className="w-5 h-5" />, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "مبيعات الشهر",    value: Number(displayStats.thisMonth.totalRevenue).toLocaleString("ar-SA", { maximumFractionDigits: 0 }), unit: "ر.س", sub: `ربح: ${Number(displayStats.thisMonth.netProfit).toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س`, icon: <TrendingUp className="w-5 h-5" />, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "إجمالي الطلبات",  value: displayStats.totalOrders.toLocaleString("ar-SA"), unit: "طلب", sub: `اليوم: ${displayStats.dailyOrders}`, icon: <ShoppingCart className="w-5 h-5" />, color: "text-[#C9A882]", bg: "bg-[#C9A882]/10" },
+          { label: "قاعدة العملاء",   value: displayStats.totalCustomers.toLocaleString("ar-SA"), unit: "عميل", sub: `جدد (30 يوم): ${displayStats.newCustomers30}`, icon: <Users className="w-5 h-5" />, color: "text-violet-600", bg: "bg-violet-50" },
+        ].map(({ label, value, unit, sub, icon, color, bg }) => (
+          <Card key={label} className="border border-slate-200 shadow-sm bg-white p-5 text-right">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`p-2 rounded-xl ${bg} ${color}`}>{icon}</div>
             </div>
-            <div className="space-y-1">
-              <div className="text-5xl font-black tracking-tighter">
-                {Number(displayStats.allTime.totalRevenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <div className="text-[#E8637A] font-bold text-sm">ريال سعودي</div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-2xl mt-2">
-              <div className="bg-white/10 backdrop-blur-xl p-4 rounded-2xl border border-white/10 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">اليوم</p>
-                <p className="text-lg font-black">{Number(displayStats.today.totalRevenue).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} <span className="text-xs font-medium text-white/50"><RiyalSign /></span></p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-xl p-4 rounded-2xl border border-white/10 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">الأسبوع</p>
-                <p className="text-lg font-black">{Number(displayStats.thisWeek.totalRevenue).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} <span className="text-xs font-medium text-white/50"><RiyalSign /></span></p>
-                {Number(displayStats.thisWeek.netProfit) > 0 && (
-                  <p className="text-[9px] text-emerald-400 mt-0.5">ربح: {Number(displayStats.thisWeek.netProfit).toFixed(0)}</p>
-                )}
-              </div>
-              <div className="bg-white/10 backdrop-blur-xl p-4 rounded-2xl border border-white/10 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">الشهر</p>
-                <p className="text-lg font-black">{Number(displayStats.thisMonth.totalRevenue).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} <span className="text-xs font-medium text-white/50"><RiyalSign /></span></p>
-                {Number(displayStats.thisMonth.netProfit) > 0 && (
-                  <p className="text-[9px] text-emerald-400 mt-0.5">ربح: {Number(displayStats.thisMonth.netProfit).toFixed(0)}</p>
-                )}
-              </div>
-              <div className="bg-white/10 backdrop-blur-xl p-4 rounded-2xl border border-white/10 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">الطلبات</p>
-                <p className="text-lg font-black">{displayStats.totalOrders} <span className="text-xs font-medium text-white/50">طلب</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            <p className="text-[11px] font-bold text-slate-400 mb-1">{label}</p>
+            <p className="text-2xl font-black text-[#1A0E08] leading-tight">
+              {value} <span className="text-sm font-medium text-slate-400">{unit}</span>
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">{sub}</p>
+          </Card>
+        ))}
+      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border border-slate-200 shadow-sm bg-white flex flex-col items-center text-center space-y-3 p-6">
-          <div className="p-3 bg-[#E8637A]/10 text-[#E8637A] rounded-2xl">
-            <ShoppingCart className="w-6 h-6" />
-          </div>
-          <p className="text-slate-500 text-xs font-bold">إجمالي الطلبات</p>
-          <div className="text-4xl font-black text-[#6B3F2A]">{displayStats.totalOrders}</div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400">اليوم:</span>
-            <Badge className="bg-[#E8637A]/10 text-[#E8637A] hover:bg-[#E8637A]/10 rounded-lg font-black text-[10px]">{displayStats.dailyOrders}</Badge>
-          </div>
-        </Card>
-
-        <Card className="border border-slate-200 shadow-sm bg-white flex flex-col items-center text-center space-y-3 p-6">
-          <div className="p-3 bg-[#E8637A]/10 text-[#E8637A] rounded-2xl">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <p className="text-slate-500 text-xs font-bold">صافي الأرباح</p>
-          <div className="text-3xl font-black text-[#E8637A]">
-            {Number(displayStats.netProfit).toLocaleString()}
-            <span className="text-xs font-medium mr-1"><RiyalSign /></span>
-          </div>
-          <div className="w-full space-y-1">
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-[#E8637A] w-[67%]" />
-            </div>
-            <p className="text-[10px] font-bold text-slate-400">67% من إجمالي المبيعات</p>
-          </div>
-        </Card>
-
-        <Card className="border border-slate-200 shadow-sm bg-white flex flex-col items-center text-center space-y-3 p-6">
-          <div className="p-3 bg-[#E8637A]/10 text-[#E8637A] rounded-2xl">
-            <Users className="w-6 h-6" />
-          </div>
-          <p className="text-slate-500 text-xs font-bold">قاعدة العملاء</p>
-          <div className="text-4xl font-black text-[#6B3F2A]">{displayStats.totalCustomers}</div>
-          <div className="flex -space-x-2 space-x-reverse">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-slate-200" />
-            ))}
-            <div className="w-7 h-7 rounded-full border-2 border-white bg-primary flex items-center justify-center text-[10px] text-white font-bold">+</div>
-          </div>
-        </Card>
+      {/* ─── Period Revenue Cards ─── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "اليوم",    value: displayStats.today.totalRevenue,      profit: null },
+          { label: "الأسبوع",  value: displayStats.thisWeek.totalRevenue,   profit: displayStats.thisWeek.netProfit },
+          { label: "الشهر",   value: displayStats.thisMonth.totalRevenue,   profit: displayStats.thisMonth.netProfit },
+          { label: "الكل",    value: displayStats.allTime.totalRevenue,     profit: displayStats.allTime.netProfit },
+        ].map(({ label, value, profit }) => (
+          <Card key={label} className="border border-slate-200 shadow-sm bg-white p-4 text-right">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{label}</p>
+            <p className="text-xl font-black text-[#1A0E08]">
+              {Number(value).toLocaleString("ar-SA", { maximumFractionDigits: 0 })}
+              <span className="text-xs font-medium text-slate-400 mr-1">ر.س</span>
+            </p>
+            {profit !== null && Number(profit) > 0 && (
+              <p className="text-[11px] text-emerald-600 font-semibold mt-1">
+                ربح: {Number(profit).toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س
+              </p>
+            )}
+          </Card>
+        ))}
       </div>
 
       {/* Quick Action Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border border-slate-200 shadow-sm bg-white p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-[#E8637A]/10 text-[#E8637A] rounded-xl shrink-0">
+          <div className="p-2.5 bg-[#C9A882]/10 text-[#C9A882] rounded-xl shrink-0">
             <RotateCcw className="w-5 h-5" />
           </div>
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase">مرتجعات معلقة</p>
-            <p className="text-2xl font-black text-[#E8637A]">{displayStats.pendingReturns}</p>
+            <p className="text-2xl font-black text-[#C9A882]">{displayStats.pendingReturns}</p>
           </div>
         </Card>
         <Card className="border border-slate-200 shadow-sm bg-white p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-[#E8637A]/10 text-[#E8637A] rounded-xl shrink-0">
+          <div className="p-2.5 bg-[#C9A882]/10 text-[#C9A882] rounded-xl shrink-0">
             <Store className="w-5 h-5" />
           </div>
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase">بائعون نشطون</p>
-            <p className="text-2xl font-black text-white">{displayStats.activeVendors}</p>
+            <p className="text-2xl font-black text-[#1A0E08]">{displayStats.activeVendors}</p>
           </div>
         </Card>
         <Card className="border border-slate-200 shadow-sm bg-white p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-[#E8637A]/10 text-[#E8637A] rounded-xl shrink-0">
+          <div className="p-2.5 bg-[#C9A882]/10 text-[#C9A882] rounded-xl shrink-0">
             <Users className="w-5 h-5" />
           </div>
           <div>
@@ -472,12 +264,12 @@ const OverviewPanel = memo(() => {
           </div>
         </Card>
         <Card className={`border border-slate-200 shadow-sm p-4 flex items-center gap-3 bg-white`}>
-          <div className={`p-2.5 rounded-xl shrink-0 ${Number(displayStats.revenueGrowth) >= 0 ? "bg-[#E8637A]/10 text-[#E8637A]" : "bg-red-500/10 text-red-400"}`}>
+          <div className={`p-2.5 rounded-xl shrink-0 ${Number(displayStats.revenueGrowth) >= 0 ? "bg-[#C9A882]/10 text-[#C9A882]" : "bg-red-500/10 text-red-400"}`}>
             {Number(displayStats.revenueGrowth) >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
           </div>
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase">نمو الإيرادات</p>
-            <p className={`text-2xl font-black ${Number(displayStats.revenueGrowth) >= 0 ? "text-[#E8637A]" : "text-red-400"}`}>
+            <p className={`text-2xl font-black ${Number(displayStats.revenueGrowth) >= 0 ? "text-[#C9A882]" : "text-red-400"}`}>
               {Number(displayStats.revenueGrowth) >= 0 ? "+" : ""}{displayStats.revenueGrowth}%
             </p>
           </div>
@@ -499,15 +291,15 @@ const OverviewPanel = memo(() => {
               <AreaChart data={weekData}>
                 <defs>
                   <linearGradient id="colorRevAdmin" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#E8637A" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#E8637A" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#C9A882" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#C9A882" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700 }} />
                 <YAxis hide />
                 <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid rgba(201,169,110,0.2)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)', fontSize: 12, background: '#1e1d1a', color: '#fff' }} />
-                <Area type="monotone" dataKey="revenue" stroke="#E8637A" strokeWidth={3} fillOpacity={1} fill="url(#colorRevAdmin)" />
+                <Area type="monotone" dataKey="revenue" stroke="#C9A882" strokeWidth={3} fillOpacity={1} fill="url(#colorRevAdmin)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -572,16 +364,16 @@ const OverviewPanel = memo(() => {
               <div key={idx} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                    <ShoppingCart className="w-4 h-4 text-[#E8637A]" />
+                    <ShoppingCart className="w-4 h-4 text-[#C9A882]" />
                   </div>
                   <div>
-                    <p className="font-black text-xs text-[#E8637A]">#{order.id}</p>
+                    <p className="font-black text-xs text-[#C9A882]">#{order.id}</p>
                     <p className="text-[10px] font-bold text-slate-400">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
                   </div>
                 </div>
                 <div className="text-left">
                   <p className="font-black text-sm text-[#6B3F2A]">{order.total} <RiyalSign /></p>
-                  <Badge className="bg-[#E8637A]/10 text-[#E8637A] border-none rounded-lg text-[9px] font-black h-4 px-1.5">مكتمل</Badge>
+                  <Badge className="bg-[#C9A882]/10 text-[#C9A882] border-none rounded-lg text-[9px] font-black h-4 px-1.5">مكتمل</Badge>
                 </div>
               </div>
             ))}
@@ -590,8 +382,8 @@ const OverviewPanel = memo(() => {
 
         <Card className="rounded-[2rem] border border-slate-200 shadow-sm bg-white p-5">
           <h3 className="text-base font-black text-[#6B3F2A] mb-5 flex items-center gap-2">
-            <div className="p-2 bg-[#E8637A]/10 rounded-xl">
-              <CheckCircle2 className="w-4 h-4 text-[#E8637A]" />
+            <div className="p-2 bg-[#C9A882]/10 rounded-xl">
+              <CheckCircle2 className="w-4 h-4 text-[#C9A882]" />
             </div>
             الأكثر مبيعاً
           </h3>
@@ -607,7 +399,7 @@ const OverviewPanel = memo(() => {
                       alt={product.name}
                       className="w-14 h-14 rounded-2xl object-cover shadow-sm"
                     />
-                    <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#E8637A] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                    <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#C9A882] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
                       {idx + 1}
                     </div>
                   </div>
@@ -616,7 +408,7 @@ const OverviewPanel = memo(() => {
                     <p className="text-[10px] font-bold text-slate-400">{product.quantity} عملية بيع</p>
                   </div>
                   <div className="text-left shrink-0">
-                    <p className="font-black text-[#E8637A] text-sm">{Number(product.revenue).toLocaleString()}</p>
+                    <p className="font-black text-[#C9A882] text-sm">{Number(product.revenue).toLocaleString()}</p>
                     <p className="text-[9px] font-bold text-slate-400"><RiyalSign /></p>
                   </div>
                 </div>
@@ -645,9 +437,9 @@ const LowStockWidget = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <Card className="rounded-[2rem] border border-[#E8637A]/10 shadow-sm bg-white overflow-hidden">
+      <Card className="rounded-[2rem] border border-[#C9A882]/10 shadow-sm bg-white overflow-hidden">
         <div className="flex items-center gap-3 px-5 pt-5 pb-3">
-          <div className="p-2 bg-[#E8637A]/10 rounded-xl">
+          <div className="p-2 bg-[#C9A882]/10 rounded-xl">
             <AlertCircle className="w-4 h-4 text-amber-500" />
           </div>
           <div>
@@ -821,7 +613,7 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
       await apiRequest("PATCH", `/api/products/${product.id}`, payload);
       toast({ title: "تم تحديث المنتج بنجاح" });
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      await queryClient.refetchQueries({ queryKey: [api.products.list.path], type: "all" });
     } catch (e) {
       toast({ title: "خطأ", description: "فشل تحديث المنتج", variant: "destructive" });
     }
@@ -970,9 +762,9 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
               </div>
 
               <div className="space-y-2 pt-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-[#E8637A] flex items-center gap-1">🧠 علّم الذكاء الاصطناعي عن هذا المنتج</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-[#C9A882] flex items-center gap-1">🧠 علّم الذكاء الاصطناعي عن هذا المنتج</Label>
                 <p className="text-[9px] text-black/40">أضف معلومات خاصة يستخدمها المستشار الذكي عند التوصية بهذا المنتج — مثل: قصة العطر، الجمهور المستهدف، المزاج، المناسبات، النوتات السرية...</p>
-                <Textarea {...form.register("aiNotes" as any)} className="rounded-none min-h-[100px] text-right border-[#E8637A]/40 focus:border-[#E8637A]" placeholder="مثال: عطر يناسب رجل واثق في العقد الثالث، يُعطي شعور بالفخامة الهادئة، يستمر 12 ساعة على البشرة الجافة، يُشبه عطر فلاني الشهير لكن بلمسة خليجية..." data-testid="textarea-product-ai-notes" />
+                <Textarea {...form.register("aiNotes" as any)} className="rounded-none min-h-[100px] text-right border-[#C9A882]/40 focus:border-[#C9A882]" placeholder="مثال: عطر يناسب رجل واثق في العقد الثالث، يُعطي شعور بالفخامة الهادئة، يستمر 12 ساعة على البشرة الجافة، يُشبه عطر فلاني الشهير لكن بلمسة خليجية..." data-testid="textarea-product-ai-notes" />
               </div>
 
            <div className="space-y-4 pt-4 border-t border-black/5 text-right">
@@ -1172,7 +964,7 @@ const ProductsTable = memo(() => {
       setOpen(false);
       setEditingProduct(null);
       setSelectedCategoryIds([]);
-      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      await queryClient.refetchQueries({ queryKey: [api.products.list.path], type: "all" });
     } catch (e) {
       toast({ title: "خطأ", description: "فشل حفظ المنتج", variant: "destructive" });
     }
@@ -1389,9 +1181,9 @@ const ProductsTable = memo(() => {
               </div>
 
               <div className="space-y-2 pt-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-[#E8637A] flex items-center gap-1">🧠 علّم الذكاء الاصطناعي عن هذا المنتج</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-[#C9A882] flex items-center gap-1">🧠 علّم الذكاء الاصطناعي عن هذا المنتج</Label>
                 <p className="text-[9px] text-black/40">أضف معلومات خاصة يستخدمها المستشار الذكي عند التوصية بهذا المنتج — مثل: قصة العطر، الجمهور المستهدف، المزاج، المناسبات، النوتات السرية...</p>
-                <Textarea {...form.register("aiNotes" as any)} className="rounded-none min-h-[100px] text-right border-[#E8637A]/40 focus:border-[#E8637A]" placeholder="مثال: عطر يناسب رجل واثق في العقد الثالث، يُعطي شعور بالفخامة الهادئة، يستمر 12 ساعة على البشرة الجافة، يُشبه عطر فلاني الشهير لكن بلمسة خليجية..." data-testid="textarea-product-ai-notes-add" />
+                <Textarea {...form.register("aiNotes" as any)} className="rounded-none min-h-[100px] text-right border-[#C9A882]/40 focus:border-[#C9A882]" placeholder="مثال: عطر يناسب رجل واثق في العقد الثالث، يُعطي شعور بالفخامة الهادئة، يستمر 12 ساعة على البشرة الجافة، يُشبه عطر فلاني الشهير لكن بلمسة خليجية..." data-testid="textarea-product-ai-notes-add" />
               </div>
 
               <div className="space-y-4 pt-4 border-t border-black/5 text-right">
@@ -2217,7 +2009,7 @@ const OrdersTable = memo(() => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="rounded-xl text-[10px] font-black border-[#E8637A] text-[#E8637A]"
+                                  className="rounded-xl text-[10px] font-black border-[#C9A882] text-[#C9A882]"
                                   onClick={async () => {
                                     try {
                                       const res = await fetch(`/api/admin/shipox/awb/${order.id}`);
@@ -3099,7 +2891,7 @@ const OrdersManagement = memo(() => {
                                 href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 mt-1 text-[10px] font-black text-[#E8637A] hover:text-[#F0C77E] underline"
+                                className="inline-flex items-center gap-1 mt-1 text-[10px] font-black text-[#C9A882] hover:text-[#F0C77E] underline"
                                 data-testid={`link-map-order-${order.id || order._id}`}
                               >
                                 📍 افتح في خرائط جوجل ({Number(lat).toFixed(5)}, {Number(lng).toFixed(5)})
@@ -3203,7 +2995,7 @@ const OrdersManagement = memo(() => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 text-xs font-black border-[#E8637A]/40 text-[#E8637A] hover:bg-[#E8637A]/10 rounded-xl gap-1.5"
+                          className="h-8 text-xs font-black border-[#C9A882]/40 text-[#C9A882] hover:bg-[#C9A882]/10 rounded-xl gap-1.5"
                           data-testid={`button-resend-notification-${order.id}`}
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -4663,7 +4455,7 @@ const AdminBranchInventory = () => {
         </div>
         <div className="w-full md:w-72">
           <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
-            <SelectTrigger className="h-11 font-bold border-[#E8637A]/40" data-testid="select-inventory-branch">
+            <SelectTrigger className="h-11 font-bold border-[#C9A882]/40" data-testid="select-inventory-branch">
               <SelectValue placeholder="اختر الفرع للعرض..." />
             </SelectTrigger>
             <SelectContent>
@@ -4678,14 +4470,14 @@ const AdminBranchInventory = () => {
       </div>
 
       {!selectedBranchId ? (
-        <Card className="p-16 text-center border-2 border-dashed border-[#E8637A]/30">
-          <Building2 className="h-14 w-14 mx-auto mb-4 text-[#E8637A]/40" />
+        <Card className="p-16 text-center border-2 border-dashed border-[#C9A882]/30">
+          <Building2 className="h-14 w-14 mx-auto mb-4 text-[#C9A882]/40" />
           <p className="font-black text-lg text-[#6B3F2A]">اختر فرعاً لعرض مخزونه</p>
           <p className="text-sm text-gray-700 font-bold mt-1">حدد الفرع من القائمة أعلاه للبدء في مراجعة الجرد</p>
         </Card>
       ) : inventoryLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-[#E8637A]" />
+          <Loader2 className="h-10 w-10 animate-spin text-[#C9A882]" />
         </div>
       ) : (
         <>
@@ -4698,7 +4490,7 @@ const AdminBranchInventory = () => {
             ].map((s) => {
               const Icon = s.icon;
               return (
-                <Card key={s.label} className={`p-4 border border-[#E8637A]/10 bg-gradient-to-br ${s.bg}`}>
+                <Card key={s.label} className={`p-4 border border-[#C9A882]/10 bg-gradient-to-br ${s.bg}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <Icon className={`h-3.5 w-3.5 ${s.color}`} />
                     <p className="text-xs font-bold text-gray-600">{s.label}</p>
@@ -4711,10 +4503,10 @@ const AdminBranchInventory = () => {
 
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input placeholder="ابحث بالمنتج أو SKU أو الحجم..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 h-11 font-bold border-[#E8637A]/30" data-testid="input-inventory-search" />
+            <Input placeholder="ابحث بالمنتج أو SKU أو الحجم..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 h-11 font-bold border-[#C9A882]/30" data-testid="input-inventory-search" />
           </div>
 
-          <Card className="overflow-hidden border border-[#E8637A]/20">
+          <Card className="overflow-hidden border border-[#C9A882]/20">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -4742,7 +4534,7 @@ const AdminBranchInventory = () => {
                         ? { label: "منخفض", cls: "bg-amber-100 text-amber-700 border-amber-200" }
                         : { label: "جيد", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
                     return (
-                      <tr key={key} className={`border-t transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-[#FAF8F4]/40"} hover:bg-[#E8637A]/5`} data-testid={`row-inventory-${variant.variantSku}`}>
+                      <tr key={key} className={`border-t transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-[#FAF8F4]/40"} hover:bg-[#C9A882]/5`} data-testid={`row-inventory-${variant.variantSku}`}>
                         <td className="p-3">
                           <div className="flex items-center gap-3">
                             {variant.productImage ? (
@@ -4776,7 +4568,7 @@ const AdminBranchInventory = () => {
                               <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingKey(null)}><X className="h-3 w-3" /></Button>
                             </div>
                           ) : (
-                            <Button size="sm" variant="ghost" className="h-7 px-2 hover:bg-[#E8637A]/10 hover:text-[#6B3F2A]" onClick={() => { setEditingKey(key); setEditStock(variant.stock); }} data-testid={`button-edit-stock-${variant.variantSku}`}>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 hover:bg-[#C9A882]/10 hover:text-[#6B3F2A]" onClick={() => { setEditingKey(key); setEditStock(variant.stock); }} data-testid={`button-edit-stock-${variant.variantSku}`}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -5619,7 +5411,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
               <p className="font-black text-sm text-[#6B3F2A] tracking-tight whitespace-nowrap">Myla</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <PulseRing color="bg-[#C9A882]" />
-                <span className="text-[9px] text-[#E8637A] font-bold uppercase tracking-widest">لوحة التحكم</span>
+                <span className="text-[9px] text-[#C9A882] font-bold uppercase tracking-widest">لوحة التحكم</span>
               </div>
             </div>
           )}
@@ -5636,7 +5428,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
           {/* Desktop collapse toggle */}
           <button
             onClick={() => setCollapsed(c => !c)}
-            className={`${collapsed ? "mx-auto" : "mr-auto"} p-1.5 rounded-lg text-slate-400 hover:text-[#E8637A] hover:bg-slate-50 transition-all hidden lg:block`}
+            className={`${collapsed ? "mx-auto" : "mr-auto"} p-1.5 rounded-lg text-slate-400 hover:text-[#C9A882] hover:bg-slate-50 transition-all hidden lg:block`}
           >
             <Menu className="w-4 h-4" />
           </button>
@@ -5646,7 +5438,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
       {!collapsed && (
         <div className="relative z-10 mx-3 mt-3 p-3 rounded-xl bg-[#FFFFFF] border border-slate-200">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8637A] to-[#d44f66] flex items-center justify-center text-xs font-black text-white shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C9A882] to-[#8B6340] flex items-center justify-center text-xs font-black text-white shrink-0">
               {user?.name?.charAt(0) || "A"}
             </div>
             <div className="overflow-hidden">
@@ -5673,12 +5465,12 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
                   title={collapsed ? item.label : undefined}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group
                     ${isActive
-                      ? "bg-[#E8637A]/10 text-[#E8637A] border border-[#E8637A]/20"
+                      ? "bg-[#C9A882]/10 text-[#C9A882] border border-[#C9A882]/20"
                       : "text-slate-500 hover:text-[#6B3F2A] hover:bg-slate-50"
                     }`}
                 >
-                  {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#E8637A] rounded-l-full" />}
-                  <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#E8637A]" : "group-hover:text-slate-600"}`} />
+                  {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A882] rounded-l-full" />}
+                  <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-slate-600"}`} />
                   {!collapsed && <span className="text-xs font-bold truncate">{item.label}</span>}
                   {!collapsed && (item as any).badge > 0 && (
                     <span className="mr-auto px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
@@ -5810,21 +5602,21 @@ export default function Admin() {
   }, [authLoading, isStaff, setLocation]);
 
   if (authLoading) return (
-    <div className="flex h-screen items-center justify-center bg-[#FFFFFF]">
+    <div className="flex h-screen items-center justify-center bg-[#F7F5F2]">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-2 border-slate-200 border-t-[#E8637A] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-2 border-slate-200 border-t-[#C9A882] rounded-full animate-spin" />
         <p className="text-slate-400 text-xs tracking-widest uppercase">جاري التحميل</p>
       </div>
     </div>
   );
   if (!isStaff) return (
-    <div className="flex h-screen items-center justify-center bg-[#FFFFFF]">
-      <div className="w-12 h-12 border-2 border-slate-200 border-t-[#E8637A] rounded-full animate-spin" />
+    <div className="flex h-screen items-center justify-center bg-[#F7F5F2]">
+      <div className="w-10 h-10 border-2 border-slate-200 border-t-[#C9A882] rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="flex h-screen w-full bg-[#FFFFFF] text-[#6B3F2A] overflow-hidden" dir="rtl">
+    <div className="flex h-screen w-full bg-[#F7F5F2] text-[#1A0E08] overflow-hidden" dir="rtl">
       {/* Sidebar */}
       <AdminSidebar
         activeTab={activeTab}
@@ -5868,13 +5660,13 @@ export default function Admin() {
             <NotificationBell />
             <button
               onClick={() => queryClient.invalidateQueries()}
-              className="p-2 rounded-xl text-slate-400 hover:text-[#E8637A] hover:bg-slate-50 transition-all"
+              className="p-2 rounded-xl text-slate-400 hover:text-[#C9A882] hover:bg-slate-50 transition-all"
               title="تحديث البيانات"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <Link href="/">
-              <div className="flex items-center gap-1.5 px-2 lg:px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:text-[#E8637A] hover:bg-[#E8637A]/5 transition-all cursor-pointer text-xs font-bold">
+              <div className="flex items-center gap-1.5 px-2 lg:px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:text-[#C9A882] hover:bg-[#C9A882]/5 transition-all cursor-pointer text-xs font-bold">
                 <Globe className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">المتجر</span>
               </div>
@@ -5883,7 +5675,7 @@ export default function Admin() {
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#F7F5F2]">
           <div className="p-3 sm:p-4 lg:p-6 space-y-4 lg:space-y-6">
             <AnimatePresence mode="wait">
               <motion.div
@@ -6202,7 +5994,7 @@ const ShippingCompaniesPanel = () => {
             {companies.length} شركة مسجلة · {activeCount} مفعّلة
           </p>
         </div>
-        <Button onClick={openNew} className="gap-2 bg-[#E8637A] hover:bg-[#d44f66] text-[#0F0F0F] font-black h-11 px-5 shadow-md shadow-[#E8637A]/20" data-testid="button-add-shipping">
+        <Button onClick={openNew} className="gap-2 bg-[#C9A882] hover:bg-[#8B6340] text-[#0F0F0F] font-black h-11 px-5 shadow-md shadow-[#C9A882]/20" data-testid="button-add-shipping">
           <Plus className="w-4 h-4" />
           إضافة شركة شحن
         </Button>
@@ -6210,8 +6002,8 @@ const ShippingCompaniesPanel = () => {
 
       {/* Form Dialog */}
       {showForm && (
-        <Card className="border-2 border-[#E8637A]/30 bg-gradient-to-br from-[#FAF8F4] to-white shadow-lg">
-          <CardHeader className="pb-3 border-b border-[#E8637A]/20">
+        <Card className="border-2 border-[#C9A882]/30 bg-gradient-to-br from-[#FAF8F4] to-white shadow-lg">
+          <CardHeader className="pb-3 border-b border-[#C9A882]/20">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-black text-[#6B3F2A]">
                 {editing ? "تعديل شركة الشحن" : "إضافة شركة شحن جديدة"}
@@ -6226,11 +6018,11 @@ const ShippingCompaniesPanel = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#6B3F2A] uppercase tracking-wide">اسم الشركة (عربي) *</label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="مثال: أرامكس" className="h-10 font-bold border-[#E8637A]/30 focus-visible:ring-[#E8637A]" data-testid="input-shipping-name" />
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="مثال: أرامكس" className="h-10 font-bold border-[#C9A882]/30 focus-visible:ring-[#C9A882]" data-testid="input-shipping-name" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#6B3F2A] uppercase tracking-wide">Company Name (English)</label>
-                <Input value={form.nameEn} onChange={e => setForm(f => ({ ...f, nameEn: e.target.value }))} placeholder="e.g. Aramex" dir="ltr" className="h-10 font-bold border-[#E8637A]/30 focus-visible:ring-[#E8637A]" data-testid="input-shipping-name-en" />
+                <Input value={form.nameEn} onChange={e => setForm(f => ({ ...f, nameEn: e.target.value }))} placeholder="e.g. Aramex" dir="ltr" className="h-10 font-bold border-[#C9A882]/30 focus-visible:ring-[#C9A882]" data-testid="input-shipping-name-en" />
               </div>
             </div>
 
@@ -6239,14 +6031,14 @@ const ShippingCompaniesPanel = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#6B3F2A] uppercase tracking-wide">سعر التوصيل (ريال) *</label>
                 <div className="relative">
-                  <Input type="number" min={0} step={0.5} value={form.price} onChange={e => setForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} placeholder="30" dir="ltr" className="h-10 font-black border-[#E8637A]/30 focus-visible:ring-[#E8637A] pl-10" data-testid="input-shipping-price" />
+                  <Input type="number" min={0} step={0.5} value={form.price} onChange={e => setForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} placeholder="30" dir="ltr" className="h-10 font-black border-[#C9A882]/30 focus-visible:ring-[#C9A882] pl-10" data-testid="input-shipping-price" />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-gray-500">ر.س</span>
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#6B3F2A] uppercase tracking-wide">مدة التوصيل المتوقعة *</label>
                 <div className="relative">
-                  <Input type="number" min={1} value={form.estimatedDays} onChange={e => setForm(f => ({ ...f, estimatedDays: parseInt(e.target.value) || 1 }))} placeholder="3" dir="ltr" className="h-10 font-black border-[#E8637A]/30 focus-visible:ring-[#E8637A] pl-14" data-testid="input-shipping-days" />
+                  <Input type="number" min={1} value={form.estimatedDays} onChange={e => setForm(f => ({ ...f, estimatedDays: parseInt(e.target.value) || 1 }))} placeholder="3" dir="ltr" className="h-10 font-black border-[#C9A882]/30 focus-visible:ring-[#C9A882] pl-14" data-testid="input-shipping-days" />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-gray-500">يوم</span>
                 </div>
               </div>
@@ -6256,18 +6048,18 @@ const ShippingCompaniesPanel = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#6B3F2A] uppercase tracking-wide">رابط الشعار</label>
-                <Input value={form.logo} onChange={e => setForm(f => ({ ...f, logo: e.target.value }))} placeholder="https://..." dir="ltr" className="h-10 font-bold border-[#E8637A]/30 focus-visible:ring-[#E8637A]" data-testid="input-shipping-logo" />
+                <Input value={form.logo} onChange={e => setForm(f => ({ ...f, logo: e.target.value }))} placeholder="https://..." dir="ltr" className="h-10 font-bold border-[#C9A882]/30 focus-visible:ring-[#C9A882]" data-testid="input-shipping-logo" />
                 {form.logo && <img src={form.logo} alt="logo preview" className="h-8 object-contain mt-1 rounded border border-gray-100 bg-white p-1" onError={e => (e.currentTarget.style.display = "none")} />}
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#6B3F2A] uppercase tracking-wide">كود Storage Station</label>
-                <Input value={form.storageXCode} onChange={e => setForm(f => ({ ...f, storageXCode: e.target.value }))} placeholder="مثال: ARAMEX_SA" dir="ltr" className="h-10 font-bold border-[#E8637A]/30 focus-visible:ring-[#E8637A]" data-testid="input-shipping-code" />
+                <Input value={form.storageXCode} onChange={e => setForm(f => ({ ...f, storageXCode: e.target.value }))} placeholder="مثال: ARAMEX_SA" dir="ltr" className="h-10 font-bold border-[#C9A882]/30 focus-visible:ring-[#C9A882]" data-testid="input-shipping-code" />
                 <p className="text-[10px] text-gray-500 font-bold">يُستخدم لربط الطلبات بنظام 3PL التلقائي</p>
               </div>
             </div>
 
             {/* Active toggle */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-[#E8637A]/20">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-[#C9A882]/20">
               <Switch checked={form.isActive} onCheckedChange={v => setForm(f => ({ ...f, isActive: v }))} data-testid="toggle-shipping-active" />
               <div>
                 <p className="text-sm font-black text-[#6B3F2A]">{form.isActive ? "شركة مفعّلة" : "شركة معطّلة"}</p>
@@ -6281,7 +6073,7 @@ const ShippingCompaniesPanel = () => {
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? "حفظ التعديلات" : "إضافة الشركة"}
               </Button>
-              <Button variant="ghost" className="font-bold text-gray-600 hover:text-[#E8637A]" onClick={() => { setShowForm(false); setEditing(null); }}>إلغاء</Button>
+              <Button variant="ghost" className="font-bold text-gray-600 hover:text-[#C9A882]" onClick={() => { setShowForm(false); setEditing(null); }}>إلغاء</Button>
             </div>
           </CardContent>
         </Card>
@@ -6290,11 +6082,11 @@ const ShippingCompaniesPanel = () => {
       {/* Companies Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-[#E8637A]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#C9A882]" />
         </div>
       ) : companies.length === 0 ? (
-        <Card className="p-16 text-center border-2 border-dashed border-[#E8637A]/30">
-          <Truck className="w-14 h-14 mx-auto mb-4 text-[#E8637A]/40" />
+        <Card className="p-16 text-center border-2 border-dashed border-[#C9A882]/30">
+          <Truck className="w-14 h-14 mx-auto mb-4 text-[#C9A882]/40" />
           <p className="font-black text-lg text-[#6B3F2A]">لا توجد شركات شحن بعد</p>
           <p className="text-sm text-gray-700 font-bold mt-1">أضف أول شركة لتفعيل خيارات التوصيل في المتجر</p>
         </Card>
@@ -6304,9 +6096,9 @@ const ShippingCompaniesPanel = () => {
             const cid = c.id || c._id;
             const isConfirmingDelete = deleteConfirm === cid;
             return (
-              <Card key={cid} className={`overflow-hidden border transition-all hover:shadow-lg ${c.isActive !== false ? "border-[#E8637A]/20 hover:border-[#E8637A]" : "border-gray-200 opacity-70"}`} data-testid={`card-shipping-${cid}`}>
+              <Card key={cid} className={`overflow-hidden border transition-all hover:shadow-lg ${c.isActive !== false ? "border-[#C9A882]/20 hover:border-[#C9A882]" : "border-gray-200 opacity-70"}`} data-testid={`card-shipping-${cid}`}>
                 {/* Top accent */}
-                <div className={`h-1 w-full ${c.isActive !== false ? "bg-gradient-to-r from-[#E8637A] to-[#6B3F2A]" : "bg-gray-300"}`} />
+                <div className={`h-1 w-full ${c.isActive !== false ? "bg-gradient-to-r from-[#C9A882] to-[#6B3F2A]" : "bg-gray-300"}`} />
                 <CardContent className="p-4 space-y-3">
                   {/* Company identity */}
                   <div className="flex items-start justify-between gap-3">
@@ -6358,7 +6150,7 @@ const ShippingCompaniesPanel = () => {
                       {c.storageXCode && (
                         <span className="text-[9px] font-mono bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">{c.storageXCode}</span>
                       )}
-                      <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#6B3F2A] hover:bg-[#E8637A]/10 transition-all" data-testid={`button-edit-shipping-${cid}`}>
+                      <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#6B3F2A] hover:bg-[#C9A882]/10 transition-all" data-testid={`button-edit-shipping-${cid}`}>
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       {isConfirmingDelete ? (
