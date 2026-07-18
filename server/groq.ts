@@ -8,11 +8,12 @@
  */
 
 import { isKimiConfigured, kimiChat } from "./kimi";
+import { isGeminiConfigured, geminiChat } from "./gemini";
 
 type Audience = "customer" | "employee";
 
 export function isGroqConfigured(): boolean {
-  return isKimiConfigured();
+  return isKimiConfigured() || isGeminiConfigured();
 }
 
 interface ChatMessage {
@@ -23,12 +24,16 @@ interface ChatMessage {
 async function groqChat(
   messages: ChatMessage[],
   maxTokens = 1024,
-  audience: Audience = "customer",
+  _audience: Audience = "customer",
 ): Promise<string> {
-  if (!isKimiConfigured()) {
-    throw new Error("AI service not configured — KIMI_API_KEY is missing");
+  // Try Kimi first, then Gemini
+  if (isKimiConfigured()) {
+    return kimiChat(messages, maxTokens, _audience);
   }
-  return kimiChat(messages, maxTokens, audience);
+  if (isGeminiConfigured()) {
+    return geminiChat(messages, maxTokens);
+  }
+  throw new Error("AI service not configured — no KIMI_API_KEY or GEMINI_API_KEY found");
 }
 
 /** Heuristic: detects whether the latest user message is mostly Arabic or Latin script */

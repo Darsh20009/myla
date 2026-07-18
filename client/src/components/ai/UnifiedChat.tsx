@@ -171,7 +171,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
   }, [messages, isLoading, activeTab]);
 
   const isAdvisor = activeTab === "advisor";
-  const accentColor = isAdvisor ? "#E8637A" : "#6B3F2A";
+  const accentColor = isAdvisor ? "#C9A882" : "#6B3F2A";
 
   return (
     <div className="fixed bottom-6 left-4 z-50" dir="rtl">
@@ -216,10 +216,10 @@ export const UnifiedChat = memo(function UnifiedChat() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -30, scale: 0.95 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="ml-3 w-[320px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(26,39,68,0.18)] border border-[#E8637A]/15 overflow-hidden"
+            className="ml-3 w-[320px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(26,39,68,0.18)] border border-[#C9A882]/15 overflow-hidden"
           >
             {/* Header */}
-            <div className="relative px-5 py-5" style={{ background: "linear-gradient(135deg, #6B3F2A 0%, #243154 100%)" }}>
+            <div className="relative px-5 py-5" style={{ background: "linear-gradient(135deg, #6B3F2A 0%, #1A0E08 100%)" }}>
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-white font-black text-base tracking-tight">كيف يمكننا خدمتك؟</h4>
@@ -233,7 +233,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                   <X className="h-4 w-4 text-white" />
                 </button>
               </div>
-              <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#E8637A] to-transparent" />
+              <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A882] to-transparent" />
             </div>
 
             {/* Options */}
@@ -260,7 +260,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                 onClick={() => openChat("support")}
                 className="group w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#6B3F2A]/5 transition-all active:scale-[0.98] border border-transparent hover:border-[#6B3F2A]/20"
               >
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md" style={{ background: "linear-gradient(135deg, #243154, #0f1a2e)" }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md" style={{ background: "linear-gradient(135deg, #1A0E08, #0E0A07)" }}>
                   <Headphones className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1 text-right min-w-0">
@@ -289,9 +289,9 @@ export const UnifiedChat = memo(function UnifiedChat() {
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-3 bg-gradient-to-l from-[#FFFFFF] to-white border-t border-[#E8637A]/10 text-center">
+            <div className="px-4 py-3 bg-gradient-to-l from-[#FFFFFF] to-white border-t border-[#C9A882]/10 text-center">
               <p className="text-[10px] text-gray-400 font-bold tracking-wide">
-                Myla <span className="text-[#E8637A]">·</span> Myla
+                Myla <span className="text-[#C9A882]">·</span> Myla
               </p>
             </div>
           </motion.div>
@@ -319,7 +319,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.98 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="sm:ml-3 w-full sm:w-[400px] sm:max-w-[calc(100vw-1.5rem)] bg-white rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(26,39,68,0.15)] sm:shadow-[0_20px_60px_rgba(26,39,68,0.18)] sm:border sm:border-[#E8637A]/15 overflow-hidden flex flex-col fixed sm:relative inset-x-0 bottom-0 sm:inset-auto z-50"
+            className="sm:ml-3 w-full sm:w-[400px] sm:max-w-[calc(100vw-1.5rem)] bg-white rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(26,39,68,0.15)] sm:shadow-[0_20px_60px_rgba(26,39,68,0.18)] sm:border sm:border-[#C9A882]/15 overflow-hidden flex flex-col fixed sm:relative inset-x-0 bottom-0 sm:inset-auto z-50"
             style={{ height: "min(92dvh, 720px)", paddingBottom: "env(safe-area-inset-bottom)" }}
           >
             {/* Header */}
@@ -341,7 +341,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                     <span className="text-[10px] text-gray-400 font-bold">متصل الآن</span>
                   </div>
                 </div>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-md" style={{ background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#d44f66" : "#0f1a2e"})` }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-md" style={{ background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#8B6340" : "#0E0A07"})` }}>
                   {isAdvisor ? <Sparkles className="h-4 w-4 text-white" /> : <Headphones className="h-4 w-4 text-white" />}
                 </div>
               </div>
@@ -365,7 +365,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                           ? `text-white rounded-tr-none`
                           : "bg-white text-[#6B3F2A] rounded-tl-none border border-gray-100"
                       }`}
-                      style={msg.role === "user" ? { background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#d44f66" : "#0f1a2e"})` } : undefined}
+                      style={msg.role === "user" ? { background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#8B6340" : "#0E0A07"})` } : undefined}
                     >
                       {msg.content}
                     </div>
@@ -380,10 +380,10 @@ export const UnifiedChat = memo(function UnifiedChat() {
                           initial={{ opacity: 0, x: 50, scale: 0.9 }}
                           animate={{ opacity: 1, x: 0, scale: 1 }}
                           transition={{ delay: idx * 0.12, type: "spring", stiffness: 200, damping: 18 }}
-                          className="bg-white rounded-2xl border border-[#E8637A]/30 p-3 shadow-md hover:shadow-xl hover:border-[#E8637A] transition-all group overflow-hidden relative"
+                          className="bg-white rounded-2xl border border-[#C9A882]/30 p-3 shadow-md hover:shadow-xl hover:border-[#C9A882] transition-all group overflow-hidden relative"
                           data-testid={`card-recommended-${p.id}`}
                         >
-                          <div className="absolute -top-1 -right-1 bg-gradient-to-br from-[#E8637A] to-[#d44f66] text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow">
+                          <div className="absolute -top-1 -right-1 bg-gradient-to-br from-[#C9A882] to-[#8B6340] text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow">
                             توصية ميلا ✨
                           </div>
                           <div className="flex items-stretch gap-3">
@@ -397,14 +397,14 @@ export const UnifiedChat = memo(function UnifiedChat() {
                                 <img src={p.image} alt={p.name} className="w-full h-full object-cover  transition-transform duration-500" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <Sparkles className="h-6 w-6 text-[#E8637A]" />
+                                  <Sparkles className="h-6 w-6 text-[#C9A882]" />
                                 </div>
                               )}
                             </button>
                             <div className="flex-1 min-w-0 text-right flex flex-col justify-between">
                               <div>
                                 <p className="font-black text-sm text-[#6B3F2A] line-clamp-2 leading-tight">{p.name}</p>
-                                <p className="text-base text-[#E8637A] font-black mt-1">
+                                <p className="text-base text-[#C9A882] font-black mt-1">
                                   {Number(p.price).toLocaleString("ar-SA")} <span className="text-[10px]"><RiyalSign /></span>
                                 </p>
                               </div>
@@ -417,7 +417,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                                   className={`flex-1 flex items-center justify-center gap-1 text-[11px] font-black px-2 py-1.5 rounded-lg transition-all ${
                                     addedIds.has(p.id)
                                       ? "bg-emerald-500 text-white"
-                                      : "bg-gradient-to-r from-[#E8637A] to-[#d44f66] text-white hover:shadow-lg"
+                                      : "bg-gradient-to-r from-[#C9A882] to-[#8B6340] text-white hover:shadow-lg"
                                   }`}
                                   data-testid={`button-add-cart-${p.id}`}
                                 >
@@ -475,7 +475,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                       onClick={() => handleSend(stripEmojiPrefix(chip))}
                       className={`text-[11px] font-bold px-3 py-1.5 rounded-full bg-white border transition-all shadow-sm ${
                         isAdvisor
-                          ? "border-[#E8637A]/30 text-[#6B3F2A] hover:bg-[#E8637A]/10 hover:border-[#E8637A]"
+                          ? "border-[#C9A882]/30 text-[#6B3F2A] hover:bg-[#C9A882]/10 hover:border-[#C9A882]"
                           : "border-[#6B3F2A]/25 text-[#6B3F2A] hover:bg-[#6B3F2A]/8 hover:border-[#6B3F2A]"
                       }`}
                       data-testid={`chip-suggestion-${idx}`}
@@ -499,7 +499,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={isAdvisor ? "اسأليني عن العبايات… / Ask about abayas…" : "اكتب رسالتك… / Type…"}
-                  className="flex-1 h-11 px-4 rounded-full bg-[#FFFFFF] border border-gray-200 focus:border-[#E8637A] text-sm font-medium focus:outline-none transition-all"
+                  className="flex-1 h-11 px-4 rounded-full bg-[#FFFFFF] border border-gray-200 focus:border-[#C9A882] text-sm font-medium focus:outline-none transition-all"
                   disabled={isLoading}
                   data-testid="input-chat-message"
                 />
@@ -508,7 +508,7 @@ export const UnifiedChat = memo(function UnifiedChat() {
                   disabled={!input.trim() || isLoading}
                   aria-label="إرسال"
                   className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all disabled:opacity-40 active:scale-95 shrink-0 shadow-md"
-                  style={{ background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#d44f66" : "#0f1a2e"})` }}
+                  style={{ background: `linear-gradient(135deg, ${accentColor}, ${isAdvisor ? "#8B6340" : "#0E0A07"})` }}
                   data-testid="button-send-message"
                 >
                   <Send className="h-4 w-4" />
