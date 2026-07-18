@@ -435,16 +435,16 @@ export default function ProductDetails() {
                 <AnimatePresence mode="wait" custom={slideDirection}>
                   <motion.img 
                     key={currentImageIndex}
-                    src={allImages[currentImageIndex] || "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&q=80"} 
+                    src={allImages[currentImageIndex] || "/myla-logo-header.png"} 
                     alt={product.name}
                     custom={slideDirection}
                     initial={{ x: slideDirection > 0 ? 400 : -400, opacity: 0, scale: 0.85, rotate: slideDirection > 0 ? 5 : -5 }}
                     animate={{ x: 0, opacity: 1, scale: 1, rotate: 0 }}
                     exit={{ x: slideDirection > 0 ? -400 : 400, opacity: 0, scale: 0.85, rotate: slideDirection > 0 ? -5 : 5 }}
                     transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-                    className="max-w-full max-h-full object-contain  transition-transform duration-1000"
+                    className="max-w-full max-h-full object-contain transition-transform duration-1000"
                     data-testid={`img-product-${currentImageIndex}`}
-                    onError={(e) => { const t = e.target as HTMLImageElement; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&q=80"; } }}
+                    onError={(e) => { const t = e.target as HTMLImageElement; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = "/myla-logo-header.png"; } }}
                   />
                 </AnimatePresence>
 
