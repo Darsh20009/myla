@@ -161,22 +161,33 @@ export async function geminiChat(
 }
 
 /**
- * Gemini Vision — analyze an image URL with a text prompt.
- * Fetches the image, converts to base64, sends to Gemini multimodal API.
+ * Gemini Vision — analyze an image with a text prompt.
+ * Accepts either:
+ *   - a URL string (fetched server-side and converted to base64), or
+ *   - a pre-encoded base64 string + explicit mimeType (sent directly — no auth needed).
  */
 export async function geminiVision(
-  imageUrl: string,
+  imageSource: string | { base64: string; mimeType: string },
   prompt: string,
   maxTokens = 800,
 ): Promise<string> {
   if (GEMINI_KEYS.length === 0) throw new Error("GEMINI_API_KEY not configured");
 
-  // Fetch and encode image
-  const imgRes = await fetch(imageUrl);
-  if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
-  const imgBuf = Buffer.from(await imgRes.arrayBuffer());
-  const base64Data = imgBuf.toString("base64");
-  const mimeType = (imgRes.headers.get("content-type") || "image/jpeg").split(";")[0];
+  let base64Data: string;
+  let mimeType: string;
+
+  if (typeof imageSource === "string") {
+    // Legacy path: fetch URL server-side
+    const imgRes = await fetch(imageSource);
+    if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+    const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    base64Data = imgBuf.toString("base64");
+    mimeType = (imgRes.headers.get("content-type") || "image/jpeg").split(";")[0];
+  } else {
+    // Fast path: base64 sent directly from client
+    base64Data = imageSource.base64;
+    mimeType = imageSource.mimeType;
+  }
 
   const visionBody = {
     contents: [{

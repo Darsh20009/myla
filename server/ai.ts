@@ -320,12 +320,18 @@ ${productsList}
 }
 
 export async function getSizeRecommendationFromPhoto(params: {
-  imageUrl: string;
+  imageUrl?: string;
+  imageBase64?: string;
+  imageMimeType?: string;
   productName: string;
   availableSizes: string[];
   availableLengths?: string[];
 }) {
-  const { imageUrl, productName, availableSizes, availableLengths = [] } = params;
+  const { imageUrl, imageBase64, imageMimeType, productName, availableSizes, availableLengths = [] } = params;
+  const imageSource: string | { base64: string; mimeType: string } =
+    imageBase64
+      ? { base64: imageBase64, mimeType: imageMimeType || "image/jpeg" }
+      : (imageUrl as string);
   const hasLengths = availableLengths.length > 0;
 
   const prompt = `أنتِ "لمى" — مستشارة الأناقة الشخصية في متجر Myla للعبايات الفاخرة.
@@ -356,7 +362,7 @@ ${hasLengths ? `الأطوال المتوفرة (إنش): ${availableLengths.joi
 
   try {
     const { geminiVision } = await import("./gemini");
-    const raw = await geminiVision(imageUrl, prompt, 700);
+    const raw = await geminiVision(imageSource, prompt, 700);
     const match = raw.match(/\{[\s\S]*\}/);
     return JSON.parse(match ? match[0] : raw);
   } catch (err: any) {

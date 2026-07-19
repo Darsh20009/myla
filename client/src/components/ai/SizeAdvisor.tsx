@@ -47,8 +47,9 @@ export function SizeAdvisor({
 
   // Photo tab
   const fileRef = useRef<HTMLInputElement>(null);
-  const [photoUrl, setPhotoUrl] = useState<string>("");
+  const [photoUrl, setPhotoUrl]   = useState<string>("");
   const [photoName, setPhotoName] = useState<string>("");
+  const [photoMime, setPhotoMime] = useState<string>("");
   const [uploading, setUploading] = useState(false);
 
   // ── Measurements submit ─────────────────────────────────────
@@ -77,33 +78,46 @@ export function SizeAdvisor({
     setLoading(false);
   };
 
-  // ── Photo upload ────────────────────────────────────────────
-  const handlePhotoFile = async (file: File) => {
-    setUploading(true);
+  // ── Photo — read as base64 locally (no upload / no auth needed) ──────────
+  const [photoBase64, setPhotoBase64] = useState<string>("");
+  const [photoMime, setPhotoMime]     = useState<string>("");
+
+  const handlePhotoFile = (file: File) => {
     setResult(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const up = await fetch("/api/upload", { method: "POST", body: fd, credentials: "include" });
-      if (!up.ok) throw new Error("upload failed");
-      const { url } = await up.json();
-      setPhotoUrl(url);
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string; // "data:image/jpeg;base64,..."
+      const [header, b64] = dataUrl.split(",");
+      const mime = header.replace("data:", "").replace(";base64", "");
+      setPhotoBase64(b64);
+      setPhotoMime(mime);
+      setPhotoUrl(dataUrl);          // keep for preview
       setPhotoName(file.name);
-    } catch {
-      setResult({ error: "فشل رفع الصورة. حاول مجدداً." });
-    }
-    setUploading(false);
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      setResult({ error: "فشل قراءة الصورة. حاول مجدداً." });
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handlePhotoAnalyze = async () => {
-    if (!photoUrl) return;
+    if (!photoBase64) return;
     setLoading(true);
     setResult(null);
     try {
       const res = await fetch("/api/ai/size-advisor-photo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: photoUrl, productName, availableSizes, availableLengths }),
+        body: JSON.stringify({
+          imageBase64: photoBase64,
+          imageMimeType: photoMime,
+          productName,
+          availableSizes,
+          availableLengths,
+        }),
       });
       setResult(await res.json());
     } catch {
@@ -112,7 +126,7 @@ export function SizeAdvisor({
     setLoading(false);
   };
 
-  const resetPhoto = () => { setPhotoUrl(""); setPhotoName(""); setResult(null); };
+  const resetPhoto = () => { setPhotoUrl(""); setPhotoName(""); setPhotoBase64(""); setPhotoMime(""); setResult(null); };
 
   // ── Result card ─────────────────────────────────────────────
   const ResultCard = () => {
@@ -364,7 +378,7 @@ export function SizeAdvisor({
 
                   <Button
                     onClick={handlePhotoAnalyze}
-                    disabled={loading || !photoUrl || uploading}
+                    disabled={loading || !photoBase64 || uploading}
                     className="w-full h-10 rounded-none bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-black/80 disabled:opacity-30"
                   >
                     {loading
