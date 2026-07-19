@@ -1,10 +1,10 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Product } from "@shared/schema";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { useState } from "react";
-import { Heart, ShoppingCart, Check, AlertCircle } from "lucide-react";
+import { Heart, ShoppingBag, Check, AlertCircle, Zap } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,6 +30,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { addItem } = useCart();
+  const [, setLocation] = useLocation();
   const [addedToCart, setAddedToCart] = useState(false);
   const images = product.images && product.images.length > 0
     ? product.images
@@ -243,77 +244,80 @@ export function ProductCard({ product }: ProductCardProps) {
                 🏪 {t('seller')}
               </p>
             )}
-            <div className="mt-2 sm:mt-3 flex items-stretch gap-1.5 sm:gap-2">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (isOutOfStock) return;
-                  const variants = (product as any).variants as Array<any> | undefined;
-                  let variant: any;
-                  if (variants && variants.length > 0) {
-                    // Pick the first variant that still has stock
-                    variant = variants.find((v: any) => Number(v?.stock) > 0) || variants[0];
-                  } else {
-                    // Synthetic default variant — products without configured variants
-                    // would otherwise silently fail to add. Build a sane default from
-                    // the product itself so the click is never a dead-end for the user.
-                    variant = {
-                      sku: `default-${product.id}`,
-                      color: '',
-                      size: '',
-                      price: Number(product.price) || 0,
-                      cost: Number((product as any).cost) || 0,
-                      image: product.images?.[0] || '',
-                      stock: 999,
-                    };
-                  }
-                  addItem(product, variant, 1);
-                  setAddedToCart(true);
-                  setTimeout(() => setAddedToCart(false), 2000);
-                  flyToCart(e.currentTarget, images[0]);
-                }}
-                disabled={isOutOfStock}
-                className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 ${
-                  isOutOfStock
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : addedToCart
-                      ? "bg-green-500 text-white"
-                      : "bg-[#6B3F2A] text-white hover:bg-[#8B5A3C] active:scale-95"
-                }`}
-                data-testid={`button-add-cart-${product.id}`}
-              >
-                {isOutOfStock ? (
-                  <>
-                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {language === 'ar' ? 'نفذت الكمية' : 'Out of Stock'}
-                  </>
-                ) : addedToCart ? (
-                  <>
-                    <Check className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {t('added')}
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {t('addToCart')}
-                  </>
-                )}
-              </button>
-              {user && (
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist.mutate(); }}
-                  className={`shrink-0 w-8 sm:w-10 flex items-center justify-center rounded-md sm:rounded-lg border transition-all duration-300 active:scale-95 ${
-                    isWishlisted
-                      ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
-                      : "bg-white text-[#E8637A] border-[#E8637A]/30 hover:bg-[#E8637A]/5 hover:border-[#E8637A]"
-                  }`}
-                  title={isWishlisted ? tx("إزالة من المفضلة", "Remove from wishlist") : t('addToWishlist')}
-                  aria-label={isWishlisted ? tx("إزالة من المفضلة", "Remove from wishlist") : t('addToWishlist')}
-                  data-testid={`button-wishlist-${product.id}`}
-                >
-                  <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? "fill-white" : ""}`} />
-                </button>
+            {/* ── Action buttons ───────────────────────────────── */}
+            <div className="mt-3 flex flex-col gap-1.5" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
+              {isOutOfStock ? (
+                <div className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-sm">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {language === 'ar' ? 'نفذت الكمية' : 'Out of Stock'}
+                </div>
+              ) : (
+                <>
+                  {/* Buy Now — primary */}
+                  <button
+                    onClick={(e) => {
+                      const variants = (product as any).variants as Array<any> | undefined;
+                      const variant = variants?.find((v: any) => Number(v?.stock) > 0) || variants?.[0] || {
+                        sku: `default-${product.id}`, color: '', size: '',
+                        price: Number(product.price) || 0, cost: Number((product as any).cost) || 0,
+                        image: product.images?.[0] || '', stock: 999,
+                      };
+                      addItem(product, variant, 1);
+                      setLocation("/checkout");
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-[#1a1a1a] active:scale-[0.98] transition-all duration-200 shadow-sm"
+                    data-testid={`button-buy-now-${product.id}`}
+                  >
+                    <Zap className="w-3 h-3 fill-white" />
+                    {t('buyNow')}
+                  </button>
+
+                  {/* Add to Cart + Wishlist — secondary row */}
+                  <div className="flex items-stretch gap-1.5">
+                    <button
+                      onClick={(e) => {
+                        const variants = (product as any).variants as Array<any> | undefined;
+                        const variant = variants?.find((v: any) => Number(v?.stock) > 0) || variants?.[0] || {
+                          sku: `default-${product.id}`, color: '', size: '',
+                          price: Number(product.price) || 0, cost: Number((product as any).cost) || 0,
+                          image: product.images?.[0] || '', stock: 999,
+                        };
+                        addItem(product, variant, 1);
+                        setAddedToCart(true);
+                        setTimeout(() => setAddedToCart(false), 2000);
+                        flyToCart(e.currentTarget, images[0]);
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm border transition-all duration-200 active:scale-[0.98] ${
+                        addedToCart
+                          ? "bg-[#15803d] border-[#15803d] text-white"
+                          : "bg-white border-[#6B3F2A]/40 text-[#6B3F2A] hover:bg-[#6B3F2A]/5 hover:border-[#6B3F2A]"
+                      }`}
+                      data-testid={`button-add-cart-${product.id}`}
+                    >
+                      {addedToCart ? (
+                        <><Check className="w-3 h-3" />{t('added')}</>
+                      ) : (
+                        <><ShoppingBag className="w-3 h-3" />{t('addToCart')}</>
+                      )}
+                    </button>
+
+                    {user && (
+                      <button
+                        onClick={() => toggleWishlist.mutate()}
+                        className={`shrink-0 w-9 flex items-center justify-center rounded-sm border transition-all duration-200 active:scale-95 ${
+                          isWishlisted
+                            ? "bg-[#E8637A] text-white border-[#E8637A]"
+                            : "bg-white text-[#E8637A] border-[#E8637A]/30 hover:border-[#E8637A] hover:bg-[#E8637A]/5"
+                        }`}
+                        title={isWishlisted ? tx("إزالة من المفضلة", "Remove from wishlist") : t('addToWishlist')}
+                        aria-label={isWishlisted ? tx("إزالة من المفضلة", "Remove from wishlist") : t('addToWishlist')}
+                        data-testid={`button-wishlist-${product.id}`}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-white" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </CardContent>
