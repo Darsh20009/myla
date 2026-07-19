@@ -80,7 +80,6 @@ export function SizeAdvisor({
 
   // ── Photo — read as base64 locally (no upload / no auth needed) ──────────
   const [photoBase64, setPhotoBase64] = useState<string>("");
-  const [photoMime, setPhotoMime]     = useState<string>("");
 
   const handlePhotoFile = (file: File) => {
     setResult(null);
