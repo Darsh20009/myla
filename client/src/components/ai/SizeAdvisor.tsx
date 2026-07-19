@@ -136,6 +136,16 @@ export function SizeAdvisor({
         className="text-xs text-red-500 font-bold text-center py-3"
       >{result.error}</motion.p>
     );
+    // Empty result — AI keys not configured or service unavailable
+    if (!result.recommendedSize) return (
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="text-center py-4 space-y-1"
+      >
+        <p className="text-xs font-black text-black/40 uppercase tracking-widest">خدمة الذكاء الاصطناعي غير متاحة حالياً</p>
+        <p className="text-[10px] text-black/30 font-bold">يرجى إدخال المقاسات يدوياً أو التواصل مع الدعم</p>
+      </motion.div>
+    );
     return (
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

@@ -6,7 +6,7 @@ import { trackPixelEvent } from "@/lib/pixels";
 import { Button } from "@/components/ui/button";
 import { useRoute, useLocation } from "wouter";
 import { useState, useEffect, useMemo } from "react";
-import { ShoppingBag, Check, Heart, Star, Send, Loader2, ChevronLeft, ChevronRight, ImagePlus, X, MessageSquare } from "lucide-react";
+import { ShoppingBag, Check, Heart, Star, Send, Loader2, ChevronLeft, ChevronRight, ImagePlus, X, MessageSquare, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
@@ -366,16 +366,21 @@ export default function ProductDetails() {
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
-    
     setIsAnimating(true);
-    // Ensure the variant image is passed correctly to the cart
     addItem(product, selectedVariant, quantity, {
       length: selectedLength || undefined,
       notes: itemNotes.trim() || undefined,
     });
-    
-    // Animation reset
     setTimeout(() => setIsAnimating(false), 1000);
+  };
+
+  const handleBuyNow = () => {
+    if (!selectedVariant) return;
+    addItem(product, selectedVariant, quantity, {
+      length: selectedLength || undefined,
+      notes: itemNotes.trim() || undefined,
+    });
+    setLocation("/checkout");
   };
 
   const currentPrice = selectedVariant?.price ?? product.price;
@@ -734,37 +739,40 @@ export default function ProductDetails() {
             {/* Installment Plans Section */}
             <InstallmentSection price={product.price} language={language} />
 
-            <Button 
-              size="lg" 
-              className="w-full h-20 text-sm font-bold uppercase tracking-[0.3em] rounded-none bg-black text-white hover-elevate active-elevate-2 border-none relative overflow-visible"
-              onClick={handleAddToCart}
-              disabled={isAnimating}
-            >
-              {isAnimating && (
-                <motion.div
-                  initial={{ scale: 0.5, opacity: 1, x: 0, y: 0 }}
-                  animate={{ 
-                    scale: 0.2, 
-                    opacity: 0,
-                    x: language === 'ar' ? -400 : 400,
-                    y: -800,
-                    rotate: 360
-                  }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
-                >
-                  <div className="w-20 h-20 bg-white shadow-2xl p-1 border border-black/5">
-                    <img 
-                      src={selectedVariant?.image || product.images[0]} 
-                      alt="" 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                </motion.div>
-              )}
-              {language === 'ar' ? <ShoppingBag className="ml-3 h-5 w-5" /> : <ShoppingBag className="mr-3 h-5 w-5" />}
-              {t('addToCart')}
-            </Button>
+            {/* ── CTA buttons ─────────────────────────────── */}
+            <div className="flex flex-col gap-3">
+              {/* Buy Now — primary */}
+              <button
+                onClick={handleBuyNow}
+                disabled={!selectedVariant}
+                className="w-full h-14 flex items-center justify-center gap-3 bg-black text-white text-xs font-black uppercase tracking-[0.25em] hover:bg-[#1a1a1a] active:scale-[0.99] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Zap className="h-4 w-4 fill-white" />
+                {t('buyNow')}
+              </button>
+
+              {/* Add to Cart — secondary */}
+              <button
+                onClick={handleAddToCart}
+                disabled={isAnimating || !selectedVariant}
+                className="w-full h-14 flex items-center justify-center gap-3 border border-black text-black text-xs font-black uppercase tracking-[0.25em] hover:bg-black hover:text-white active:scale-[0.99] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed relative overflow-visible"
+              >
+                {isAnimating && (
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 1, x: 0, y: 0 }}
+                    animate={{ scale: 0.2, opacity: 0, x: language === 'ar' ? -400 : 400, y: -800, rotate: 360 }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
+                  >
+                    <div className="w-16 h-16 bg-white shadow-2xl p-1 border border-black/5">
+                      <img src={selectedVariant?.image || product.images[0]} alt="" className="w-full h-full object-contain" />
+                    </div>
+                  </motion.div>
+                )}
+                <ShoppingBag className="h-4 w-4" />
+                {t('addToCart')}
+              </button>
+            </div>
 
             <div className="mt-12 pt-8 border-t border-black/5 flex flex-col gap-4 text-xs font-bold uppercase tracking-widest text-black/40">
                <div className={`flex items-center gap-3 ${language === 'ar' ? 'justify-end' : 'justify-start'}`}><Check className="h-4 w-4 text-black"/> {t('originalProduct')}</div>
