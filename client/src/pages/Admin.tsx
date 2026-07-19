@@ -568,7 +568,7 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
       } else {
         // Product images - append to array
         const currentImages = form.getValues("images") || [];
-        form.setValue("images", [...currentImages, url]);
+        form.setValue("images", [...currentImages, url], { shouldDirty: true });
       }
       
       toast({ title: "تم رفع الصورة بنجاح" });
@@ -583,7 +583,7 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
 
   const removeProductImage = (index: number) => {
     const currentImages = form.getValues("images") || [];
-    form.setValue("images", currentImages.filter((_: any, i: number) => i !== index));
+    form.setValue("images", currentImages.filter((_: any, i: number) => i !== index), { shouldDirty: true });
   };
 
   const addVariant = () => {
@@ -614,6 +614,7 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
       toast({ title: "تم تحديث المنتج بنجاح" });
       onOpenChange(false);
       await queryClient.refetchQueries({ queryKey: [api.products.list.path], type: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
     } catch (e) {
       toast({ title: "خطأ", description: "فشل تحديث المنتج", variant: "destructive" });
     }
@@ -965,6 +966,7 @@ const ProductsTable = memo(() => {
       setEditingProduct(null);
       setSelectedCategoryIds([]);
       await queryClient.refetchQueries({ queryKey: [api.products.list.path], type: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
     } catch (e) {
       toast({ title: "خطأ", description: "فشل حفظ المنتج", variant: "destructive" });
     }
@@ -1007,7 +1009,7 @@ const ProductsTable = memo(() => {
       } else {
         // Product images - append to array
         const currentImages = form.getValues("images") || [];
-        form.setValue("images", [...currentImages, url]);
+        form.setValue("images", [...currentImages, url], { shouldDirty: true });
       }
       
       toast({ title: "تم رفع الصورة بنجاح" });
@@ -1022,7 +1024,7 @@ const ProductsTable = memo(() => {
 
   const removeProductImage = (index: number) => {
     const currentImages = form.getValues("images") || [];
-    form.setValue("images", currentImages.filter((_: any, i: number) => i !== index));
+    form.setValue("images", currentImages.filter((_: any, i: number) => i !== index), { shouldDirty: true });
   };
 
   if (isLoading) return <Loader2 className="animate-spin" />;
@@ -5397,18 +5399,18 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
       <motion.aside
         animate={{ width: collapsed ? 72 : 260 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`fixed inset-y-0 right-0 z-50 flex flex-col h-full bg-white border-l border-slate-200 shadow-2xl lg:shadow-sm overflow-hidden shrink-0 transform transition-transform duration-300
+        className={`fixed inset-y-0 right-0 z-50 flex flex-col h-full bg-[#111827] border-l border-white/5 shadow-2xl lg:shadow-sm overflow-hidden shrink-0 transform transition-transform duration-300
           ${mobileOpen ? "translate-x-0" : "translate-x-full"}
           lg:relative lg:translate-x-0 lg:z-30`}
         style={{ width: collapsed ? 72 : 260 }}
         dir="rtl"
       >
         {/* Header / Logo */}
-        <div className="relative z-10 flex items-center gap-3 px-4 py-4 border-b border-slate-200 safe-top">
+        <div className="relative z-10 flex items-center gap-3 px-4 py-4 border-b border-white/5 safe-top">
           <img src={logoDarkImg} alt="Myla" className="w-9 h-9 rounded-xl object-cover shrink-0" />
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="font-black text-sm text-[#6B3F2A] tracking-tight whitespace-nowrap">Myla</p>
+              <p className="font-black text-sm text-white tracking-tight whitespace-nowrap">Myla</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <PulseRing color="bg-[#C9A882]" />
                 <span className="text-[9px] text-[#C9A882] font-bold uppercase tracking-widest">لوحة التحكم</span>
@@ -5419,7 +5421,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
           {onMobileClose && (
             <button
               onClick={onMobileClose}
-              className="mr-auto p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all lg:hidden"
+              className="mr-auto p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all lg:hidden"
               aria-label="إغلاق"
             >
               <X className="w-4 h-4" />
@@ -5428,7 +5430,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
           {/* Desktop collapse toggle */}
           <button
             onClick={() => setCollapsed(c => !c)}
-            className={`${collapsed ? "mx-auto" : "mr-auto"} p-1.5 rounded-lg text-slate-400 hover:text-[#C9A882] hover:bg-slate-50 transition-all hidden lg:block`}
+            className={`${collapsed ? "mx-auto" : "mr-auto"} p-1.5 rounded-lg text-white/30 hover:text-[#C9A882] hover:bg-white/10 transition-all hidden lg:block`}
           >
             <Menu className="w-4 h-4" />
           </button>
@@ -5436,13 +5438,13 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
 
       {/* User Info */}
       {!collapsed && (
-        <div className="relative z-10 mx-3 mt-3 p-3 rounded-xl bg-[#FFFFFF] border border-slate-200">
+        <div className="relative z-10 mx-3 mt-3 p-3 rounded-xl bg-white/5 border border-white/10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C9A882] to-[#8B6340] flex items-center justify-center text-xs font-black text-white shrink-0">
               {user?.name?.charAt(0) || "A"}
             </div>
             <div className="overflow-hidden">
-              <p className="font-bold text-xs text-[#6B3F2A] truncate">{user?.name || "المدير"}</p>
+              <p className="font-bold text-xs text-white/90 truncate">{user?.name || "المدير"}</p>
               <p className="text-[9px] text-slate-400 tabular-nums">{time.toLocaleTimeString("ar-SA")}</p>
             </div>
           </div>
@@ -5454,7 +5456,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
         {groups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-3 pb-1.5">{group.label}</p>
+              <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">{group.label}</p>
             )}
             {group.items.map((item) => {
               const isActive = activeTab === item.id;
@@ -5465,12 +5467,12 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
                   title={collapsed ? item.label : undefined}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group
                     ${isActive
-                      ? "bg-[#C9A882]/10 text-[#C9A882] border border-[#C9A882]/20"
-                      : "text-slate-500 hover:text-[#6B3F2A] hover:bg-slate-50"
+                      ? "bg-[#C9A882]/15 text-[#C9A882] border border-[#C9A882]/25"
+                      : "text-white/50 hover:text-white hover:bg-white/5"
                     }`}
                 >
                   {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A882] rounded-l-full" />}
-                  <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-slate-600"}`} />
+                  <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-white/70"}`} />
                   {!collapsed && <span className="text-xs font-bold truncate">{item.label}</span>}
                   {!collapsed && (item as any).badge > 0 && (
                     <span className="mr-auto px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
@@ -5486,18 +5488,18 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
         {/* HR & Operations links */}
         {!collapsed && (
           <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-3 pb-1.5">الموارد البشرية</p>
+            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">الموارد البشرية</p>
           </div>
         )}
         {cafeOperationsLinks.map((link) => (
           <Link key={link.url} href={link.url}>
             <div
               title={collapsed ? link.label : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-[#6B3F2A] hover:bg-[#6B3F2A]/5 transition-all cursor-pointer group"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/40 hover:text-white/80 hover:bg-white/5 transition-all cursor-pointer group"
             >
-              <link.icon className="w-4 h-4 shrink-0 group-hover:text-[#6B3F2A]" />
+              <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/70" />
               {!collapsed && <span className="text-xs font-bold">{link.label}</span>}
-              {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-30 group-hover:opacity-70" />}
+              {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-20 group-hover:opacity-50" />}
             </div>
           </Link>
         ))}
@@ -5505,16 +5507,16 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
         {/* External links */}
         {!collapsed && (
           <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-3 pb-1.5">روابط سريعة</p>
+            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">روابط سريعة</p>
           </div>
         )}
         {externalLinks.map((link) => (
           <Link key={link.url} href={link.url}>
             <div
               title={collapsed ? link.label : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all cursor-pointer group"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all cursor-pointer group"
             >
-              <link.icon className="w-4 h-4 shrink-0 group-hover:text-slate-600" />
+              <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/60" />
               {!collapsed && <span className="text-xs font-bold">{link.label}</span>}
               {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-30 group-hover:opacity-70" />}
             </div>
@@ -5523,11 +5525,11 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
       </nav>
 
       {/* Logout */}
-      <div className="relative z-10 p-3 border-t border-slate-100">
+      <div className="relative z-10 p-3 border-t border-white/5">
         <button
           onClick={logout}
           title={collapsed ? "تسجيل الخروج" : undefined}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           {!collapsed && <span className="text-xs font-bold">تسجيل الخروج</span>}
@@ -5602,7 +5604,7 @@ export default function Admin() {
   }, [authLoading, isStaff, setLocation]);
 
   if (authLoading) return (
-    <div className="flex h-screen items-center justify-center bg-[#F7F5F2]">
+    <div className="flex h-screen items-center justify-center bg-[#F0F4F8]">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-2 border-slate-200 border-t-[#C9A882] rounded-full animate-spin" />
         <p className="text-slate-400 text-xs tracking-widest uppercase">جاري التحميل</p>
@@ -5616,7 +5618,7 @@ export default function Admin() {
   );
 
   return (
-    <div className="flex h-screen w-full bg-[#F7F5F2] text-[#1A0E08] overflow-hidden" dir="rtl">
+    <div className="flex h-screen w-full bg-[#F0F4F8] text-[#1A0E08] overflow-hidden" dir="rtl">
       {/* Sidebar */}
       <AdminSidebar
         activeTab={activeTab}
@@ -5675,7 +5677,7 @@ export default function Admin() {
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#F7F5F2]">
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#F0F4F8]">
           <div className="p-3 sm:p-4 lg:p-6 space-y-4 lg:space-y-6">
             <AnimatePresence mode="wait">
               <motion.div
