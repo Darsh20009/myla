@@ -12,23 +12,18 @@ export function PageTransition() {
   const firstRender = useRef(true);
   const [visible, setVisible] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const rafRef = useRef<number | null>(null);
 
-  // useLayoutEffect fires synchronously before the browser paints the new
-  // page, so the overlay covers the screen before any flash of the
-  // destination page content is visible.
   useLayoutEffect(() => {
     const from = prevLocation.current;
     const to = location;
     prevLocation.current = to;
 
-    // Don't play on the very first page load.
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
     if (from === to) return;
-    // "Not between products" — skip the transition when moving from one
-    // product page to another product page.
     if (isProductDetail(from) && isProductDetail(to)) return;
 
     setVisible(true);
@@ -36,25 +31,68 @@ export function PageTransition() {
 
   useEffect(() => {
     if (!visible) return;
-    const video = videoRef.current;
-    const hardCap = setTimeout(() => setVisible(false), 4000);
 
-    const finish = () => setVisible(false);
+    const video = videoRef.current;
+    const hardCap = setTimeout(() => setVisible(false), 8000);
+
+    // Cancel any previous reverse RAF
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    const playReverse = () => {
+      const v = videoRef.current;
+      if (!v) { clearTimeout(hardCap); setVisible(false); return; }
+
+      // Step size: move back ~1 frame at ~60fps per RAF call
+      const STEP = 1 / 49; // slightly less than 1/60 for smooth feel
+
+      const tick = () => {
+        const nv = videoRef.current;
+        if (!nv) { clearTimeout(hardCap); setVisible(false); return; }
+
+        nv.currentTime = Math.max(0, nv.currentTime - STEP);
+
+        if (nv.currentTime <= 0) {
+          // Reverse done — fade out overlay
+          clearTimeout(hardCap);
+          setVisible(false);
+          return;
+        }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    const onEnded = () => {
+      // Forward playback finished — start reverse
+      playReverse();
+    };
+
+    const onError = () => { clearTimeout(hardCap); setVisible(false); };
+
     if (video) {
       video.currentTime = 0;
-      video.playbackRate = 2;
-      video.addEventListener("ended", finish);
-      video.addEventListener("error", finish);
-      video.play().catch(finish);
+      video.playbackRate = 1;
+      video.addEventListener("ended", onEnded);
+      video.addEventListener("error", onError);
+      video.play().catch(onError);
     } else {
-      finish();
+      onError();
     }
 
     return () => {
       clearTimeout(hardCap);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       if (video) {
-        video.removeEventListener("ended", finish);
-        video.removeEventListener("error", finish);
+        video.removeEventListener("ended", onEnded);
+        video.removeEventListener("error", onError);
+        video.pause();
       }
     };
   }, [visible]);
@@ -67,15 +105,15 @@ export function PageTransition() {
           initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#EBEBE8]"
+          transition={{ duration: 0.35, ease: "easeInOut" }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ backgroundColor: "#F2EDE4" }}
           data-testid="page-transition-overlay"
         >
           <video
             ref={videoRef}
             muted
             playsInline
-            autoPlay
             preload="auto"
             className="max-h-[60vh] max-w-[80vw] object-contain"
           >
