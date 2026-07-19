@@ -318,3 +318,48 @@ ${productsList}
 `;
   return kimiJSON(prompt, 1000);
 }
+
+export async function getSizeRecommendationFromPhoto(params: {
+  imageUrl: string;
+  productName: string;
+  availableSizes: string[];
+  availableLengths?: string[];
+}) {
+  const { imageUrl, productName, availableSizes, availableLengths = [] } = params;
+  const hasLengths = availableLengths.length > 0;
+
+  const prompt = `أنتِ "لمى" — مستشارة الأناقة الشخصية في متجر Myla للعبايات الفاخرة.
+
+انظري بعناية إلى هذه الصورة وحددي:
+١. الطول التقريبي للشخص
+٢. نوع البنية (نحيفة / متوسطة / ممتلئة)
+٣. عرض الكتفين نسبياً
+٤. منطقة الصدر والخصر نسبياً
+
+المنتج: "${productName}"
+المقاسات المتوفرة: ${availableSizes.join(", ")}
+${hasLengths ? `الأطوال المتوفرة (إنش): ${availableLengths.join(", ")}` : ""}
+
+بناءً على تحليلك للصورة، أعطي توصية المقاس المناسب.
+
+أجيبي بصيغة JSON فقط بالعربية:
+{
+  "recommendedSize": "المقاس الموصى به من القائمة",
+  ${hasLengths ? `"recommendedLength": "الطول الموصى به من القائمة",
+  "lengthReasoning": "جملة دافئة تشرح لماذا هذا الطول مثالي",` : ""}
+  "confidence": "high|medium|low",
+  "reasoning": "تحليل قصير وأنيق للصورة وسبب التوصية",
+  "fit": "slim|regular|loose",
+  "tips": ["نصيحة ستايل مختصرة"],
+  "alternativeSize": "مقاس بديل إن كانت تفضل إطلالة مختلفة"
+}`;
+
+  try {
+    const { geminiVision } = await import("./gemini");
+    const raw = await geminiVision(imageUrl, prompt, 700);
+    const match = raw.match(/\{[\s\S]*\}/);
+    return JSON.parse(match ? match[0] : raw);
+  } catch (err: any) {
+    return { error: "تعذّر تحليل الصورة. يرجى إدخال المقاسات يدوياً أو المحاولة مرة أخرى." };
+  }
+}

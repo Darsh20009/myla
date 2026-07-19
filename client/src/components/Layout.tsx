@@ -313,13 +313,6 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                           <ChevronRight className={`h-4 w-4 text-muted-foreground ${language === 'ar' ? 'rotate-180' : ''}`} />
                         </div>
                       </a>
-                      {deferredPrompt && (
-                        <button onClick={() => { handleInstall(); closeSidebar(); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-muted transition-all active:scale-95">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Download className="h-4 w-4 text-primary" /></div>
-                          <span className="font-bold text-[13px] text-foreground flex-1 text-right">{t('installApp')}</span>
-                          <span className="text-[9px] font-black px-2 py-1 rounded-full bg-primary text-primary-foreground">{t('new')}</span>
-                        </button>
-                      )}
                       {user && (
                         <button onClick={() => { logout(); closeSidebar(); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-red-50 transition-all active:scale-95">
                           <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center shrink-0"><LogOut className="h-4 w-4 text-red-500" /></div>
@@ -389,17 +382,6 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                 </Link>
               );
             })}
-            {deferredPrompt && (
-              <Button 
-                onClick={handleInstall}
-                variant="ghost"
-                size="sm"
-                className="gap-2 font-black uppercase text-[10px] h-9"
-              >
-                <Download className="h-4 w-4" />
-                {t('installApp')}
-              </Button>
-            )}
           </div>
 
           <div className="flex items-center gap-1 md:gap-2">

@@ -581,116 +581,54 @@ export default function ProductDetails() {
               {hasRealVariants && (
               <div>
                 <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-6 text-black/40">{t('colorLabel')}</label>
-                <div className={`flex flex-wrap gap-4 ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`flex flex-wrap gap-3 ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
                   {colors.map((color: string, idx: number) => {
                     const isSelected = selectedColor === color;
-                    const nearby = isSelected ? getNearbyColors(color, colors, 4) : [];
                     return (
-                    <motion.div
-                      key={color}
-                      className="relative group"
-                      style={{ overflow: "visible" }}
-                      initial={{ opacity: 0, x: language === 'ar' ? 60 : -60, scale: 0.6, rotate: language === 'ar' ? 15 : -15 }}
-                      animate={{ opacity: 1, x: 0, scale: 1, rotate: 0 }}
-                      transition={{ delay: idx * 0.1, type: "spring", stiffness: 180, damping: 14 }}
-                    >
-                      {/* ── Orbit satellites of nearby colors ── */}
-                      <AnimatePresence>
-                        {isSelected && nearby.map((nc, ni) => {
-                          const angleDeg = ORBIT_ANGLES[ni] ?? (180 + ni * 45);
-                          const rad = (angleDeg * Math.PI) / 180;
-                          const r = 54;
-                          const cx = Math.cos(rad) * r;
-                          const cy = Math.sin(rad) * r;
-                          return (
-                            <motion.button
-                              key={nc}
-                              onClick={() => setSelectedColor(nc)}
-                              initial={{ scale: 0, x: 0, y: 0, opacity: 0 }}
-                              animate={{ scale: 1, x: cx, y: cy, opacity: 1 }}
-                              exit={{ scale: 0, x: 0, y: 0, opacity: 0 }}
-                              transition={{ delay: ni * 0.07, type: "spring", stiffness: 340, damping: 20 }}
-                              title={nc}
-                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-lg z-30 ring-1 ring-black/15 hover:scale-110 transition-transform"
-                              style={{ transformOrigin: "center center" }}
-                            >
-                              {colorImages[nc] ? (
-                                <img src={colorImages[nc]} alt={nc} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-black/8 flex items-center justify-center text-[7px] font-black text-center leading-none px-0.5">
-                                  {nc.slice(0, 3)}
-                                </div>
-                              )}
-                            </motion.button>
-                          );
-                        })}
-                      </AnimatePresence>
-
-                      {/* ── Glow ring behind selected swatch ── */}
-                      <AnimatePresence>
-                        {isSelected && (
-                          <motion.div
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1.7, opacity: 1 }}
-                            exit={{ scale: 0.5, opacity: 0 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 18 }}
-                            className="absolute inset-0 rounded-full pointer-events-none z-0"
-                            style={{
-                              background: "radial-gradient(circle, rgba(0,0,0,0.12) 0%, transparent 70%)",
-                              boxShadow: "0 0 0 6px rgba(0,0,0,0.07), 0 0 24px 4px rgba(0,0,0,0.1)",
-                            }}
-                          />
-                        )}
-                      </AnimatePresence>
-
+                    <div key={color} className="relative group flex flex-col items-center gap-1.5">
                       <motion.button
                         onClick={() => setSelectedColor(color)}
-                        whileHover={{ scale: 1.15, rotate: 5 }}
-                        whileTap={{ scale: 0.92 }}
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.06, type: "spring", stiffness: 260, damping: 20 }}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.93 }}
                         className={`
-                          relative w-20 h-20 rounded-full overflow-hidden transition-all duration-300 p-0.5 border-2 z-10
-                          ${isSelected 
-                            ? 'border-black scale-110 shadow-xl ring-4 ring-black/10' 
-                            : 'border-transparent hover:border-black/20'}
+                          relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all duration-200
+                          ${isSelected
+                            ? 'border-black shadow-lg ring-2 ring-black/10'
+                            : 'border-black/10 hover:border-black/30'}
                         `}
                         data-testid={`button-color-${color}`}
                       >
                         {colorImages[color] ? (
-                          <div className="w-full h-full rounded-full overflow-hidden bg-muted">
-                            <img 
-                              src={colorImages[color]} 
-                              alt={color} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+                          <img src={colorImages[color]} alt={color} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full rounded-full bg-black/5 flex items-center justify-center text-[10px] font-black uppercase text-center px-1">
+                          <div className="w-full h-full bg-black/5 flex items-center justify-center text-[9px] font-black uppercase text-center px-1 leading-none">
                             {color}
                           </div>
                         )}
-                        
-                        {isSelected && (
-                          <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 18 }}
-                            className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-[1px]"
-                          >
-                            <Check className="h-5 w-5 text-white drop-shadow-md" />
-                          </motion.div>
-                        )}
+                        <AnimatePresence>
+                          {isSelected && (
+                            <motion.div
+                              key="check"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute inset-0 bg-black/25 flex items-center justify-center backdrop-blur-[1px]"
+                            >
+                              <Check className="h-4 w-4 text-white drop-shadow" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.button>
-                      
-                      {/* Tooltip-like label */}
-                      <div className={`
-                        absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap transition-all duration-300 pointer-events-none z-20
-                        ${isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'}
-                      `}>
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-2 py-0.5">
-                          {color}
-                        </span>
-                      </div>
-                    </motion.div>
+                      {/* Color label */}
+                      <span className={`text-[9px] font-bold uppercase tracking-widest transition-all duration-200 max-w-[56px] truncate text-center leading-none
+                        ${isSelected ? 'text-black' : 'text-black/30 group-hover:text-black/60'}`}>
+                        {color}
+                      </span>
+                    </div>
                     );
                   })}
                 </div>
@@ -744,7 +682,17 @@ export default function ProductDetails() {
               </div>
               )}
 
-              {/* Perfume advisor / outfit suggestions removed — Myla is an oud & perfume store, not clothing. */}
+              {/* AI Size Advisor */}
+              {hasRealVariants && (
+                <SizeAdvisor
+                  productName={language === 'ar' ? product.name : (product.nameEn || product.name)}
+                  productCategory={(product as any).categoryId || "abaya"}
+                  availableSizes={availableSizes}
+                  availableLengths={ABAYA_LENGTHS}
+                  onSizeSelect={(s) => setSelectedSize(s)}
+                  onLengthSelect={(l) => setSelectedLength?.(l)}
+                />
+              )}
 
               {/* Quantity */}
               <div>

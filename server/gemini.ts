@@ -159,3 +159,60 @@ export async function geminiChat(
 
   throw lastErr || new Error("Gemini request failed on all keys/models");
 }
+
+/**
+ * Gemini Vision — analyze an image URL with a text prompt.
+ * Fetches the image, converts to base64, sends to Gemini multimodal API.
+ */
+export async function geminiVision(
+  imageUrl: string,
+  prompt: string,
+  maxTokens = 800,
+): Promise<string> {
+  if (GEMINI_KEYS.length === 0) throw new Error("GEMINI_API_KEY not configured");
+
+  // Fetch and encode image
+  const imgRes = await fetch(imageUrl);
+  if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+  const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+  const base64Data = imgBuf.toString("base64");
+  const mimeType = (imgRes.headers.get("content-type") || "image/jpeg").split(";")[0];
+
+  const visionBody = {
+    contents: [{
+      role: "user",
+      parts: [
+        { inlineData: { mimeType, data: base64Data } },
+        { text: prompt },
+      ],
+    }],
+    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+  };
+
+  let lastErr: any = null;
+  for (const model of MODEL_CASCADE) {
+    for (const key of GEMINI_KEYS) {
+      if (!isAvailable(key, model)) continue;
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(visionBody),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+          if (text) return text;
+        }
+        const errText = await res.text();
+        if (res.status === 429) markCooldown(key, model, 60);
+        else if ([401, 403].includes(res.status)) markCooldown(key, model, 86400);
+        lastErr = new Error(`Gemini vision HTTP ${res.status}: ${errText.slice(0, 100)}`);
+      } catch (err: any) {
+        lastErr = err;
+      }
+    }
+  }
+  throw lastErr || new Error("Gemini vision failed on all keys/models");
+}

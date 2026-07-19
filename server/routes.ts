@@ -4918,6 +4918,16 @@ ${allUrls.map(u => `  <url>
     }
   });
 
+  app.post("/api/ai/size-advisor-photo", aiLimiter, async (req, res) => {
+    try {
+      const { getSizeRecommendationFromPhoto } = await import("./ai");
+      const result = await getSizeRecommendationFromPhoto(req.body);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/ai/insights", aiLimiter, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
