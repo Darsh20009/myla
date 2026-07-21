@@ -2656,8 +2656,8 @@ const OrdersManagement = memo(() => {
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-blue-400 rounded-full" />
           <div>
-            <h2 className="text-lg font-black text-white">إدارة الطلبات</h2>
-            <p className="text-[10px] text-white/30">{allOrders.length} طلب إجمالاً</p>
+            <h2 className="text-lg font-black text-gray-900">إدارة الطلبات</h2>
+            <p className="text-[10px] text-gray-400">{allOrders.length} طلب إجمالاً</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -2668,7 +2668,7 @@ const OrdersManagement = memo(() => {
           )}
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/orders"] })}
-            className="p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/5 transition-all"
+            className="p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -2681,8 +2681,8 @@ const OrdersManagement = memo(() => {
           onClick={() => setStatusFilter("all")}
           className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all border ${
             statusFilter === "all"
-              ? "bg-white/15 text-white border-white/20"
-              : "text-white/40 border-white/5 hover:border-white/10 hover:text-white/60"
+              ? "bg-primary/10 text-primary border-primary/20"
+              : "text-gray-400 border-gray-100 hover:border-gray-300 hover:text-gray-600"
           }`}
         >
           الكل ({allOrders.length})
@@ -2694,7 +2694,7 @@ const OrdersManagement = memo(() => {
             className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all border ${
               statusFilter === key
                 ? `${statusColors[key]} font-black`
-                : "text-white/40 border-white/5 hover:border-white/10 hover:text-white/60"
+                : "text-gray-400 border-gray-100 hover:border-gray-300 hover:text-gray-600"
             } ${key === "pending_payment" && (counts[key] || 0) > 0 ? "animate-pulse" : ""}`}
           >
             {label} ({counts[key] || 0})
@@ -2703,9 +2703,9 @@ const OrdersManagement = memo(() => {
       </div>
 
       {filteredOrders.length === 0 && (
-        <div className="text-center py-16 rounded-2xl bg-[#0f1729] border border-white/10">
-          <ShoppingCart className="w-10 h-10 text-white/20 mx-auto mb-3" />
-          <p className="text-white/50 text-sm">لا توجد طلبات في هذا الفلتر</p>
+        <div className="text-center py-16 rounded-2xl bg-white border border-gray-100">
+          <ShoppingCart className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-400 text-sm">لا توجد طلبات في هذا الفلتر</p>
         </div>
       )}
 
@@ -2714,22 +2714,22 @@ const OrdersManagement = memo(() => {
           const isExpanded = expandedId === order.id;
           const items = Array.isArray(order.items) ? order.items : [];
           return (
-            <div key={order.id} className="rounded-2xl border border-white/10 overflow-hidden bg-[#0f1729] hover:border-white/20 transition-all">
+            <div key={order.id} className="rounded-2xl border border-gray-100 overflow-hidden bg-white hover:border-gray-200 transition-all shadow-sm">
                 <div
-                  className="flex justify-between items-center p-5 cursor-pointer hover:bg-white/3 transition-colors"
+                  className="flex justify-between items-center p-5 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => setExpandedId(isExpanded ? null : order.id)}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center text-[10px] font-black text-white/70">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-violet-50 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-500">
                       #{order.id.slice(-4).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-black text-sm text-white">{order.customerName || "عميل زائر"}</p>
+                      <p className="font-black text-sm text-gray-900">{order.customerName || "عميل زائر"}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {order.customerPhone && (
-                          <p className="text-[10px] font-bold text-white/40">{order.customerPhone}</p>
+                          <p className="text-[10px] font-bold text-gray-400">{order.customerPhone}</p>
                         )}
-                        <p className="text-[10px] font-bold text-white/30">
+                        <p className="text-[10px] font-bold text-gray-400">
                           {new Date(order.createdAt).toLocaleDateString("ar-SA")}
                         </p>
                         {order.paymentMethod === "bank_transfer" && (
@@ -2742,7 +2742,7 @@ const OrdersManagement = memo(() => {
                           </span>
                         )}
                         {order.paymentMethod && order.paymentMethod !== "bank_transfer" && (
-                          <span className="text-[9px] font-bold text-white/25 px-1.5 py-0.5 rounded-full border border-white/10">
+                          <span className="text-[9px] font-bold text-gray-400 px-1.5 py-0.5 rounded-full border border-gray-100">
                             {order.paymentMethod === "cod" ? "دفع عند الاستلام" :
                              order.paymentMethod === "wallet" ? "محفظة" :
                              order.paymentMethod === "tabby" ? "Tabby" :
@@ -2757,19 +2757,19 @@ const OrdersManagement = memo(() => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="font-black text-base text-white">{Number(order.total).toFixed(2)} <span className="text-[10px] text-white/40"><RiyalSign /></span></p>
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${statusColors[order.status] || "bg-white/5 text-white/40 border-white/10"}`}>
+                      <p className="font-black text-base text-gray-900">{Number(order.total).toFixed(2)} <span className="text-[10px] text-gray-400"><RiyalSign /></span></p>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${statusColors[order.status] || "bg-gray-50 text-gray-400 border-gray-100"}`}>
                         {statusLabels[order.status] || order.status}
                       </span>
                     </div>
                     <div className="flex gap-1">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl border border-gray-100 text-gray-400 hover:text-gray-900 hover:bg-gray-100" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl font-bold text-xs min-w-[180px] bg-[#1a2235] border-white/10 text-white">
+                        <DropdownMenuContent align="end" className="rounded-xl font-bold text-xs min-w-[180px] bg-white border-gray-100 text-gray-900">
                           {order.status === "pending_payment" ? (
                             <DropdownMenuItem disabled className="text-right text-amber-400 text-[10px]">
                               ⚠ أكد أو ارفض الدفع أولاً
@@ -2816,7 +2816,7 @@ const OrdersManagement = memo(() => {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl border border-gray-100 text-gray-400 hover:text-gray-900 hover:bg-gray-100">
                         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                       </Button>
                     </div>
@@ -2904,14 +2904,14 @@ const OrdersManagement = memo(() => {
                       )}
                       {order.notes && (
                         <div className="space-y-1 col-span-2">
-                          <p className="text-[9px] font-black uppercase text-white/30 tracking-widest">ملاحظات</p>
-                          <p className="text-xs font-bold text-white/70">{order.notes}</p>
+                          <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">ملاحظات</p>
+                          <p className="text-xs font-bold text-gray-600">{order.notes}</p>
                         </div>
                       )}
                       {order.paymentMethod && (
                         <div className="space-y-1">
-                          <p className="text-[9px] font-black uppercase text-white/30 tracking-widest">طريقة الدفع</p>
-                          <p className="text-xs font-bold text-white/70">
+                          <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">طريقة الدفع</p>
+                          <p className="text-xs font-bold text-gray-600">
                             {order.paymentMethod === "bank_transfer" ? "🏦 تحويل بنكي" :
                              order.paymentMethod === "cod" ? "💵 دفع عند الاستلام" :
                              order.paymentMethod === "wallet" ? "👛 محفظة" :
@@ -2928,26 +2928,26 @@ const OrdersManagement = memo(() => {
                     {/* Order Items */}
                     {items.length > 0 && (
                       <div>
-                        <p className="text-[9px] font-black uppercase text-white/30 tracking-widest mb-2">عناصر الطلب ({items.length})</p>
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-2">عناصر الطلب ({items.length})</p>
                         <div className="space-y-2">
                           {items.map((item: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-white/3 border border-white/5">
+                            <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
                               <div className="flex items-center gap-3">
                                 {item.image && (
                                   <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg" />
                                 )}
                                 <div>
-                                  <p className="text-xs font-black text-white">{item.name || item.productName}</p>
+                                  <p className="text-xs font-black text-gray-900">{item.name || item.productName}</p>
                                   {(item.color || item.size) && (
-                                    <p className="text-[10px] text-white/40 font-bold">
+                                    <p className="text-[10px] text-gray-400 font-bold">
                                       {item.color && `اللون: ${item.color}`}{item.color && item.size && " · "}{item.size && `المقاس: ${item.size}`}
                                     </p>
                                   )}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="text-xs font-black text-white">{Number(item.price).toFixed(2)} <RiyalSign /></p>
-                                <p className="text-[10px] text-white/40 font-bold">× {item.quantity}</p>
+                                <p className="text-xs font-black text-gray-900">{Number(item.price).toFixed(2)} <RiyalSign /></p>
+                                <p className="text-[10px] text-gray-400 font-bold">× {item.quantity}</p>
                               </div>
                             </div>
                           ))}
@@ -2957,28 +2957,28 @@ const OrdersManagement = memo(() => {
 
                     {/* Totals */}
                     <div className="flex justify-end">
-                      <div className="space-y-1 text-right min-w-[160px] p-3 rounded-xl bg-white/3 border border-white/5">
+                      <div className="space-y-1 text-right min-w-[160px] p-3 rounded-xl bg-gray-50 border border-gray-100">
                         {order.subtotal && (
                           <div className="flex justify-between gap-8 text-xs">
-                            <span className="text-white/40 font-bold">المجموع الفرعي</span>
-                            <span className="font-black text-white">{Number(order.subtotal).toFixed(2)} <RiyalSign /></span>
+                            <span className="text-gray-400 font-bold">المجموع الفرعي</span>
+                            <span className="font-black text-gray-900">{Number(order.subtotal).toFixed(2)} <RiyalSign /></span>
                           </div>
                         )}
                         {order.shippingCost != null && (
                           <div className="flex justify-between gap-8 text-xs">
-                            <span className="text-white/40 font-bold">الشحن</span>
-                            <span className="font-black text-white">{Number(order.shippingCost).toFixed(2)} <RiyalSign /></span>
+                            <span className="text-gray-400 font-bold">الشحن</span>
+                            <span className="font-black text-gray-900">{Number(order.shippingCost).toFixed(2)} <RiyalSign /></span>
                           </div>
                         )}
                         {order.discount != null && Number(order.discount) > 0 && (
                           <div className="flex justify-between gap-8 text-xs">
-                            <span className="text-emerald-400 font-bold">الخصم</span>
-                            <span className="font-black text-emerald-400">-{Number(order.discount).toFixed(2)} <RiyalSign /></span>
+                            <span className="text-emerald-600 font-bold">الخصم</span>
+                            <span className="font-black text-emerald-600">-{Number(order.discount).toFixed(2)} <RiyalSign /></span>
                           </div>
                         )}
-                        <div className="flex justify-between gap-8 text-sm border-t border-white/10 pt-1 mt-1">
-                          <span className="font-black text-white">الإجمالي</span>
-                          <span className="font-black text-white">{Number(order.total).toFixed(2)} <RiyalSign /></span>
+                        <div className="flex justify-between gap-8 text-sm border-t border-gray-100 pt-1 mt-1">
+                          <span className="font-black text-gray-900">الإجمالي</span>
+                          <span className="font-black text-gray-900">{Number(order.total).toFixed(2)} <RiyalSign /></span>
                         </div>
                       </div>
                     </div>
@@ -2986,8 +2986,8 @@ const OrdersManagement = memo(() => {
                     {/* Notes */}
                     {order.notes && (
                       <div className="p-3 rounded-xl bg-yellow-400/10 border border-yellow-400/20">
-                        <p className="text-[9px] font-black uppercase text-yellow-400 tracking-widest mb-1">ملاحظات العميل</p>
-                        <p className="text-xs font-bold text-yellow-300/80">{order.notes}</p>
+                        <p className="text-[9px] font-black uppercase text-yellow-600 tracking-widest mb-1">ملاحظات العميل</p>
+                        <p className="text-xs font-bold text-yellow-700">{order.notes}</p>
                       </div>
                     )}
 
@@ -4692,7 +4692,7 @@ const StoreSettingsPanel = () => {
       setBestSellersSectionImage(settings.bestSellersSectionImage ?? "");
       setNewArrivalsSectionImage(settings.newArrivalsSectionImage ?? "");
       setMethods(settings.paymentMethods ?? {
-        wallet: true, tap: true, stc_pay: true, apple_pay: true,
+        cod: false, wallet: true, tap: true, stc_pay: true, apple_pay: true,
         bank_transfer: true, tamara: true, tabby: true,
       });
       setSocials(Array.isArray(settings.socialAccounts) ? settings.socialAccounts : []);
@@ -4763,6 +4763,7 @@ const StoreSettingsPanel = () => {
   };
 
   const methodLabels: Record<string, string> = {
+    cod: "الدفع عند الاستلام (كاش)",
     wallet: "رصيد المحفظة", tap: "بطاقة بنكية (Tap)", stc_pay: "STC Pay",
     apple_pay: "Apple Pay", bank_transfer: "تحويل بنكي", tamara: "Tamara تقسيط", tabby: "Tabby تقسيط",
   };

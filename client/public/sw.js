@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const STATIC_CACHE  = `myla-static-${CACHE_VERSION}`;
 const API_CACHE     = `myla-api-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `myla-images-${CACHE_VERSION}`;
@@ -7,12 +7,13 @@ const IMAGE_CACHE   = `myla-images-${CACHE_VERSION}`;
 const STATIC_EXTENSIONS = ['.js', '.css', '.woff2', '.woff', '.ttf', '.ico', '.webp', '.svg'];
 
 // API endpoints cached with stale-while-revalidate (serve instantly, refresh in background)
+// NOTE: /api/products and /api/categories are intentionally excluded — they change
+// frequently when the admin uploads images, and serving a stale SW cache forces
+// customers to clear cookies before they see the update.
 const CACHED_API_PATHS = [
-  '/api/products',
   '/api/marketing/active',
   '/api/store/settings',
   '/api/pages',
-  '/api/categories',
   '/api/reviews/featured',
 ];
 

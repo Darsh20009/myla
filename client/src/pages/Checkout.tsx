@@ -42,7 +42,7 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "tap" | "cod">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "tap" | "cod">("tap");
 
   const isAppleDevice = useMemo(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") return false;
@@ -59,7 +59,7 @@ export default function Checkout() {
   const [paymobOrderIdState, setPaymobOrderIdState] = useState<string>("");
   const [redirectingTo, setRedirectingTo] = useState<null | "gateway">(null);
 
-  const [shippingMode, setShippingMode] = useState<"pickup" | "delivery">("pickup");
+  const [shippingMode, setShippingMode] = useState<"pickup" | "delivery">("delivery");
   const [pickupBranchId, setPickupBranchId] = useState<string>("");
   const [deliveryCity, setDeliveryCity] = useState("");
   const [deliveryStreet, setDeliveryStreet] = useState("");
@@ -214,7 +214,7 @@ export default function Checkout() {
   const loyaltyDiscount = useLoyaltyPoints ? Math.min(availableLoyaltyPoints / 100, 50) : 0;
 
   const enabledMethods = storeSettings?.paymentMethods || {
-    wallet: true, tap: true, apple_pay: true,
+    wallet: true, tap: true, apple_pay: true, cod: false,
   };
 
   // ── Shipping rate from Storage Station ──────────────────────────────────────
@@ -660,19 +660,14 @@ export default function Checkout() {
               </div>
             )}
 
-            {/* ── Pickup only ── */}
+            {/* ── Delivery address ── */}
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100">
               <h2 className="font-black text-sm mb-3">
                 <span className="inline-flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-black flex items-center justify-center">١</span>
-                  طريقة الاستلام
+                  عنوان التوصيل
                 </span>
               </h2>
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border-2 border-primary mb-4">
-                <Store className="h-4 w-4 shrink-0 text-primary" />
-                <span className="font-black text-sm text-primary">استلام من الفرع</span>
-                <span className="mr-auto text-[11px] font-bold text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full">مجاني</span>
-              </div>
 
               {/* ── Pickup: branch list ── */}
               {shippingMode === "pickup" && (
@@ -1010,7 +1005,8 @@ export default function Checkout() {
                 onValueChange={(v) => { setPaymentMethod(v as any); }}
                 className="space-y-2.5"
               >
-                {/* ── Cash on Delivery (primary method) ── */}
+                {/* ── Cash on Delivery — only shown when admin enables it ── */}
+                {enabledMethods.cod && (
                 <label htmlFor="pay-cod" data-testid="option-payment-cod" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "cod" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
                   <RadioGroupItem value="cod" id="pay-cod" className="shrink-0" />
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${paymentMethod === "cod" ? "bg-primary/10" : "bg-gray-100"}`}>
@@ -1018,12 +1014,13 @@ export default function Checkout() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-sm">الدفع عند الاستلام</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">ادفع نقداً عند استلام طلبك من الفرع</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">ادفع نقداً عند استلام طلبك</p>
                   </div>
                   {paymentMethod === "cod" && (
                     <span className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-primary text-white">متاح</span>
                   )}
                 </label>
+                )}
 
                 {/* ── Wallet ── */}
                 {enabledMethods.wallet !== false && user && Number(user.walletBalance || 0) > 0 && (

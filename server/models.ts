@@ -710,6 +710,7 @@ const storeSettingsSchema = new Schema(
     bankLogo: { type: String, default: "" },
     // Payment methods toggle
     paymentMethods: {
+      cod: { type: Boolean, default: false },
       wallet: { type: Boolean, default: true },
       tap: { type: Boolean, default: true },
       stc_pay: { type: Boolean, default: true },
