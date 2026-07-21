@@ -2603,7 +2603,7 @@ const OrdersManagement = memo(() => {
   }, {});
 
   return (
-    <div className="space-y-5 -m-6 p-6 bg-gradient-to-br from-[#0f172a] via-[#1a2235] to-[#0f172a] min-h-[calc(100vh-7rem)] rounded-none text-white" dir="rtl">
+    <div className="space-y-5" dir="rtl">
       {/* ── Delivery Driver Dialog ── */}
       <Dialog open={!!driverDialog} onOpenChange={(o) => !o && setDriverDialog(null)}>
         <DialogContent className="rounded-2xl max-w-sm bg-white border border-slate-200 text-[#6B3F2A]" dir="rtl">
