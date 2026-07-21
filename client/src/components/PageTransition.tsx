@@ -99,7 +99,7 @@ export function PageTransition() {
           {/* ─── Left door panel ─── */}
           <motion.div
             className="absolute left-0 top-0 h-full w-1/2"
-            style={{ backgroundColor: "#F6F2EA" }}
+            style={{ backgroundColor: "#f7f2e9" }}
             initial={{ x: 0 }}
             animate={{ x: isDoor ? "-100%" : 0 }}
             transition={isDoor ? { duration: DOOR_DURATION, ease: DOOR_EASE } : { duration: 0 }}
@@ -109,7 +109,7 @@ export function PageTransition() {
           {/* ─── Right door panel ─── */}
           <motion.div
             className="absolute right-0 top-0 h-full w-1/2"
-            style={{ backgroundColor: "#F6F2EA" }}
+            style={{ backgroundColor: "#f7f2e9" }}
             initial={{ x: 0 }}
             animate={{ x: isDoor ? "100%" : 0 }}
             transition={isDoor ? { duration: DOOR_DURATION, ease: DOOR_EASE } : { duration: 0 }}
