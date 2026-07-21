@@ -676,6 +676,18 @@ ${allUrls.map(u => `  <url>
     });
   });
 
+  // Delete uploaded file (admin/staff only)
+  app.delete("/api/upload/:filename", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user?.role !== "admin" && user?.role !== "staff") return res.sendStatus(403);
+    const filename = path.basename(req.params.filename || "");
+    if (!filename) return res.status(400).json({ message: "Invalid filename" });
+    const { deleteUpload } = await import("./uploads");
+    const ok = await deleteUpload(filename);
+    res.json({ ok });
+  });
+
   // Bank Transfer Receipt Upload
   app.post("/api/orders/:id/receipt", upload.single("receipt"), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

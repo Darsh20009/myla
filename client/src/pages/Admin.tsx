@@ -535,6 +535,8 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number | null = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Reset input immediately so the same file can be re-selected if needed
+    e.target.value = "";
 
     if (file.size > 15 * 1024 * 1024) {
       toast({ 
@@ -581,9 +583,18 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
     }
   };
 
-  const removeProductImage = (index: number) => {
+  const removeProductImage = async (index: number) => {
     const currentImages = form.getValues("images") || [];
+    const url = currentImages[index];
     form.setValue("images", currentImages.filter((_: any, i: number) => i !== index), { shouldDirty: true });
+    // Delete the actual file from the server
+    if (url) {
+      const filename = url.split("/").pop();
+      if (filename) {
+        fetch(`/api/upload/${encodeURIComponent(filename)}`, { method: "DELETE", credentials: "include" })
+          .catch(() => {}); // best-effort, don't block UI
+      }
+    }
   };
 
   const addVariant = () => {
@@ -975,8 +986,9 @@ const ProductsTable = memo(() => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number | null = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Reset input immediately so the same file can be re-selected if needed
+    e.target.value = "";
 
-    // Check file size (limit to 5MB)
     if (file.size > 15 * 1024 * 1024) {
       toast({ 
         title: "الملف كبير جداً", 
@@ -1022,9 +1034,18 @@ const ProductsTable = memo(() => {
     }
   };
 
-  const removeProductImage = (index: number) => {
+  const removeProductImage = async (index: number) => {
     const currentImages = form.getValues("images") || [];
+    const url = currentImages[index];
     form.setValue("images", currentImages.filter((_: any, i: number) => i !== index), { shouldDirty: true });
+    // Delete the actual file from the server
+    if (url) {
+      const filename = url.split("/").pop();
+      if (filename) {
+        fetch(`/api/upload/${encodeURIComponent(filename)}`, { method: "DELETE", credentials: "include" })
+          .catch(() => {}); // best-effort, don't block UI
+      }
+    }
   };
 
   if (isLoading) return <Loader2 className="animate-spin" />;
