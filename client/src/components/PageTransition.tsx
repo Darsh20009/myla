@@ -118,6 +118,7 @@ export function PageTransition() {
           {/* ─── Video — sits above both panels, fades as doors open ─── */}
           <motion.div
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            style={{ backgroundColor: "#F6F2EA" }}
             animate={
               isDoor
                 ? { opacity: 0, scale: 0.88 }
