@@ -195,6 +195,12 @@ const orderSchema = new Schema<Order>(
     shipoxServiceType: { type: String, default: null },  // STANDARD | RETURN | EXPRESS_SMSA | EXPRESS_JT
     shipoxCreatedAt: { type: Date, default: null },
     shipoxError: { type: String, default: null },
+    // ── Mapit shipping integration ───────────────────────────────────────────
+    mapitOrderNumber: { type: String, default: null, index: true, sparse: true },
+    mapitStatus: { type: String, default: null },
+    mapitCreatedAt: { type: Date, default: null },
+    mapitError: { type: String, default: null },
+    mapitTrackingUrl: { type: String, default: null },
     deliveryDriver: {
       name: String,
       phone: String,

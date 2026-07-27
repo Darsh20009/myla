@@ -110,6 +110,28 @@ import {
   getShipoxAccount, invalidateShipoxToken, SHIPOX_SERVICE_TYPES,
   type ShipoxServiceType,
 } from "./shipox";
+import {
+  isMapitConfigured, createMapitOrder, getMapitOrder, listMapitOrders,
+  updateMapitOrder, deleteMapitOrder, mapitTrackingUrl,
+} from "./mapit";
+
+function mapitStatusToLocalStatus(status: string): string | null {
+  switch (status) {
+    case "ORDER_PICKED_UP_FROM_MERCHANT":
+    case "ORDER_IN_SHIPPING_COMPANY":
+      return "shipped";
+    case "ORDER_ASSIGNED_TO_DRIVER_FOR_DROP_OFF":
+    case "ORDER_PICKED_UP_FOR_DROP_OFF":
+    case "ORDER_STARTED":
+      return "out_for_delivery";
+    case "ORDER_COMPLETED":
+      return "completed";
+    case "ORDER_RETURN":
+      return "returned";
+    default:
+      return null;
+  }
+}
 
 // ─── Auth helpers ────────────────────────────────────────────────────────────
 import type { Request, Response, NextFunction } from "express";
@@ -384,8 +406,38 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
       }, { critical: true, maxAttempts: 5 });
     }
 
-    // ── Shipox / 3rd Mile: create courier shipment (delivery orders only) ─────
-    if (order.shippingMethod === "delivery" && isShipoxConfigured()) {
+    // ── Mapit: create courier shipment first when configured ──────────────────
+    if (order.shippingMethod === "delivery" && isMapitConfigured()) {
+      enqueueJob("paid-mapit-create", async () => {
+        try {
+          // Idempotency: skip if shipment was already successfully created
+          const fresh: any = await storage.getOrder(String(order.id || orderId));
+          if (fresh?.mapitOrderNumber && fresh?.mapitStatus !== "failed") {
+            console.log(`[Mapit] order ${orderId} already has shipment #${fresh.mapitOrderNumber} — skipping`);
+            return;
+          }
+          const result = await createMapitOrder(order);
+          await storage.updateOrder(String(order.id || orderId), {
+            mapitOrderNumber: result.orderNumber,
+            mapitStatus: result.status,
+            mapitCreatedAt: new Date(),
+            mapitError: null,
+            mapitTrackingUrl: result.trackingUrl,
+            shippingProvider: "Mapit",
+            trackingNumber: result.orderNumber,
+          } as any);
+          console.log(`[Mapit] order ${orderId} → shipment #${result.orderNumber}`);
+        } catch (err: any) {
+          await storage.updateOrder(String(order.id || orderId), {
+            mapitStatus: "failed",
+            mapitError: err?.message || "Unknown error",
+          } as any);
+          console.error(`[Mapit] create failed for ${orderId}:`, err?.message);
+          throw err;
+        }
+      }, { critical: false, maxAttempts: 3 });
+    // ── Shipox / 3rd Mile fallback (only when Mapit is not configured) ─────────
+    } else if (order.shippingMethod === "delivery" && isShipoxConfigured()) {
       enqueueJob("paid-shipox-create", async () => {
         try {
           const settings = await storage.getStoreSettings().catch(() => null);
@@ -1153,7 +1205,7 @@ ${allUrls.map(u => `  <url>
     try {
       const { OrderModel } = await import("./models");
       const orders = await OrderModel.find({
-        status: { $in: ["pending", "payment_confirmed", "confirmed", "in_progress", "ready", "delivered", "received"] },
+        status: { $in: ["pending", "payment_confirmed", "confirmed", "in_progress", "ready", "delivered", "received"] as any[] },
         createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       }).sort({ createdAt: -1 }).limit(100).lean();
       res.json(orders.map((o: any) => ({ ...o, id: String(o._id) })));
@@ -1167,7 +1219,7 @@ ${allUrls.map(u => `  <url>
     try {
       const { OrderModel } = await import("./models");
       const orders = await OrderModel.find({
-        status: { $in: ["pending", "payment_confirmed", "in_progress"] },
+        status: { $in: ["pending", "payment_confirmed", "in_progress"] as any[] },
         createdAt: { $gte: new Date(Date.now() - 8 * 60 * 60 * 1000) },
       }).sort({ createdAt: 1 }).limit(50).lean();
       res.json(orders.map((o: any) => ({ ...o, id: String(o._id) })));
@@ -5228,6 +5280,191 @@ ${allUrls.map(u => `  <url>
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // ─── Mapit shipping integration ────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.get("/api/admin/mapit/config", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user.role !== "admin") return res.sendStatus(403);
+    res.json({
+      configured: isMapitConfigured(),
+      baseUrl: process.env.MAPIT_BASE_URL || "https://backend.mapit.sa",
+      trackingBaseUrl: "https://www.mapit.sa/customer/track",
+      warehouseConfigured: !!process.env.MAPIT_WAREHOUSE,
+      pickupPointConfigured: !!process.env.MAPIT_PICKUP_POINT,
+    });
+  });
+
+  app.post("/api/admin/mapit/create/:orderId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "employee"].includes(user.role)) return res.sendStatus(403);
+    try {
+      if (!isMapitConfigured()) {
+        return res.status(503).json({ message: "Mapit غير مُعدَّ — أضف MAPIT_API_TOKEN" });
+      }
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      if (order.shippingMethod !== "delivery") {
+        return res.status(400).json({ message: "يتم إنشاء شحنات Mapit لطلبات التوصيل فقط" });
+      }
+      if (order.mapitOrderNumber && order.mapitStatus !== "failed") {
+        return res.json({
+          success: true,
+          alreadyCreated: true,
+          orderNumber: order.mapitOrderNumber,
+          status: order.mapitStatus,
+          trackingUrl: order.mapitTrackingUrl || mapitTrackingUrl(order.mapitOrderNumber),
+        });
+      }
+
+      const result = await createMapitOrder(order);
+      await storage.updateOrder(req.params.orderId, {
+        mapitOrderNumber: result.orderNumber,
+        mapitStatus: result.status,
+        mapitCreatedAt: new Date(),
+        mapitError: null,
+        mapitTrackingUrl: result.trackingUrl,
+        shippingProvider: "Mapit",
+        trackingNumber: result.orderNumber,
+      } as any);
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      await storage.updateOrder(req.params.orderId, {
+        mapitStatus: "failed",
+        mapitError: err?.message || "Unknown error",
+      } as any).catch(() => {});
+      console.error("[Mapit] create error:", err?.message);
+      res.status(500).json({ success: false, message: err?.message || "فشل إنشاء شحنة Mapit" });
+    }
+  });
+
+  app.get("/api/admin/mapit/order/:orderId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "employee"].includes(user.role)) return res.sendStatus(403);
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      if (!order.mapitOrderNumber) {
+        return res.json({ success: true, order: null, message: "لا توجد شحنة Mapit لهذا الطلب" });
+      }
+      const mapitOrder = await getMapitOrder(String(order.mapitOrderNumber));
+      const remoteStatus = String(mapitOrder?.currentStatus || mapitOrder?.status || order.mapitStatus || "");
+      const localStatus = mapitStatusToLocalStatus(remoteStatus);
+      await storage.updateOrder(req.params.orderId, {
+        mapitStatus: remoteStatus || order.mapitStatus,
+        mapitTrackingUrl: mapitTrackingUrl(String(order.mapitOrderNumber)),
+        ...(localStatus ? { status: localStatus, shippingProvider: "Mapit", trackingNumber: order.mapitOrderNumber } : {}),
+      } as any);
+      res.json({
+        success: true,
+        orderNumber: order.mapitOrderNumber,
+        status: remoteStatus || order.mapitStatus,
+        trackingUrl: mapitTrackingUrl(String(order.mapitOrderNumber)),
+        order: mapitOrder,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err?.message || "فشل جلب تفاصيل Mapit" });
+    }
+  });
+
+  app.get("/api/admin/mapit/orders", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user.role !== "admin") return res.sendStatus(403);
+    try {
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+      const remote = await listMapitOrders({
+        page,
+        limit,
+        searchKey: req.query.searchKey ? String(req.query.searchKey) : undefined,
+        currentStatus: req.query.currentStatus ? String(req.query.currentStatus) : undefined,
+      });
+      res.json({ success: true, page, limit, orders: remote });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err?.message || "فشل جلب شحنات Mapit" });
+    }
+  });
+
+  app.put("/api/admin/mapit/update/:orderId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "employee"].includes(user.role)) return res.sendStatus(403);
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      if (!order.mapitOrderNumber) return res.status(400).json({ message: "لا توجد شحنة Mapit لهذا الطلب" });
+      const allowed = ["packagesCount", "weight", "warehouse", "amountPayable", "merchantOrderNumber", "quickShipping", "pickupDate"];
+      const payload = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => allowed.includes(key)));
+      const remote = await updateMapitOrder(String(order.mapitOrderNumber), payload);
+      res.json({ success: true, order: remote });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err?.message || "فشل تحديث شحنة Mapit" });
+    }
+  });
+
+  app.delete("/api/admin/mapit/delete/:orderId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "employee"].includes(user.role)) return res.sendStatus(403);
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      if (!order.mapitOrderNumber) return res.status(400).json({ message: "لا توجد شحنة Mapit لهذا الطلب" });
+      await deleteMapitOrder(String(order.mapitOrderNumber));
+      await storage.updateOrder(req.params.orderId, {
+        mapitStatus: "cancelled",
+        mapitError: null,
+        trackingNumber: order.shippingProvider === "Mapit" ? null : order.trackingNumber,
+      } as any);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err?.message || "فشل إلغاء شحنة Mapit" });
+    }
+  });
+
+  // Configure this URL in Mapit's merchant dashboard:
+  // https://YOUR_DOMAIN/api/webhooks/mapit
+  // Mapit's public documentation does not specify a signature header. If a
+  // MAPIT_WEBHOOK_SECRET is supplied, it is required as x-mapit-webhook-secret.
+  app.post("/api/webhooks/mapit", async (req: any, res) => {
+    try {
+      const configuredSecret = String(process.env.MAPIT_WEBHOOK_SECRET || "");
+      const providedSecret = String(req.header("x-mapit-webhook-secret") || "");
+      if (configuredSecret && providedSecret !== configuredSecret) {
+        return res.status(401).json({ ok: false, error: "invalid_webhook_secret" });
+      }
+
+      const body = req.body || {};
+      const orderNumber = String(body.orderNumber || body.order_number || body.order?.orderNumber || "");
+      const remoteStatus = String(body.currentStatus || body.status || body.order?.currentStatus || "");
+      if (!orderNumber || !remoteStatus) {
+        return res.status(400).json({ ok: false, error: "missing_order_number_or_status" });
+      }
+
+      const order: any = await OrderModel.findOne({ mapitOrderNumber: orderNumber }).lean();
+      if (!order) return res.status(404).json({ ok: false, error: "order_not_found" });
+
+      const localStatus = mapitStatusToLocalStatus(remoteStatus);
+      const update: any = {
+        mapitStatus: remoteStatus,
+        mapitTrackingUrl: mapitTrackingUrl(orderNumber),
+        shippingProvider: "Mapit",
+        trackingNumber: orderNumber,
+      };
+      if (localStatus) update.status = localStatus;
+      await storage.updateOrder(String(order._id), update);
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[Mapit webhook] error:", err?.message);
+      res.status(500).json({ ok: false, error: "webhook_processing_failed" });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // ─── Shipox / 3rd Mile Admin Routes ────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -6125,7 +6362,7 @@ ${allUrls.map(u => `  <url>
   app.get("/api/admin/staff", checkPermission("staff.manage"), async (_req, res) => {
     try {
       const staffRoles = ["admin", "assistant_manager", "tech_support", "accountant", "legal_consultant", "employee", "support", "cashier"];
-      const staff = await UserModel.find({ role: { $in: staffRoles } }).select("-password").sort({ createdAt: -1 }).lean();
+      const staff = await UserModel.find({ role: { $in: staffRoles as any[] } }).select("-password").sort({ createdAt: -1 }).lean();
       res.json(staff);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -6991,6 +7228,7 @@ ${allUrls.map(u => `  <url>
         apple: { clientId: !!process.env.APPLE_CLIENT_ID, redirectUri: !!process.env.APPLE_REDIRECT_URI },
         storageStation: { apiKey: !!process.env.STORAGE_STATION_API_KEY, apiSecret: !!process.env.STORAGE_STATION_API_SECRET },
         shipox: { username: !!process.env.SHIPOX_USERNAME, password: !!process.env.SHIPOX_PASSWORD },
+        mapit: { apiToken: !!process.env.MAPIT_API_TOKEN },
         mongo: { uri: !!process.env.MONGODB_URI },
         session: { secret: !!process.env.SESSION_SECRET },
         vapid: { publicKey: !!process.env.VAPID_PUBLIC_KEY, privateKey: !!process.env.VAPID_PRIVATE_KEY },
@@ -7242,7 +7480,7 @@ ${allUrls.map(u => `  <url>
       const { OrderModel } = await import("./models");
       const orders = await OrderModel.find({
         $or: [{ orderType: "car_pickup" }, { orderType: "car-pickup" }],
-        status: { $in: ["pending", "payment_confirmed", "in_progress", "ready"] },
+        status: { $in: ["pending", "payment_confirmed", "in_progress", "ready"] as any[] },
         createdAt: { $gte: new Date(Date.now() - 4 * 60 * 60 * 1000) },
       }).sort({ createdAt: -1 }).limit(30).lean();
       res.json(orders.map((o: any) => ({ ...o, id: String(o._id) })));

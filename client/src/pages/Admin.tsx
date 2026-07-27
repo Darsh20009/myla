@@ -1743,6 +1743,45 @@ const OrdersTable = memo(() => {
     onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
   });
 
+  const mapitCreateMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("POST", `/api/admin/mapit/create/${orderId}`, {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل إنشاء شحنة Mapit"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: `✅ تم إنشاء شحنة Mapit — ${data.orderNumber || data.trackingNumber}` });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
+  const mapitCancelMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/mapit/delete/${orderId}`, {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل إلغاء شحنة Mapit"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "تم إلغاء شحنة Mapit" });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
+  const mapitRefreshMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("GET", `/api/admin/mapit/order/${orderId}`);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل تحديث حالة Mapit"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: data.status ? `تم تحديث الحالة: ${data.status}` : "تم تحديث بيانات Mapit" });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
     return orders.filter((order: any) => {
@@ -1960,6 +1999,88 @@ const OrdersTable = memo(() => {
                       {/* ── Shipox / 3rd Mile Panel ── */}
                       {order.shippingMethod === "delivery" && (
                         <div className="pt-4 border-t border-black/5 space-y-3">
+                          {/* ── Mapit Panel ── */}
+                          <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-orange-800">Mapit — الشحن والتتبع</Label>
+                              {order.mapitOrderNumber && order.mapitStatus !== "failed" && order.mapitStatus !== "cancelled" && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">✓ {order.mapitStatus || "مُنشأة"}</span>
+                              )}
+                              {order.mapitStatus === "failed" && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-red-50 text-red-600 border border-red-200">✗ فشل</span>
+                              )}
+                              {order.mapitStatus === "cancelled" && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200">ملغي</span>
+                              )}
+                              {!order.mapitStatus && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-50 text-amber-600 border border-amber-200">لم تُنشأ بعد</span>
+                              )}
+                            </div>
+
+                            {order.mapitOrderNumber && (
+                              <div className="bg-white border border-orange-100 rounded-xl p-3 space-y-1">
+                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">رقم شحنة Mapit</p>
+                                <p className="text-sm font-black text-orange-800 font-mono tracking-wide" dir="ltr">{order.mapitOrderNumber}</p>
+                                {order.mapitTrackingUrl && (
+                                  <a href={order.mapitTrackingUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-orange-700 font-bold underline">
+                                    فتح صفحة التتبع
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            {order.mapitError && (
+                              <div className="bg-red-50 border border-red-100 rounded-xl p-2">
+                                <p className="text-[9px] text-red-600 font-bold">{order.mapitError}</p>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-2">
+                              {(!order.mapitOrderNumber || order.mapitStatus === "failed" || order.mapitStatus === "cancelled") && (
+                                <Button
+                                  size="sm"
+                                  className="rounded-xl text-[10px] font-black bg-orange-600 hover:bg-orange-700 text-white col-span-2"
+                                  disabled={mapitCreateMutation.isPending || order.status === "pending_payment"}
+                                  onClick={() => mapitCreateMutation.mutate(order.id)}
+                                >
+                                  {mapitCreateMutation.isPending ? "جاري الإنشاء..." : order.mapitStatus === "failed" ? "🔄 إعادة المحاولة" : "🚚 إنشاء شحنة Mapit"}
+                                </Button>
+                              )}
+                              {order.mapitOrderNumber && order.mapitStatus !== "cancelled" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-xl text-[10px] font-black border-orange-300 text-orange-700"
+                                    disabled={mapitRefreshMutation.isPending}
+                                    onClick={() => mapitRefreshMutation.mutate(order.id)}
+                                  >
+                                    {mapitRefreshMutation.isPending ? "جاري المزامنة..." : "🔄 مزامنة الحالة"}
+                                  </Button>
+                                  {order.mapitTrackingUrl && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-xl text-[10px] font-black border-orange-300 text-orange-700"
+                                      onClick={() => window.open(order.mapitTrackingUrl, "_blank")}
+                                    >
+                                      📍 تتبع الشحنة
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-xl text-[10px] font-black border-red-300 text-red-600 col-span-2"
+                                    disabled={mapitCancelMutation.isPending}
+                                    onClick={() => { if (confirm("تأكيد إلغاء شحنة Mapit؟")) mapitCancelMutation.mutate(order.id); }}
+                                  >
+                                    ✕ إلغاء شحنة Mapit
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
                           <div className="flex items-center justify-between">
                             <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Shipox — 3rd Mile</Label>
                             {order.shipoxStatus === "created" && (

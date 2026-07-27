@@ -25,7 +25,7 @@ async function tick() {
     const cutoff = new Date(Date.now() - EXPIRE_AFTER_MS);
     const stale = await OrderModel.find({
       status: "pending_payment",
-      paymentMethod: { $in: GATEWAY_METHODS },
+      paymentMethod: { $in: GATEWAY_METHODS as any[] },
       paymentStatus: { $ne: "paid" },
       createdAt: { $lt: cutoff },
     })

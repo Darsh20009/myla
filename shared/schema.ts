@@ -241,6 +241,11 @@ export const insertOrderSchema = z.object({
   paymentStatus: z.enum(["pending", "paid", "refunded"]).default("pending"),
   shippingProvider: z.string().optional(),
   trackingNumber: z.string().optional(),
+  mapitOrderNumber: z.string().optional(),
+  mapitStatus: z.string().optional(),
+  mapitCreatedAt: z.date().optional(),
+  mapitError: z.string().optional(),
+  mapitTrackingUrl: z.string().optional(),
   returnRequest: z.object({
     status: z.enum(["none", "pending", "approved", "rejected"]).default("none"),
     reason: z.string().optional(),

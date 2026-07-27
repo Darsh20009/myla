@@ -828,7 +828,7 @@ export function registerCafeRoutes(app: Express) {
 
       const paidStatuses = ["paid", "delivered", "processing", "shipped", "ready_for_pickup"];
 
-      const orders = await OrderModel.find({ createdAt: { $gte: from }, status: { $in: paidStatuses } }).lean();
+      const orders = await OrderModel.find({ createdAt: { $gte: from }, status: { $in: paidStatuses as any[] } }).lean();
       const allOrders = await OrderModel.find({ createdAt: { $gte: from } }).lean();
 
       const grossRevenue = (orders as any[]).reduce((s, o) => s + parseFloat(o.subtotal || o.total || "0"), 0);
@@ -879,7 +879,7 @@ export function registerCafeRoutes(app: Express) {
         const label = d.toLocaleDateString("ar-SA", { month: "short", year: "2-digit" });
 
         const [orders, expenses] = await Promise.all([
-          OrderModel.find({ createdAt: { $gte: d, $lte: end }, status: { $in: paidStatuses } }).lean(),
+          OrderModel.find({ createdAt: { $gte: d, $lte: end }, status: { $in: paidStatuses as any[] } }).lean(),
           ExpenseModel.find({ date: { $gte: d, $lte: end } }).lean(),
         ]);
 
@@ -905,7 +905,7 @@ export function registerCafeRoutes(app: Express) {
         to   = new Date(parseInt(year), 11, 31, 23, 59, 59);
       }
       const paidStatuses = ["paid", "delivered", "processing", "shipped", "ready_for_pickup"];
-      const orders = await OrderModel.find({ createdAt: { $gte: from, $lte: to }, status: { $in: paidStatuses } }).lean();
+      const orders = await OrderModel.find({ createdAt: { $gte: from, $lte: to }, status: { $in: paidStatuses as any[] } }).lean();
 
       const taxableRevenue = (orders as any[]).reduce((s, o) => s + parseFloat(o.subtotal || o.total || "0"), 0);
       const vatCollected   = (orders as any[]).reduce((s, o) => s + parseFloat(o.vatAmount || "0"), 0);

@@ -150,6 +150,18 @@ const INTEGRATIONS: Integration[] = [
     ],
   },
   {
+    id: "mapit",
+    name: "Mapit",
+    nameEn: "Mapit",
+    category: "الشحن والخدمات اللوجستية",
+    logo: "🧭",
+    url: "https://www.mapit.sa/documentation",
+    description: "إنشاء الشحنات وتتبعها وإدارتها داخل السعودية",
+    keys: [
+      { label: "MAPIT_API_TOKEN", key: "apiToken" },
+    ],
+  },
+  {
     id: "mongo",
     name: "MongoDB Atlas",
     nameEn: "MongoDB",
