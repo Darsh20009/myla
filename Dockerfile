@@ -1,18 +1,25 @@
 FROM node:20-alpine
 
+# Install build tools needed by some native addons
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm config set registry https://registry.npmjs.org && npm ci --include=dev
+# Use npm install (more tolerant than npm ci on alpine with many deps)
+# Increase node memory for large dependency trees
+RUN node --max-old-space-size=4096 /usr/local/lib/node_modules/npm/bin/npm-cli.js install --include=dev --prefer-offline 2>&1 || \
+    npm install --include=dev
 
 COPY . .
 
-RUN npm run build
+# Build using explicit path so tsx is always found
+RUN node_modules/.bin/tsx script/build.ts
 
 ENV NODE_ENV=production
 ENV PORT=5000
 
 EXPOSE 5000
 
-CMD ["npm", "start"]
+CMD ["node", "./dist/index.js"]
