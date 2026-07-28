@@ -1,9 +1,10 @@
 /**
  * Email Service — Myla
- * Powered by SMTP2GO API
+ * Powered by cPanel SMTP (nodemailer)
  * All templates are Arabic RTL with Myla branding
  */
 
+import nodemailer from "nodemailer";
 import { SITE, ASSETS } from "./site-config";
 
 // Use absolute HTTPS URLs for inline images. CID attachments cause many email
@@ -14,16 +15,33 @@ const ASSET_BASE = SITE.URL;
 const LOGO_URL   = ASSETS.LOGO_SQUARE;
 const BANNER_URL = ASSETS.EMAIL_BANNER;
 
-const SMTP2GO_API = "https://api.smtp2go.com/v3/email/send";
+// ─── cPanel SMTP config ────────────────────────────────────────────────────────
+// All values are hardcoded except SMTP_PASS which must be set as a secret.
+const SMTP_CONFIG = {
+  host: "server222.web-hosting.com",
+  port: 465,
+  secure: true,           // port 465 = SSL/TLS
+  user: "info@qirox.online",
+  senderName: "Myla",
+} as const;
 
-function getCredentials() {
-  const apiKey = process.env.SMTP2GO_API_KEY;
-  if (!apiKey) throw new Error("[Email] SMTP2GO_API_KEY env var is not set");
-  return {
-    apiKey,
-    sender: process.env.EMAIL_SENDER || "info@myla.sa",
-    senderName: process.env.EMAIL_SENDER_NAME || "Myla",
-  };
+function createTransporter() {
+  const pass = process.env.SMTP_PASS;
+  if (!pass) throw new Error("[Email] SMTP_PASS env var is not set");
+
+  return nodemailer.createTransport({
+    host: SMTP_CONFIG.host,
+    port: SMTP_CONFIG.port,
+    secure: SMTP_CONFIG.secure,
+    auth: {
+      user: SMTP_CONFIG.user,
+      pass,
+    },
+    tls: {
+      // Accept self-signed / shared-hosting certs
+      rejectUnauthorized: false,
+    },
+  });
 }
 
 // ─── Core Send Function ────────────────────────────────────────────────────────
@@ -34,50 +52,29 @@ async function sendEmail(params: {
   subject: string;
   html: string;
   text?: string;
-  /**
-   * Optional file attachments. SMTP2GO accepts base64-encoded blobs via the
-   * `attachments` field (each item: { filename, fileblob, mimetype }).
-   * We accept the more conventional Nodemailer-style shape and translate it.
-   */
+  /** Nodemailer-style attachments — content is base64-encoded string */
   attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }): Promise<{ success: boolean; error?: string }> {
-  const { apiKey, sender, senderName } = getCredentials();
-
   try {
-    const res = await fetch(SMTP2GO_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: apiKey,
-        to: [`${params.toName || ""} <${params.to}>`],
-        sender: `${senderName} <${sender}>`,
-        subject: params.subject,
-        html_body: params.html,
-        text_body: params.text || "",
-        ...(params.attachments && params.attachments.length > 0
-          ? {
-              attachments: params.attachments.map((a) => ({
-                filename: a.filename,
-                fileblob: a.content, // already base64-encoded by caller
-                mimetype: a.contentType || "application/octet-stream",
-              })),
-            }
-          : {}),
-      }),
+    const transporter = createTransporter();
+
+    await transporter.sendMail({
+      from: `"${SMTP_CONFIG.senderName}" <${SMTP_CONFIG.user}>`,
+      to: params.toName ? `"${params.toName}" <${params.to}>` : params.to,
+      subject: params.subject,
+      html: params.html,
+      text: params.text || "",
+      attachments: params.attachments?.map((a) => ({
+        filename: a.filename,
+        content: Buffer.from(a.content, "base64"),
+        contentType: a.contentType || "application/octet-stream",
+      })),
     });
-
-    const data = await res.json();
-
-    if (!res.ok || data.data?.error) {
-      const errMsg = data.data?.error || `HTTP ${res.status}`;
-      console.error("[Email] SMTP2GO error:", errMsg);
-      return { success: false, error: errMsg };
-    }
 
     console.log(`[Email] ✅ Sent to ${params.to} — Subject: ${params.subject}`);
     return { success: true };
   } catch (err: any) {
-    console.error("[Email] Network error:", err.message);
+    console.error("[Email] SMTP error:", err.message);
     return { success: false, error: err.message };
   }
 }
@@ -1062,33 +1059,15 @@ export async function sendAdminNewOrderEmail(params: {
     || process.env.ADMIN_NOTIFICATION_EMAIL
     || "firstrafiff@gmail.com";
 
-  let credentials: ReturnType<typeof getCredentials>;
   try {
-    credentials = getCredentials();
-  } catch {
-    console.warn("[AdminEmail] SMTP2GO_API_KEY not set — skipping admin notification");
-    return { success: false, error: "SMTP2GO_API_KEY not configured" };
-  }
-
-  try {
-    const res = await fetch(SMTP2GO_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: credentials.apiKey,
-        sender: `${credentials.senderName} — الإدارة <${credentials.sender}>`,
-        to: [adminEmail],
-        subject: `🛒 طلب جديد #${params.orderRef} — ${params.total.toLocaleString("ar-SA")} ر.س — ${params.customerName}`,
-        html_body: html,
-        text_body: `طلب جديد #${params.orderRef}\nالعميل: ${params.customerName}\nالهاتف: ${params.customerPhone || "—"}\nالإجمالي: ${params.total.toLocaleString("ar-SA")} ر.س\nالدفع: ${params.paymentMethod}\nالحالة: ${params.paymentStatus}`,
-      }),
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: `"${SMTP_CONFIG.senderName} — الإدارة" <${SMTP_CONFIG.user}>`,
+      to: adminEmail,
+      subject: `🛒 طلب جديد #${params.orderRef} — ${params.total.toLocaleString("ar-SA")} ر.س — ${params.customerName}`,
+      html,
+      text: `طلب جديد #${params.orderRef}\nالعميل: ${params.customerName}\nالهاتف: ${params.customerPhone || "—"}\nالإجمالي: ${params.total.toLocaleString("ar-SA")} ر.س\nالدفع: ${params.paymentMethod}\nالحالة: ${params.paymentStatus}`,
     });
-    const data = await res.json().catch(() => ({})) as any;
-    if (!res.ok || data?.data?.succeeded === 0) {
-      const errMsg = JSON.stringify(data);
-      console.warn(`[AdminEmail] send failed for #${params.orderRef}:`, errMsg);
-      throw new Error(errMsg);
-    }
     console.log(`[AdminEmail] ✅ order #${params.orderRef} → ${adminEmail}`);
     return { success: true };
   } catch (e: any) {
