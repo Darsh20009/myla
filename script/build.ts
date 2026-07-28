@@ -9,21 +9,18 @@ async function buildAll() {
   await viteBuild();
 
   console.log("building server...");
-  // Bundle ALL dependencies into dist/index.js so the production image
-  // needs zero node_modules (no npm install required at runtime).
-  // Only Node.js built-in modules stay external — they are always present.
+  // Bundle ALL dependencies into a single CJS file — no node_modules needed at runtime.
+  // CJS format avoids all ESM/CJS interop issues (no createRequire conflicts).
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
-    format: "esm",
-    outfile: "dist/index.js",
-    outExtension: { ".js": ".js" },
+    format: "cjs",
+    outfile: "dist/index.cjs",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
     minify: false,
-    // No package externals — everything bundled in
     packages: "bundle",
     logLevel: "info",
   });
