@@ -1,17 +1,16 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 # Install build tools needed by some native addons
-RUN apk add --no-cache python3 make g++
-
-# Pin npm to a stable version (v12 has "Exit handler never called" on Alpine)
-RUN npm install -g npm@10.9.2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies needed for build)
-RUN npm install --include=dev
+# Use npm ci for fast, reliable installs in CI/CD environments
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 
