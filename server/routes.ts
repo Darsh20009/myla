@@ -416,7 +416,11 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
             console.log(`[Mapit] order ${orderId} already has shipment #${fresh.mapitOrderNumber} — skipping`);
             return;
           }
-          const result = await createMapitOrder(order);
+          const mapitSettings = await storage.getStoreSettings().catch(() => null);
+          const result = await createMapitOrder(order, {
+            warehouseId:   (mapitSettings as any)?.mapitWarehouseId   || "",
+            pickupPointId: (mapitSettings as any)?.mapitPickupPointId || "",
+          });
           await storage.updateOrder(String(order.id || orderId), {
             mapitOrderNumber: result.orderNumber,
             mapitStatus: result.status,
@@ -5292,13 +5296,46 @@ ${allUrls.map(u => `  <url>
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = req.user as any;
     if (user.role !== "admin") return res.sendStatus(403);
-    res.json({
-      configured: isMapitConfigured(),
-      baseUrl: process.env.MAPIT_BASE_URL || "https://backend.mapit.sa",
-      trackingBaseUrl: "https://www.mapit.sa/customer/track",
-      warehouseConfigured: !!process.env.MAPIT_WAREHOUSE,
-      pickupPointConfigured: !!process.env.MAPIT_PICKUP_POINT,
-    });
+    try {
+      const settings: any = await storage.getStoreSettings().catch(() => ({}));
+      res.json({
+        configured: isMapitConfigured(),
+        baseUrl: process.env.MAPIT_BASE_URL || "https://backend.mapit.sa",
+        trackingBaseUrl: "https://www.mapit.sa/customer/track",
+        warehouseConfigured: !!process.env.MAPIT_WAREHOUSE || !!(settings?.mapitWarehouseId),
+        pickupPointConfigured: !!process.env.MAPIT_PICKUP_POINT || !!(settings?.mapitPickupPointId),
+        // pickup location from DB
+        pickupCity:     settings?.mapitPickupCity     || "",
+        pickupStreet:   settings?.mapitPickupStreet   || "",
+        pickupDistrict: settings?.mapitPickupDistrict || "",
+        pickupLat:      settings?.mapitPickupLat      ?? null,
+        pickupLng:      settings?.mapitPickupLng      ?? null,
+        warehouseId:    settings?.mapitWarehouseId    || "",
+        pickupPointId:  settings?.mapitPickupPointId  || "",
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message });
+    }
+  });
+
+  // Save Mapit pickup / sender location to DB
+  app.patch("/api/admin/mapit/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user.role !== "admin") return res.sendStatus(403);
+    try {
+      const allowed = ["mapitPickupCity","mapitPickupStreet","mapitPickupDistrict",
+                       "mapitPickupLat","mapitPickupLng","mapitWarehouseId","mapitPickupPointId"];
+      const patch: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) patch[key] = req.body[key];
+      }
+      const updated = await storage.updateStoreSettings(patch);
+      res.json({ ok: true, ...patch });
+    } catch (err: any) {
+      console.error("[Mapit] settings update error:", err?.message);
+      res.status(500).json({ message: err?.message || "فشل حفظ الإعدادات" });
+    }
   });
 
   app.post("/api/admin/mapit/create/:orderId", async (req, res) => {
@@ -5324,7 +5361,11 @@ ${allUrls.map(u => `  <url>
         });
       }
 
-      const result = await createMapitOrder(order);
+      const mapitSettings: any = await storage.getStoreSettings().catch(() => ({}));
+      const result = await createMapitOrder(order, {
+        warehouseId:   mapitSettings?.mapitWarehouseId   || "",
+        pickupPointId: mapitSettings?.mapitPickupPointId || "",
+      });
       await storage.updateOrder(req.params.orderId, {
         mapitOrderNumber: result.orderNumber,
         mapitStatus: result.status,

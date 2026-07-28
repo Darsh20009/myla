@@ -137,7 +137,12 @@ export function mapitTrackingUrl(orderNumber: string): string {
   return orderNumber ? `${MAPIT_TRACKING_BASE_URL}/${encodeURIComponent(orderNumber)}` : "";
 }
 
-export async function createMapitOrder(order: any): Promise<MapitOrderResult> {
+export interface MapitPickupSettings {
+  warehouseId?: string;
+  pickupPointId?: string;
+}
+
+export async function createMapitOrder(order: any, pickup?: MapitPickupSettings): Promise<MapitOrderResult> {
   if (!isMapitConfigured()) throw new Error("[Mapit] MAPIT_API_TOKEN is not configured");
 
   const { address, coordinates } = addressForMapit(order);
@@ -168,8 +173,11 @@ export async function createMapitOrder(order: any): Promise<MapitOrderResult> {
     })),
   };
 
-  if (MAPIT_WAREHOUSE) payload.warehouse = MAPIT_WAREHOUSE;
-  if (MAPIT_PICKUP_POINT) payload.pickupPoint = MAPIT_PICKUP_POINT;
+  // pickup settings: DB values override env vars
+  const warehouseId = pickup?.warehouseId || MAPIT_WAREHOUSE;
+  const pickupPointId = pickup?.pickupPointId || MAPIT_PICKUP_POINT;
+  if (warehouseId) payload.warehouse = warehouseId;
+  if (pickupPointId) payload.pickupPoint = pickupPointId;
 
   const raw = await mapitRequest("POST", "/api/v1/order/integration", payload);
   const mapitOrderNumber = getOrderNumber(raw);

@@ -781,6 +781,14 @@ const storeSettingsSchema = new Schema(
     tabbyMaxOrder: { type: Number, default: 5000 },
     tamaraMinOrder: { type: Number, default: 100 },
     tamaraMaxOrder: { type: Number, default: 5000 },
+    // ── Mapit pickup / sender location ──
+    mapitPickupCity:     { type: String, default: "" },
+    mapitPickupStreet:   { type: String, default: "" },
+    mapitPickupDistrict: { type: String, default: "" },
+    mapitPickupLat:      { type: Number, default: null },
+    mapitPickupLng:      { type: Number, default: null },
+    mapitWarehouseId:    { type: String, default: "" },
+    mapitPickupPointId:  { type: String, default: "" },
   },
   { timestamps: true, strict: false }
 );
