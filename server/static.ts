@@ -4,8 +4,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 export function serveStatic(app: Express) {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const distPath = path.resolve(__dirname, "public");
+  // Use process.argv[1] (the entry script path) so this works in both
+  // ESM dev mode and esbuild CJS production bundles where import.meta.url
+  // is undefined and would crash before httpServer.listen().
+  const serverDir = path.dirname(path.resolve(process.argv[1]));
+  const distPath = path.resolve(serverDir, "public");
   if (!fs.existsSync(distPath)) {
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
