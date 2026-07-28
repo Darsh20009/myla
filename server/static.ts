@@ -19,15 +19,24 @@ export function serveStatic(app: Express) {
     etag: false,
   }));
 
-  // Short cache for everything else (index.html, images, icons)
+  // Long cache for media assets (images, videos, fonts) — 30 days
+  const MEDIA_EXTS = /\.(png|jpg|jpeg|webp|gif|svg|ico|mp4|mov|webm|mp3|woff|woff2|ttf|otf)$/i;
   app.use(express.static(distPath, {
-    maxAge: "1h",
+    maxAge: "30d",
     etag: true,
     setHeaders(res, filePath) {
       // Never cache index.html so clients always get fresh chunk references
       if (filePath.endsWith("index.html")) {
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        return;
       }
+      // Media files: 30-day cache + stale-while-revalidate
+      if (MEDIA_EXTS.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=2592000, stale-while-revalidate=86400");
+        return;
+      }
+      // Everything else (manifests, service worker, etc): 1 hour
+      res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=600");
     },
   }));
 
