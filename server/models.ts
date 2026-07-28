@@ -789,6 +789,11 @@ const storeSettingsSchema = new Schema(
     mapitPickupLng:      { type: Number, default: null },
     mapitWarehouseId:    { type: String, default: "" },
     mapitPickupPointId:  { type: String, default: "" },
+    // ── Store pickup / sender location (coordinates for shipment pickup) ──
+    storeLat: { type: Number, default: null },
+    storeLng: { type: Number, default: null },
+    // ── Fixed shipping cost (flat rate, not zone-based) ──
+    fixedShippingCost: { type: Number, default: 30 },
   },
   { timestamps: true, strict: false }
 );

@@ -37,6 +37,7 @@ import AdminAiInsights from "@/pages/admin/AdminAiInsights";
 import AdminSystemHealth from "@/pages/admin/AdminSystemHealth";
 import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminPixels from "@/pages/admin/AdminPixels";
+import { PickupLocationPicker } from "@/components/PickupLocationPicker";
 import { EmployeeAssistant } from "@/components/admin/EmployeeAssistant";
 import { NotificationBell } from "@/components/notification-bell";
 const logoImg = "/myla-logo.png";
@@ -4773,6 +4774,9 @@ const StoreSettingsPanel = () => {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(0);
   const [freeShippingMessageAr, setFreeShippingMessageAr] = useState("");
   const [freeShippingMessageEn, setFreeShippingMessageEn] = useState("");
+  const [fixedShippingCost, setFixedShippingCost] = useState<number>(30);
+  const [storeLat, setStoreLat] = useState<number | null>(null);
+  const [storeLng, setStoreLng] = useState<number | null>(null);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoTitleEn, setSeoTitleEn] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
@@ -4808,6 +4812,9 @@ const StoreSettingsPanel = () => {
       setFreeShippingThreshold(Number(settings.freeShippingThreshold ?? 0));
       setFreeShippingMessageAr(settings.freeShippingMessageAr ?? "");
       setFreeShippingMessageEn(settings.freeShippingMessageEn ?? "");
+      setFixedShippingCost(Number((settings as any).fixedShippingCost ?? 30));
+      setStoreLat((settings as any).storeLat ?? null);
+      setStoreLng((settings as any).storeLng ?? null);
       setSeoTitle(settings.seoTitle ?? "");
       setSeoTitleEn(settings.seoTitleEn ?? "");
       setSeoDescription(settings.seoDescription ?? "");
@@ -4894,6 +4901,8 @@ const StoreSettingsPanel = () => {
       // shipping rules
       freeShippingEnabled, freeShippingThreshold: Number(freeShippingThreshold) || 0,
       freeShippingMessageAr, freeShippingMessageEn,
+      fixedShippingCost: Number(fixedShippingCost) || 30,
+      storeLat: storeLat ?? null, storeLng: storeLng ?? null,
       // SEO
       seoTitle, seoTitleEn, seoDescription, seoDescriptionEn, seoKeywords, ogImage,
       // maintenance
@@ -5007,16 +5016,30 @@ const StoreSettingsPanel = () => {
         </CardContent>
       </Card>
 
-      {/* ─── Free Shipping Rules ─── */}
+      {/* ─── Shipping Cost & Rules ─── */}
       <Card className="border-black/5">
         <CardHeader className="border-b border-black/5 pb-6">
           <CardTitle className="flex items-center gap-3 text-lg font-black uppercase tracking-tight">
             <Truck className="h-5 w-5 text-primary" />
-            قاعدة الشحن المجاني
+            إعدادات الشحن
           </CardTitle>
-          <p className="text-xs text-muted-foreground font-bold">تظهر للعميل في السلة وأثناء التصفح كحافز للشراء</p>
+          <p className="text-xs text-muted-foreground font-bold">سعر التوصيل الثابت وقاعدة الشحن المجاني</p>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
+          {/* Fixed shipping cost */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+            <Label className="text-xs font-black uppercase text-blue-900">سعر الشحن الثابت (<RiyalSign />)</Label>
+            <Input
+              type="number"
+              value={fixedShippingCost}
+              onChange={e => setFixedShippingCost(Number(e.target.value))}
+              className="font-bold"
+              min={0}
+              placeholder="30"
+            />
+            <p className="text-[10px] text-blue-700 font-bold">يُطبَّق على جميع الطلبات بغض النظر عن المدينة</p>
+          </div>
+          {/* Free shipping toggle */}
           <div className="flex items-center justify-between bg-secondary/10 rounded p-3">
             <div>
               <p className="text-sm font-black">تفعيل الشحن المجاني</p>
@@ -5038,6 +5061,26 @@ const StoreSettingsPanel = () => {
             <Label className="text-xs font-black uppercase">رسالة المتجر (English)</Label>
             <Input value={freeShippingMessageEn} onChange={e => setFreeShippingMessageEn(e.target.value)} className="font-bold" dir="ltr" placeholder="Free shipping on orders over" disabled={!freeShippingEnabled} />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Pickup / Sender Location ─── */}
+      <Card className="border-black/5">
+        <CardHeader className="border-b border-black/5 pb-6">
+          <CardTitle className="flex items-center gap-3 text-lg font-black uppercase tracking-tight">
+            <MapPin className="h-5 w-5 text-primary" />
+            موقع الاستلام (عنوان المرسل)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground font-bold">
+            الموقع الثابت الذي تُستلم منه شحنات المتجر — يُستخدم كعنوان المرسل عند إنشاء شحنة Shipox أو Mapit
+          </p>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <PickupLocationPicker
+            lat={storeLat}
+            lng={storeLng}
+            onChange={(la, lo) => { setStoreLat(la); setStoreLng(lo); }}
+          />
         </CardContent>
       </Card>
 

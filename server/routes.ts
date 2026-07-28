@@ -3148,17 +3148,21 @@ ${allUrls.map(u => `  <url>
     }
   });
 
-  // ── Shipping rate from Storage Station ──────────────────────────────────────
+  // ── Shipping rate (fixed cost from store settings) ───────────────────────────
   app.get("/api/shipping/rate", async (req, res) => {
     try {
-      const city = String(req.query.city || "").trim();
       const orderTotal = parseFloat(String(req.query.total || "0")) || 0;
-      if (!city) return res.status(400).json({ message: "city مطلوبة" });
 
       const settings = await storage.getStoreSettings();
-      const threshold = (settings as any)?.freeShippingThreshold || 0;
-      const rate = await getShippingRateForCity(city, orderTotal, threshold);
-      res.json(rate);
+      const threshold   = (settings as any)?.freeShippingThreshold || 0;
+      const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
+      const fixedCost   = Number((settings as any)?.fixedShippingCost ?? 30);
+
+      const isFree = freeEnabled && threshold > 0 && orderTotal >= threshold;
+      if (isFree) {
+        return res.json({ cost: 0, zoneName: "شحن مجاني", methodTitle: "شحن مجاني", isFree: true });
+      }
+      res.json({ cost: fixedCost, zoneName: "توصيل", methodTitle: "توصيل", isFree: false });
     } catch (err: any) {
       console.error("[API] shipping/rate error:", err?.message);
       res.json({ cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false });
