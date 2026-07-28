@@ -1,0 +1,88 @@
+
+Upgrade now
+July 28, 2026 at 3:59 PM
+failed
+1f818de
+neww edit
+
+Rollback
+
+All logs
+Search
+Search logs
+
+Jul 28, 3:58 PM - 4:01 PM
+GMT+3
+
+
+
+==> Cloning from https://github.com/Darsh20009/myla
+==> Checking out commit 1f818de3ec21300d7379f8c1faa75dd395666f7b in branch main
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 279B done
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 ...
+#3 [auth] library/node:pull render-prod/docker-mirror-repository/library/node:pull token for us-west1-docker.pkg.dev
+#3 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 DONE 0.5s
+#4 [internal] load .dockerignore
+#4 transferring context: 137B done
+#4 DONE 0.0s
+#5 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#5 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 done
+#5 extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb
+#5 extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 0.1s done
+#5 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287
+#5 ...
+#6 [internal] load build context
+#6 transferring context: 290.47MB 1.3s done
+#6 DONE 1.3s
+#5 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#5 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 1.0s done
+#5 DONE 1.5s
+#5 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#5 extracting sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 0.1s done
+#5 DONE 1.6s
+#5 [1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#5 extracting sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 done
+#5 DONE 1.6s
+#7 [2/6] WORKDIR /app
+#7 DONE 0.0s
+#8 [3/6] COPY package*.json ./
+#8 DONE 0.0s
+#9 [4/6] RUN npm config set registry https://registry.npmjs.org && npm ci --include=dev
+#9 2.487 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#9 71.51 npm error Exit handler never called!
+#9 71.51 npm error This is an error with npm itself. Please report this error at:
+#9 71.51 npm error   <https://github.com/npm/cli/issues>
+#9 71.51 npm error A complete log of this run can be found in: /root/.npm/_logs/2026-07-28T12_59_42_639Z-debug-0.log
+#9 DONE 71.6s
+#10 [5/6] COPY . .
+#10 DONE 0.3s
+#11 [6/6] RUN npm run build
+#11 0.153 
+#11 0.153 > rest-express@1.0.0 build
+#11 0.153 > tsx script/build.ts
+#11 0.153 
+#11 0.155 sh: tsx: not found
+#11 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 127
+------
+ > [6/6] RUN npm run build:
+0.153 
+0.153 > rest-express@1.0.0 build
+0.153 > tsx script/build.ts
+0.153 
+0.155 sh: tsx: not found
+------
+Dockerfile:11
+--------------------
+   9 |     COPY . .
+  10 |     
+  11 | >>> RUN npm run build
+  12 |     
+  13 |     ENV NODE_ENV=production
+--------------------
+error: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 127
+error: exit status 1
