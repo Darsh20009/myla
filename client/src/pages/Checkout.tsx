@@ -217,8 +217,69 @@ export default function Checkout() {
     wallet: true, tap: true, apple_pay: true, cod: false,
   };
 
-  // ── Shipping rate from Storage Station ──────────────────────────────────────
+  // ── Shipping companies + Mapit status ───────────────────────────────────────
   const subtotal = total();
+
+  const { data: shippingCompaniesRaw = [] } = useQuery<any[]>({
+    queryKey: ["/api/shipping-companies"],
+    queryFn: async () => {
+      const res = await fetch("/api/shipping-companies");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: mapitStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/mapit/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/mapit/status");
+      if (!res.ok) return { configured: false };
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Build merged shipping options: Mapit first (if configured), then DB companies
+  const MAPIT_OPTION = {
+    id: "__mapit__",
+    name: "Mapit — مابت",
+    logo: "/mapit-logo.png",
+    price: 0,          // will be overridden by DB entry named "Mapit" if exists
+    estimatedDays: 1,
+    freeShippingThreshold: 0,
+    isActive: true,
+    isMapit: true,
+  };
+
+  const shippingOptions: any[] = (() => {
+    const dbOptions = (shippingCompaniesRaw || []).filter((c: any) => c.isActive !== false);
+    const dbMapit = dbOptions.find((c: any) =>
+      (c.name || "").toLowerCase().includes("mapit") || (c.name || "").toLowerCase().includes("مابت")
+    );
+    const hasMapitConfigured = mapitStatus?.configured;
+
+    let list: any[] = [];
+    if (hasMapitConfigured) {
+      list.push(dbMapit
+        ? { ...dbMapit, id: "__mapit__", isMapit: true, logo: dbMapit.logo || "/mapit-logo.png" }
+        : { ...MAPIT_OPTION, price: 30 }
+      );
+    }
+    // Add remaining DB companies (excluding the one already shown as Mapit)
+    const rest = dbOptions.filter((c: any) => c.id !== (dbMapit?.id));
+    list = [...list, ...rest];
+    return list;
+  })();
+
+  const [selectedShippingId, setSelectedShippingId] = useState<string>("");
+
+  // Auto-select first option when options load or city changes
+  const firstOptionId = shippingOptions[0]?.id ?? "";
+  const effectiveSelectedId = selectedShippingId || firstOptionId;
+  const selectedShipping = shippingOptions.find(o => o.id === effectiveSelectedId) ?? shippingOptions[0];
+
+  // ── Fallback shipping rate (when no companies configured) ────────────────────
   const { data: shippingRateData, isFetching: isLoadingRate } = useQuery<{
     cost: number; zoneName: string; methodTitle: string; isFree: boolean;
   }>({
@@ -229,13 +290,19 @@ export default function Checkout() {
       if (!res.ok) return { cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
       return res.json();
     },
-    enabled: shippingMode === "delivery" && !!deliveryCity,
+    enabled: shippingMode === "delivery" && !!deliveryCity && shippingOptions.length === 0,
     staleTime: 5 * 60 * 1000,
   });
 
-  const shippingCostValue = shippingMode === "delivery" && deliveryCity
-    ? (shippingRateData?.cost ?? 0)
-    : 0;
+  const shippingCostValue = (() => {
+    if (shippingMode !== "delivery" || !deliveryCity) return 0;
+    if (shippingOptions.length > 0 && selectedShipping) {
+      const threshold = Number(selectedShipping.freeShippingThreshold || 0);
+      const price = Number(selectedShipping.price || 0);
+      return threshold > 0 && subtotal >= threshold ? 0 : price;
+    }
+    return shippingRateData?.cost ?? 0;
+  })();
 
   // ── Bundle offer savings ─────────────────────────────────────────────────────
   const bundleCalcKey = items.map(i => `${i.productId}:${i.quantity}:${i.price}`).join("|");
@@ -370,7 +437,11 @@ export default function Checkout() {
         subtotal: subtotal.toFixed(2),
         vatAmount: vatIncluded.toFixed(2),
         shippingCost: shippingCostValue.toFixed(2),
-        shippingCompany: isDelivery ? (shippingRateData?.methodTitle || "توصيل") : "",
+        shippingCompany: isDelivery
+          ? (shippingOptions.length > 0 && selectedShipping
+              ? selectedShipping.name
+              : (shippingRateData?.methodTitle || "توصيل"))
+          : "",
         deliveryAddress: deliveryAddrStr,
         customerName: user?.name || "",
         customerPhone: (user as any)?.phone || "",
@@ -943,8 +1014,73 @@ export default function Checkout() {
                     />
                   </div>
 
-                  {/* Shipping rate display */}
-                  {deliveryCity && (
+                  {/* ── Shipping company selector ──────────────────────────── */}
+                  {deliveryCity && shippingOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-gray-500 flex items-center gap-1">
+                        <Truck className="w-3 h-3 text-primary opacity-60" />
+                        شركة التوصيل
+                      </label>
+                      <div className="space-y-2">
+                        {shippingOptions.map((company: any) => {
+                          const isSelected = effectiveSelectedId === company.id;
+                          const threshold = Number(company.freeShippingThreshold || 0);
+                          const price = Number(company.price || 0);
+                          const isFree = threshold > 0 && subtotal >= threshold;
+                          const displayPrice = isFree ? "🎉 مجاني" : price > 0 ? `${price.toLocaleString()} ر.س` : "مجاني";
+                          return (
+                            <button
+                              key={company.id}
+                              type="button"
+                              onClick={() => setSelectedShippingId(company.id)}
+                              className={`w-full flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-right ${
+                                isSelected
+                                  ? "border-primary bg-primary/5 shadow-sm"
+                                  : "border-gray-200 bg-white hover:border-gray-300"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                {/* logo or fallback icon */}
+                                {company.logo ? (
+                                  <img
+                                    src={company.logo}
+                                    alt={company.name}
+                                    className="w-9 h-9 rounded-lg object-contain bg-gray-50 border border-gray-100"
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100">
+                                    <Truck className="w-4 h-4 text-blue-500" />
+                                  </div>
+                                )}
+                                <div className="text-right">
+                                  <p className="text-xs font-black text-gray-800">{company.name}</p>
+                                  {company.estimatedDays > 0 && (
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      {company.estimatedDays === 1 ? "يوم واحد" : `${company.estimatedDays} أيام`}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-black text-sm ${isFree ? "text-emerald-600" : "text-primary"}`}>
+                                  {displayPrice}
+                                </span>
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                  isSelected ? "border-primary bg-primary" : "border-gray-300"
+                                }`}>
+                                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback rate display when no companies configured */}
+                  {deliveryCity && shippingOptions.length === 0 && (
                     <div className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all ${
                       shippingRateData?.isFree ? "border-emerald-200 bg-emerald-50" : "border-blue-100 bg-blue-50"
                     }`}>

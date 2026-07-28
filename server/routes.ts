@@ -3161,6 +3161,11 @@ ${allUrls.map(u => `  <url>
     }
   });
 
+  // Public: Mapit availability status (used by checkout)
+  app.get("/api/mapit/status", (_req, res) => {
+    res.json({ configured: isMapitConfigured() });
+  });
+
   // Shipping Companies
   app.get("/api/shipping-companies", async (req, res) => {
     try {
