@@ -1,0 +1,89 @@
+General
+Name
+A unique name for your Web Service.
+myla
+
+Edit
+Region
+Your services in the same region can communicate over a private network.
+Oregon (US West)
+Instance Type
+Free
+0.1 CPU
+512 MB
+Update
+Please enter your payment information to select an instance type with higher limits.
+See remaining free usage, or learn about free service limits.
+Build
+Source
+The build source for your Web Service
+Darsh20009 / myla
+
+Edit
+Branch
+The Git branch to build and deploy.
+Branch
+main
+
+Edit
+Root DirectoryOptional
+If set, Render runs commands from this directory instead of the repository root. Additionally, code changes outside of this directory do not trigger an auto-deploy. Most commonly used with a monorepo.
+
+Edit
+Registry Credential
+If your service pulls private Docker images from a registry, specify a credential that can access those images. Manage your credentials in Settings.
+No credential
+
+Edit
+Dockerfile Path
+The path to your service's Dockerfile, relative to the repo root. Defaults to ./Dockerfile.
+./Dockerfile
+
+Edit
+Docker Build Context Directory
+The path to your service's Docker build context, relative to the repo root. Defaults to the root.
+$
+.
+
+Edit
+Git Credentials
+User providing the credentials to pull the repository.
+whitequick197@fastfreemail.com (you)
+Use My Credentials
+Build Filters
+Include or ignore specific paths in your repo when determining whether to trigger an auto-deploy. Paths are relative to your repo's root directory. Learn more.
+
+Edit
+Included Paths
+Changes that match these paths will trigger a new build.
+
+
+Add Included Path
+Ignored Paths
+Changes that match these paths will not trigger a new build.
+
+
+Add Ignored Path
+Deploy
+Docker Command
+Optionally override your Dockerfile's CMD and ENTRYPOINT instructions with a different command to start your service.
+
+Edit
+Pre-Deploy CommandOptional
+Render runs this command before the start command. Useful for database migrations and static asset uploads.
+
+Edit
+Auto-Deploy
+By default, Render automatically deploys your service whenever you update its code or configuration. Disable to handle deploys manually. Learn more.
+autoDeployTrigger
+
+On Commit
+
+Edit
+Deploy Hook
+Your private URL to trigger a deploy for this server. Remember to keep this a secret.
+••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+
+
+Regenerate hook
