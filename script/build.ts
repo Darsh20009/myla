@@ -26,9 +26,6 @@ async function buildAll() {
     // No package externals — everything bundled in
     packages: "bundle",
     logLevel: "info",
-    banner: {
-      js: 'import { createRequire } from "module"; const require = createRequire(import.meta.url);',
-    },
   });
 }
 
