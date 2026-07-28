@@ -1,33 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
-
-// server deps to bundle to reduce openat(2) syscalls
-// which helps cold start times
-const allowlist = [
-  "@google/generative-ai",
-  "axios",
-  "cors",
-  "date-fns",
-  "express",
-  "express-rate-limit",
-  "express-session",
-  "jsonwebtoken",
-  "mongoose",
-  "memorystore",
-  "multer",
-  "nanoid",
-  "nodemailer",
-  "openai",
-  "passport",
-  "passport-local",
-  "stripe",
-  "uuid",
-  "ws",
-  "xlsx",
-  "zod",
-  "zod-validation-error",
-];
+import { rm } from "fs/promises";
 
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
@@ -36,13 +9,9 @@ async function buildAll() {
   await viteBuild();
 
   console.log("building server...");
-  const pkg = JSON.parse(await readFile("package.json", "utf-8"));
-  const allDeps = [
-    ...Object.keys(pkg.dependencies || {}),
-    ...Object.keys(pkg.devDependencies || {}),
-  ];
-  const externals = allDeps.filter((dep) => !allowlist.includes(dep));
-
+  // Bundle ALL dependencies into dist/index.js so the production image
+  // needs zero node_modules (no npm install required at runtime).
+  // Only Node.js built-in modules stay external — they are always present.
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
@@ -54,7 +23,8 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: false,
-    external: externals,
+    // No package externals — everything bundled in
+    packages: "bundle",
     logLevel: "info",
     banner: {
       js: 'import { createRequire } from "module"; const require = createRequire(import.meta.url);',

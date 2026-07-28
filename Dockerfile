@@ -2,12 +2,9 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Copy package files and pre-built dist (no build step needed)
-COPY package*.json ./
+# Copy pre-built output only — all dependencies are bundled inside dist/index.js
+# No npm install needed at all
 COPY dist/ ./dist/
-
-# Install production dependencies only (no devDeps = no esbuild/vite/tsx postinstall scripts)
-RUN npm install --omit=dev --no-audit --no-fund
 
 ENV NODE_ENV=production
 ENV PORT=5000
