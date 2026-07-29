@@ -182,22 +182,24 @@ export default function AdminWhatsApp() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── SSE connection for real-time events ──
+  // ── SSE connection for real-time events (withCredentials sends session cookie) ──
   useEffect(() => {
     let es: EventSource;
     let retryTimer: ReturnType<typeof setTimeout>;
 
     function connect() {
-      es = new EventSource("/api/admin/whatsapp/events");
+      // withCredentials=true is essential — without it no session cookie is sent
+      // and requireAdmin returns 403, so events never arrive.
+      es = new EventSource("/api/admin/whatsapp/events", { withCredentials: true });
       es.onmessage = (e) => {
         try {
           const { type, payload } = JSON.parse(e.data);
           if (type === "state") {
             setWaState(payload.state);
-            if (payload.qr) setQrDataUrl(payload.qr);
-            if (payload.state === "connected") setQrDataUrl(null);
+            if (payload.qr) { setQrDataUrl(payload.qr); setShowQR(true); }
+            if (payload.state === "connected") { setQrDataUrl(null); setShowQR(false); }
           }
-          if (type === "qr") setQrDataUrl(payload.qr);
+          if (type === "qr") { setQrDataUrl(payload.qr); setShowQR(true); }
           if (type === "new_message") {
             qc.invalidateQueries({ queryKey: ["/api/admin/whatsapp/chats"] });
             if (activeChatId === payload.chatId) {
@@ -208,13 +210,30 @@ export default function AdminWhatsApp() {
       };
       es.onerror = () => {
         es?.close();
-        retryTimer = setTimeout(connect, 5000);
+        retryTimer = setTimeout(connect, 4000);
       };
     }
 
     connect();
     return () => { es?.close(); clearTimeout(retryTimer); };
   }, [activeChatId, qc]);
+
+  // ── Polling fallback: fetch status every 2 s while connecting or when QR expected ──
+  // This ensures the QR appears even if SSE has issues (e.g. proxy strips keep-alive)
+  useEffect(() => {
+    if (waState !== "connecting" && waState !== "connected") return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/admin/whatsapp/status", { credentials: "include" });
+        if (!res.ok) return;
+        const { state, qr } = await res.json();
+        setWaState(state);
+        if (qr) { setQrDataUrl(qr); setShowQR(true); }
+        if (state === "connected") { setQrDataUrl(null); setShowQR(false); }
+      } catch {}
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [waState]);
 
   // ── Queries ──
   const { data: chats = [] } = useQuery<WaChat[]>({
