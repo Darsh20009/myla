@@ -1198,3 +1198,22 @@ stockTransferSchema.index({ status: 1, createdAt: -1 });
 
 // Push subscriptions — userId already indexed inline on schema definition
 
+// ─── WhatsApp Bot Settings ──────────────────────────────────────────────────────
+
+const waBotCustomCommandSchema = new Schema({
+  triggers:    [{ type: String }],
+  response:    { type: String, required: true },
+  description: { type: String, default: "" },
+  enabled:     { type: Boolean, default: true },
+  createdAt:   { type: Date, default: Date.now },
+}, { _id: true });
+
+const waBotSettingsSchema = new Schema({
+  autoReplyEnabled:      { type: Boolean, default: true },
+  autoReplyDelaySeconds: { type: Number,  default: 60 },
+  customSystemPrompt:    { type: String,  default: "" },
+  customCommands:        [waBotCustomCommandSchema],
+}, { timestamps: true });
+
+export const WaBotSettingsModel = mongoose.model("WaBotSettings", waBotSettingsSchema);
+

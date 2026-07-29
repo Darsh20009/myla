@@ -14,6 +14,7 @@ import {
   getAdminPhones,
   setAdminPhones,
   onWaEvent,
+  invalidateBotSettingsCache,
 } from "./whatsapp";
 
 const router = Router();

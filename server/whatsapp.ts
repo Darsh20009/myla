@@ -75,6 +75,44 @@ export function onWaEvent(fn: (e: WaEvent) => void) {
   };
 }
 
+// ─── Bot settings cache ─────────────────────────────────────────────────────────
+
+let _settingsCache: any = null;
+let _settingsCacheAt = 0;
+
+export function invalidateBotSettingsCache() {
+  _settingsCache = null;
+  _settingsCacheAt = 0;
+}
+
+async function getBotSettings() {
+  if (_settingsCache && Date.now() - _settingsCacheAt < 30_000) return _settingsCache;
+  try {
+    const { WaBotSettingsModel } = await import("./models");
+    let s = await (WaBotSettingsModel as any).findOne().lean();
+    if (!s) s = { autoReplyEnabled: true, autoReplyDelaySeconds: 60, customSystemPrompt: "", customCommands: [] };
+    _settingsCache = s;
+    _settingsCacheAt = Date.now();
+    return s;
+  } catch {
+    return { autoReplyEnabled: true, autoReplyDelaySeconds: 60, customSystemPrompt: "", customCommands: [] };
+  }
+}
+
+/** Check if a message matches any custom command, return the response or null */
+async function checkCustomCommand(msg: string): Promise<string | null> {
+  const settings = await getBotSettings();
+  const lower = msg.toLowerCase().trim();
+  for (const cmd of (settings.customCommands || [])) {
+    if (!cmd.enabled) continue;
+    const match = (cmd.triggers || []).some((t: string) =>
+      t.trim() && lower.includes(t.toLowerCase().trim()),
+    );
+    if (match) return cmd.response as string;
+  }
+  return null;
+}
+
 // ─── Store helpers ──────────────────────────────────────────────────────────────
 
 function addMessage(chatId: string, msg: WaMessage) {
@@ -216,8 +254,8 @@ export async function connectToWhatsApp(): Promise<void> {
           return;
         }
 
-        // Schedule AI auto-reply after 60 s
-        scheduleAutoReply(chatId, body);
+        // Schedule AI auto-reply (delay configured in bot settings)
+        void scheduleAutoReply(chatId, body);
       } else {
         // Human admin replied — cancel pending AI timer
         cancelAutoReply(chatId);
@@ -229,17 +267,23 @@ export async function connectToWhatsApp(): Promise<void> {
 
 // ─── Auto-reply logic ───────────────────────────────────────────────────────────
 
-function scheduleAutoReply(chatId: string, latestMsg: string) {
+async function scheduleAutoReply(chatId: string, latestMsg: string) {
   // Reset timer each time a new message arrives
   if (autoReplyTimers.has(chatId)) clearTimeout(autoReplyTimers.get(chatId)!);
+
+  const settings = await getBotSettings();
+  if (!settings.autoReplyEnabled) return;
+
+  const delaySec = Math.max(5, Number(settings.autoReplyDelaySeconds) || 60);
+  const delayMs  = delaySec * 1000;
 
   const timer = setTimeout(async () => {
     autoReplyTimers.delete(chatId);
     const lastAdmin = adminLastReply.get(chatId) || 0;
     // Double-check no admin replied in the window
-    if (Date.now() - lastAdmin < 60_000) return;
+    if (Date.now() - lastAdmin < delayMs) return;
     await sendAIAutoReply(chatId, latestMsg);
-  }, 60_000);
+  }, delayMs);
 
   autoReplyTimers.set(chatId, timer);
 }
@@ -254,13 +298,30 @@ function cancelAutoReply(chatId: string) {
 async function sendAIAutoReply(chatId: string, userMsg: string) {
   if (!sock || waState !== "connected") return;
 
-  // Get chat history for context
+  // 1. Check custom commands first (exact/keyword match)
+  const customReply = await checkCustomCommand(userMsg);
+  if (customReply) {
+    await sock.sendMessage(chatId, { text: customReply });
+    const customMsg: WaMessage = {
+      id: `custom_${Date.now()}`,
+      chatId,
+      body: customReply,
+      fromMe: true,
+      timestamp: Date.now(),
+      type: "text",
+      isAI: true,
+    };
+    addMessage(chatId, customMsg);
+    return;
+  }
+
+  // 2. Fallback to AI
   const history = (chatHistory.get(chatId) || []).slice(-10);
   const historyForAI = history
     .filter(m => m.type === "text" && m.body)
     .map(m => ({ role: m.fromMe ? "assistant" : "user", content: m.body }));
 
-  const systemPrompt = buildWhatsAppSystemPrompt();
+  const systemPrompt = await buildWhatsAppSystemPrompt();
 
   try {
     const reply = await callWhatsAppAI(systemPrompt, historyForAI, userMsg);
@@ -286,9 +347,13 @@ async function sendAIAutoReply(chatId: string, userMsg: string) {
 
 // ─── AI providers ───────────────────────────────────────────────────────────────
 
-function buildWhatsAppSystemPrompt(): string {
+async function buildWhatsAppSystemPrompt(): Promise<string> {
   const siteUrl = process.env.PUBLIC_SITE_URL || "https://myla-abayas.store";
   const brand = "Myla | ميلا";
+  const settings = await getBotSettings();
+  const extra = settings.customSystemPrompt?.trim()
+    ? `\n\n## تعليمات إضافية من الإدارة\n${settings.customSystemPrompt}`
+    : "";
 
   return `أنت مساعدة Myla على واتس‌آب — مساعدة ذكية وودودة لمتجر ${brand} للعبايات الفاخرة.
 
@@ -322,7 +387,7 @@ function buildWhatsAppSystemPrompt(): string {
 ## تذكر
 - رسائل واتس‌آب = قصيرة وعملية، مش مقال
 - إذا طلب العميل مساعدة بالحساب أو الطلب = أعطه الرابط المباشر
-- الرد الأول دايماً = ترحيب + سؤال بشري
+- الرد الأول دايماً = ترحيب + سؤال بشري${extra}
 
 ABSOLUTE RULE: Never output Chinese, Japanese, Korean, or CJK characters.`;
 }
