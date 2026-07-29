@@ -21,6 +21,16 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: false,
+    // Mark baileys and its native/ESM-only deps as external so they are
+    // loaded from node_modules at runtime (the Dockerfile runs npm ci).
+    external: [
+      "@whiskeysockets/baileys",
+      "node-cache",
+      "pino",
+      "pino-pretty",
+      "bufferutil",
+      "utf-8-validate",
+    ],
     packages: "bundle",
     logLevel: "info",
   });

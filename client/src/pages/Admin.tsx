@@ -37,6 +37,7 @@ import AdminAiInsights from "@/pages/admin/AdminAiInsights";
 import AdminSystemHealth from "@/pages/admin/AdminSystemHealth";
 import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminPixels from "@/pages/admin/AdminPixels";
+import AdminWhatsApp from "@/pages/admin/AdminWhatsApp";
 import { PickupLocationPicker } from "@/components/PickupLocationPicker";
 import { EmployeeAssistant } from "@/components/admin/EmployeeAssistant";
 import { NotificationBell } from "@/components/notification-bell";
@@ -5546,6 +5547,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
         ...(user?.role === "admin" ? [
           { id: "health", label: "صحة النظام", icon: Activity },
           { id: "integrations", label: "ربط الخدمات", icon: Shield },
+          { id: "whatsapp", label: "ربط واتس‌آب", icon: Phone },
         ] : []),
       ]
     },
@@ -5749,6 +5751,7 @@ const pageTitles: Record<string, string> = {
   settings:     "إعدادات المتجر",
   health:       "صحة النظام",
   integrations: "ربط الخدمات والمفاتيح",
+  whatsapp:     "ربط النظام بواتس‌آب",
 };
 
 export default function Admin() {
@@ -5903,6 +5906,7 @@ export default function Admin() {
                 {activeTab === "settings"  && <StoreSettingsPanel />}
                 {activeTab === "health"    && user?.role === "admin" && <AdminSystemHealth />}
                 {activeTab === "integrations" && user?.role === "admin" && <AdminIntegrations />}
+                {activeTab === "whatsapp"     && user?.role === "admin" && <AdminWhatsApp />}
               </motion.div>
             </AnimatePresence>
           </div>

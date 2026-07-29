@@ -2,8 +2,12 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Copy pre-built output only — all dependencies are bundled inside dist/index.js
-# No npm install needed at all
+# Install production dependencies (includes @whiskeysockets/baileys)
+# This runs before copying dist so this layer is cached on re-deploys
+COPY package*.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
+# Copy pre-built app (server bundle + client assets)
 COPY dist/ ./dist/
 
 ENV NODE_ENV=production
