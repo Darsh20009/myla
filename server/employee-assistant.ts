@@ -10,10 +10,7 @@ import { ProductModel, OrderModel, UserModel, CategoryModel } from "./models";
 import { sendEmail } from "./email";
 import { sendPushToUser, pushToUser } from "./notifications";
 import { detectLang } from "./groq";
-import { isKimiConfigured, kimiChat } from "./kimi";
-
-const KIMI_BASE = "https://api.moonshot.ai/v1/chat/completions";
-const KIMI_MODEL_TOOLS = "moonshot-v1-32k"; // larger context for multi-turn tool calling
+import { isAIConfigured, chatCompletion } from "./ai-provider";
 
 // ─── Tool Definitions ───────────────────────────────────────────────────────
 
@@ -711,37 +708,31 @@ When done: a concise English reply summarising what you did — no excessive tab
 // ─── Assistant Loop ─────────────────────────────────────────────────────────
 
 async function callKimi(allMessages: any[]): Promise<{ ok: boolean; status?: number; data?: any; errText?: string }> {
-  const apiKey = (process.env.KIMI_API_KEY || "").trim();
-  if (!apiKey) {
-    return { ok: false, status: 0, errText: "KIMI_API_KEY not configured" };
+  if (!isAIConfigured()) {
+    return { ok: false, status: 0, errText: "No AI provider configured (OPENAI_API_KEY or KIMI_API_KEY required)" };
   }
   try {
-    const res = await fetch(KIMI_BASE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: KIMI_MODEL_TOOLS,
-        messages: allMessages,
-        tools: TOOLS,
-        tool_choice: "auto",
-        temperature: 0.72,
-        max_tokens: 2400,
-      }),
+    const result = await chatCompletion(allMessages, {
+      maxTokens:   2400,
+      temperature: 0.72,
+      tools:       TOOLS,
+      toolChoice:  "auto",
+      audience:    "employee",
     });
-    if (res.ok) {
-      const data = await res.json();
-      return { ok: true, data };
-    }
-    const errText = (await res.text()).slice(0, 300);
-    console.error(`[Assistant Kimi] HTTP ${res.status}: ${errText}`);
-    return { ok: false, status: res.status, errText };
+    // Wrap in the same shape as before so groqWithTools stays unchanged
+    const data = {
+      choices: [{
+        message: {
+          content:     result.content || null,
+          tool_calls:  result.toolCalls,
+          role:        "assistant",
+        },
+      }],
+    };
+    return { ok: true, data };
   } catch (e: any) {
-    const errText = e?.message || String(e);
-    console.error(`[Assistant Kimi] network: ${errText}`);
-    return { ok: false, status: 0, errText };
+    console.error(`[Assistant AI] error: ${e.message}`);
+    return { ok: false, status: 0, errText: e.message };
   }
 }
 
@@ -831,11 +822,11 @@ export function registerEmployeeAssistant(app: Express) {
       const lastUserMsg = [...userMessages].reverse().find((m: any) => m.role === "user");
       const lang: "ar" | "en" = lastUserMsg?.content ? detectLang(String(lastUserMsg.content)) : "ar";
 
-      if (!isKimiConfigured()) {
+      if (!isAIConfigured()) {
         return res.json({
           reply: lang === "ar"
-            ? "خدمة الذكاء الاصطناعي غير مفعّلة على الخادم حالياً. تواصل مع المسؤول التقني لتفعيل KIMI_API_KEY."
-            : "The AI service is not enabled on the server right now. Please contact the technical admin to set up KIMI_API_KEY.",
+            ? "خدمة الذكاء الاصطناعي غير مفعّلة على الخادم حالياً. تواصل مع المسؤول التقني لتفعيل OPENAI_API_KEY أو KIMI_API_KEY."
+            : "The AI service is not enabled on the server right now. Please contact the technical admin to set up OPENAI_API_KEY or KIMI_API_KEY.",
           actions: [],
         });
       }

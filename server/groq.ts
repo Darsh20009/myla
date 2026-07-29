@@ -7,12 +7,12 @@
  *   perfumeAdvisor(), supportAssistant(), adminAssistant(), smartAdvisorFallback()
  */
 
-import { isKimiConfigured, kimiChat } from "./kimi";
+import { isAIConfigured, aiChat } from "./ai-provider";
 
 type Audience = "customer" | "employee";
 
 export function isGroqConfigured(): boolean {
-  return isKimiConfigured();
+  return isAIConfigured();
 }
 
 interface ChatMessage {
@@ -25,10 +25,10 @@ async function groqChat(
   maxTokens = 1024,
   audience: Audience = "customer",
 ): Promise<string> {
-  if (!isKimiConfigured()) {
-    throw new Error("AI service not configured — KIMI_API_KEY is missing");
+  if (!isAIConfigured()) {
+    throw new Error("AI service not configured — set OPENAI_API_KEY or KIMI_API_KEY");
   }
-  return kimiChat(messages, maxTokens, audience);
+  return aiChat(messages, { maxTokens, audience });
 }
 
 /** Heuristic: detects whether the latest user message is mostly Arabic or Latin script */

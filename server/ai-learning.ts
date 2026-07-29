@@ -16,7 +16,7 @@
 
 import mongoose, { Schema } from "mongoose";
 import { ProductModel } from "./models";
-import { kimiChat, isKimiConfigured } from "./kimi";
+import { aiChat, isAIConfigured } from "./ai-provider";
 
 // ─── Schema: AI Interaction Log ─────────────────────────────────────────────
 
@@ -147,8 +147,8 @@ export async function runNightlyLearning() {
     console.log("[AI Learn] Already running, skipping");
     return;
   }
-  if (!isKimiConfigured()) {
-    console.warn("[AI Learn] Kimi not configured, skipping");
+  if (!isAIConfigured()) {
+    console.warn("[AI Learn] No AI provider configured, skipping nightly learning");
     return;
   }
 
@@ -207,10 +207,9 @@ async function learnForProduct(productId: string) {
   if (needsUpdate && stats.sampleMessages.length >= 3) {
     const prompt = buildLearnPrompt(p, stats);
     try {
-      const raw = await kimiChat(
+      const raw = await aiChat(
         [{ role: "user", content: prompt }],
-        800,
-        "employee",
+        { maxTokens: 800, audience: "employee" },
       );
       const parsed = extractJSON(raw);
       if (parsed) {

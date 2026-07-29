@@ -13,7 +13,7 @@
 import fs from "fs";
 import path from "path";
 import QRCode from "qrcode";
-import { kimiChat } from "./kimi";
+import { aiChat } from "./ai-provider";
 import { SITE } from "./site-config";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -336,45 +336,13 @@ async function callWhatsAppAI(
     ...history.slice(-8),
     { role: "user", content: userMsg },
   ];
-
-  // Try Moonshot (Kimi) first
-  const kimiKey = (process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY || "").trim();
-  if (kimiKey) {
-    try {
-      const text = await kimiChat(messages.slice(1), 800, "customer");
-      return text || null;
-    } catch (e: any) {
-      console.warn("[WhatsApp AI] Kimi failed, trying fallback:", e.message);
-    }
+  try {
+    const text = await aiChat(messages, { maxTokens: 800, temperature: 0.7, audience: "customer" });
+    return text || null;
+  } catch (e: any) {
+    console.warn("[WhatsApp AI] failed:", e.message);
+    return null;
   }
-
-  // Fallback: bazaarlink.ai (OpenAI-compatible)
-  const openaiKey = (process.env.OPENAI_API_KEY || "").trim();
-  if (openaiKey) {
-    try {
-      const res = await fetch("https://bazaarlink.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          max_tokens: 800,
-          temperature: 0.7,
-        }),
-      });
-      if (res.ok) {
-        const data: any = await res.json();
-        return data?.choices?.[0]?.message?.content || null;
-      }
-    } catch (e: any) {
-      console.warn("[WhatsApp AI] bazaarlink failed:", e.message);
-    }
-  }
-
-  return null;
 }
 
 // ─── Admin commands ─────────────────────────────────────────────────────────────
@@ -393,7 +361,7 @@ async function handleAdminCommand(chatId: string, text: string, senderPhone: str
     const parts = text.split(/\s+/);
     const label = parts[1] || `WA_${Date.now()}`;
     try {
-      const { Coupon } = await import("./models");
+      const { CouponModel: Coupon } = await import("./models");
       const code = label.toUpperCase().replace(/\s+/g, "_").slice(0, 20);
       await (Coupon as any).create({
         code,
@@ -418,7 +386,7 @@ async function handleAdminCommand(chatId: string, text: string, senderPhone: str
   // ── Daily report ──
   if (lower.includes("تقرير") || lower.includes("report")) {
     try {
-      const { Order } = await import("./models");
+      const { OrderModel: Order } = await import("./models");
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const orders = await (Order as any).find({ createdAt: { $gte: today } }).lean();
       const total = orders.reduce((s: number, o: any) => s + (o.total || 0), 0);
