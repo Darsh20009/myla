@@ -13,6 +13,7 @@ import {
   sendWaImage,
   getAdminPhones,
   setAdminPhones,
+  onWaEvent,
 } from "./whatsapp";
 
 const router = Router();
@@ -114,8 +115,6 @@ router.put("/admin-phones", requireAdmin, (req, res) => {
 // ─── SSE stream for real-time events ───────────────────────────────────────────
 // GET /api/admin/whatsapp/events
 router.get("/events", requireAdmin, (req, res) => {
-  const { onWaEvent } = require("./whatsapp");
-
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
