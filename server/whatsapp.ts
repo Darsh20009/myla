@@ -155,7 +155,14 @@ export async function connectToWhatsApp(): Promise<void> {
   const { useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = baileys;
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
-  const { version } = await fetchLatestBaileysVersion();
+  let version: [number, number, number];
+  try {
+    const v = await fetchLatestBaileysVersion();
+    version = v.version;
+  } catch {
+    version = [2, 3000, 1015901307]; // fallback known-good version
+    console.warn("[WhatsApp] fetchLatestBaileysVersion failed — using fallback version");
+  }
 
   sock = makeWASocket({
     version,

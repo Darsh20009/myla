@@ -113,6 +113,37 @@ router.put("/admin-phones", requireAdmin, (req, res) => {
   res.json({ ok: true, phones: getAdminPhones() });
 });
 
+// ─── Bot settings ──────────────────────────────────────────────────────────────
+
+// GET /api/admin/whatsapp/bot-settings
+router.get("/bot-settings", requireAdmin, async (_req, res) => {
+  try {
+    const { WaBotSettingsModel } = await import("./models");
+    let s = await (WaBotSettingsModel as any).findOne().lean();
+    if (!s) s = { autoReplyEnabled: true, autoReplyDelaySeconds: 60, customSystemPrompt: "", customCommands: [] };
+    res.json(s);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// PUT /api/admin/whatsapp/bot-settings
+router.put("/bot-settings", requireAdmin, async (req, res) => {
+  try {
+    const { WaBotSettingsModel } = await import("./models");
+    const { autoReplyEnabled, autoReplyDelaySeconds, customSystemPrompt, customCommands } = req.body;
+    const settings = await (WaBotSettingsModel as any).findOneAndUpdate(
+      {},
+      { autoReplyEnabled, autoReplyDelaySeconds, customSystemPrompt, customCommands },
+      { upsert: true, new: true, lean: true },
+    );
+    invalidateBotSettingsCache();
+    res.json({ ok: true, settings });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 // ─── SSE stream for real-time events ───────────────────────────────────────────
 // GET /api/admin/whatsapp/events
 router.get("/events", requireAdmin, (req, res) => {

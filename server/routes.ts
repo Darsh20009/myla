@@ -39,7 +39,8 @@ import {
 } from "./tamara";
 import {
   sendOrderConfirmationEmail, sendOrderStatusEmail,
-  sendWelcomeEmail, sendPaymentConfirmationEmail, sendAdminNewOrderEmail
+  sendWelcomeEmail, sendPaymentConfirmationEmail, sendAdminNewOrderEmail,
+  sendEmail,
 } from "./email";
 import {
   initiatePaymobPayment, verifyPaymobHmac, flattenPaymobCallback, isPaymobConfigured,
@@ -1913,11 +1914,54 @@ ${allUrls.map(u => `  <url>
   // ─── Admin Email Testing ────────────────────────────────────────────────
   app.get("/api/admin/email/status", checkPermission("settings.manage"), (_req, res) => {
     res.json({
-      configured: !!process.env.SMTP2GO_API_KEY,
-      sender: "info@myla.sa",
-      senderName: "Myla",
-      provider: "SMTP2GO",
+      configured: !!(process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS),
+      sender: "info@qirox.online",
+      senderName: "Myla | ميلا",
+      provider: "cPanel SMTP",
     });
+  });
+
+  // POST /api/admin/email/send-custom — compose & send a free-form email
+  app.post("/api/admin/email/send-custom", checkPermission("settings.manage"), async (req, res) => {
+    try {
+      const { to, subject, body, recipientName } = req.body as any;
+      if (!to || !/^\S+@\S+\.\S+$/.test(to)) {
+        return res.status(400).json({ success: false, message: "البريد الإلكتروني غير صالح" });
+      }
+      if (!subject?.trim()) return res.status(400).json({ success: false, message: "الموضوع مطلوب" });
+      if (!body?.trim()) return res.status(400).json({ success: false, message: "نص الرسالة مطلوب" });
+
+      const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:24px">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <div style="background:#1a1a2e;padding:24px 32px;text-align:center">
+    <h1 style="color:#d4a574;margin:0;font-size:22px;letter-spacing:2px">Myla | ميلا</h1>
+  </div>
+  <div style="padding:32px;color:#333;line-height:1.8;font-size:15px;white-space:pre-wrap">${body.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+  <div style="background:#f9f9f9;padding:16px 32px;text-align:center;color:#999;font-size:12px;border-top:1px solid #eee">
+    Myla | ميلا — myla-abayas.store
+  </div>
+</div>
+</body></html>`;
+
+      const result = await sendEmail({
+        to,
+        toName: recipientName || undefined,
+        subject,
+        html,
+        text: body,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ success: false, message: result.error || "فشل الإرسال" });
+      }
+      res.json({ success: true, message: `تم إرسال البريد إلى ${to}` });
+    } catch (err: any) {
+      console.error("[API] email send-custom error:", err?.message);
+      res.status(500).json({ success: false, message: err?.message || "خطأ في الخادم" });
+    }
   });
 
   app.post("/api/admin/email/test", checkPermission("settings.manage"), async (req, res) => {
