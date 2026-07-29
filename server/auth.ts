@@ -916,4 +916,127 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "فشل التحقق من حساب أبل" });
     }
   });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // WhatsApp OTP Login — phone-only login via WhatsApp OTP code
+  // POST /api/auth/phone-otp/send   { phone }  → sends OTP via WhatsApp
+  // POST /api/auth/phone-otp/verify { phone, otp } → verifies + creates session
+  // ══════════════════════════════════════════════════════════════════════════
+
+  function normalizeLoginPhone(raw: string): string {
+    let p = (raw || "").replace(/\D/g, "");
+    if (p.startsWith("966")) p = p.substring(3);
+    if (p.startsWith("0")) p = p.substring(1);
+    return p;
+  }
+
+  async function findLoginUser(phone: string) {
+    return UserModel.findOne({
+      $or: [
+        { phone }, { phone: "0" + phone },
+        { username: phone }, { username: "0" + phone },
+        { phone: "966" + phone },
+      ],
+    });
+  }
+
+  app.post("/api/auth/phone-otp/send", loginLimiter, async (req, res) => {
+    try {
+      const phone = normalizeLoginPhone(req.body?.phone || "");
+      if (!phone || phone.length < 9) {
+        return res.status(400).json({ message: "رقم الجوال غير صالح" });
+      }
+
+      let user: any = await findLoginUser(phone);
+
+      // Auto-create customer if new
+      if (!user) {
+        const { storage } = await import("./storage");
+        user = await storage.createUser({
+          name: req.body?.name || "عميل جديد",
+          phone,
+          username: phone,
+          email: "",
+          password: phone, // fallback
+          role: "customer",
+          walletBalance: "0",
+          addresses: [],
+          permissions: [],
+          isActive: true,
+          mustChangePassword: false,
+          loyaltyPoints: 0,
+          loyaltyTier: "bronze",
+          totalSpent: 0,
+          phoneDiscountEligible: false,
+          loginType: "dashboard",
+        } as any);
+      }
+
+      // Staff always use password — no WhatsApp OTP for them
+      const staffRoles = ["admin", "assistant_manager", "tech_support", "accountant", "legal_consultant", "employee", "support", "cashier"];
+      if (staffRoles.includes(user.role)) {
+        return res.status(400).json({ message: "الموظفون يسجلون الدخول بكلمة المرور" });
+      }
+
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      user.passwordResetCode = otp;
+      user.passwordResetCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+      user.passwordResetAttempts = 0;
+      await user.save();
+
+      // Send via WhatsApp
+      const { sendWhatsAppOTP, getWaStatus } = await import("./whatsapp");
+      const waStatus = getWaStatus();
+      if (waStatus.state === "connected") {
+        await sendWhatsAppOTP(phone, otp);
+        return res.json({ sent: true, via: "whatsapp" });
+      }
+
+      // Fallback: if WhatsApp not connected, send via email if available
+      if (user.email && /^\S+@\S+\.\S+$/.test(user.email)) {
+        const { sendPasswordResetEmail } = await import("./email");
+        await sendPasswordResetEmail({ to: user.email, customerName: user.name, otp });
+        return res.json({ sent: true, via: "email", masked: user.email.replace(/(\S{2})\S*@/, "$1***@") });
+      }
+
+      return res.status(503).json({ message: "واتساب غير متصل حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم." });
+    } catch (err: any) {
+      console.error("[OTP Send]", err?.message);
+      res.status(500).json({ message: "حدث خطأ، حاول مرة أخرى" });
+    }
+  });
+
+  app.post("/api/auth/phone-otp/verify", loginLimiter, async (req, res) => {
+    try {
+      const phone = normalizeLoginPhone(req.body?.phone || "");
+      const { otp } = req.body || {};
+      if (!phone || !otp) return res.status(400).json({ message: "رقم الجوال والرمز مطلوبان" });
+
+      const user: any = await findLoginUser(phone);
+      if (!user) return res.status(404).json({ message: "الحساب غير موجود" });
+
+      if (!user.passwordResetCode || user.passwordResetCode !== String(otp).trim()) {
+        return res.status(400).json({ message: "الرمز غير صحيح" });
+      }
+      if (user.passwordResetCodeExpires && new Date() > user.passwordResetCodeExpires) {
+        return res.status(400).json({ message: "انتهت صلاحية الرمز، اطلب رمزاً جديداً" });
+      }
+
+      // Clear OTP
+      user.passwordResetCode = undefined;
+      user.passwordResetCodeExpires = undefined;
+      user.passwordResetAttempts = 0;
+      await user.save();
+
+      const userObj = { ...user.toObject(), id: user._id.toString() };
+      req.login(userObj as any, (err) => {
+        if (err) return res.status(500).json({ message: "خطأ في تسجيل الدخول" });
+        const { password: _pw, ...safe } = userObj as any;
+        res.json(safe);
+      });
+    } catch (err: any) {
+      console.error("[OTP Verify]", err?.message);
+      res.status(500).json({ message: "حدث خطأ، حاول مرة أخرى" });
+    }
+  });
 }

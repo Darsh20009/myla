@@ -107,7 +107,8 @@ export async function connectToWhatsApp(): Promise<void> {
   waState = "connecting";
   emit("state", { state: "connecting" });
 
-  const authDir = "/tmp/wa-auth";
+  // Use a persistent directory (project root) so session survives server restarts
+  const authDir = path.join(process.cwd(), "wa-auth");
   if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true });
 
   // Dynamic import — baileys is ESM, works fine via dynamic import in CJS
@@ -123,7 +124,7 @@ export async function connectToWhatsApp(): Promise<void> {
     auth: state,
     printQRInTerminal: false,
     logger: silentLogger as any,
-    browser: ["Thanarah System", "Chrome", "1.0"],
+    browser: ["Myla System", "Chrome", "1.0"],
     generateHighQualityLinkPreview: false,
     getMessage: async (key: any) => {
       const msgs = chatHistory.get(key.remoteJid!) || [];
@@ -161,7 +162,7 @@ export async function connectToWhatsApp(): Promise<void> {
 
       if (loggedOut) {
         // Clean auth and start fresh
-        try { fs.rmSync(authDir, { recursive: true, force: true }); } catch {}
+        try { fs.rmSync(path.join(process.cwd(), "wa-auth"), { recursive: true, force: true }); } catch {}
         sock = null;
       } else {
         // Auto-reconnect after 5 s
@@ -286,14 +287,14 @@ async function sendAIAutoReply(chatId: string, userMsg: string) {
 // ─── AI providers ───────────────────────────────────────────────────────────────
 
 function buildWhatsAppSystemPrompt(): string {
-  const siteUrl = process.env.PUBLIC_SITE_URL || "https://presentation.thanarah.com";
-  const brand = "Thanarah / ثناره";
+  const siteUrl = process.env.PUBLIC_SITE_URL || "https://myla-abayas.store";
+  const brand = "Myla | ميلا";
 
-  return `أنت مساعد ثناره على واتس‌آب — مساعد ذكي وودود لمتجر ${brand} للعبايات الفاخرة.
+  return `أنت مساعدة Myla على واتس‌آب — مساعدة ذكية وودودة لمتجر ${brand} للعبايات الفاخرة.
 
 ## هويتك
-- اسمك: مساعد ثناره
-- طبيعتك: ودود، دافئ، بريش — مش رسمي ومش بارد
+- اسمك: مساعدة ميلا
+- طبيعتك: ودود، دافئ، أنيق — مش رسمي ومش بارد
 - موقع المتجر: ${siteUrl}
 
 ## قاعدة اللغة والأسلوب (الأهم)
@@ -412,13 +413,13 @@ async function handleAdminCommand(chatId: string, text: string, senderPhone: str
 
   // ── Rابط المتجر ──
   if (lower.includes("رابط") || lower.includes("link") || lower.includes("موقع")) {
-    const siteUrl = process.env.PUBLIC_SITE_URL || "https://presentation.thanarah.com";
-    await sock.sendMessage(chatId, { text: `🔗 رابط المتجر:\n${siteUrl}` });
+    const siteUrl = process.env.PUBLIC_SITE_URL || "https://myla-abayas.store";
+    await sock.sendMessage(chatId, { text: `🔗 رابط متجر Myla:\n${siteUrl}` });
     return;
   }
 
   // ── Fallback: AI handles the command ──
-  const systemPrompt = `أنت مساعد إداري لنظام Thanarah. الأوامر المتاحة:
+  const systemPrompt = `أنت مساعد إداري لنظام Myla | ميلا. الأوامر المتاحة:
 - كوبون [اسم]: إنشاء كود خصم
 - تقرير: تقرير المبيعات اليومية
 - رمز/otp [رقم]: إرسال رمز تحقق
@@ -509,7 +510,7 @@ export async function sendWhatsAppOTP(phone: string, otp: string): Promise<boole
   try {
     const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
     await sock.sendMessage(jid, {
-      text: `🔐 *رمز التحقق الخاص بك في Thanarah:*\n\n*${otp}*\n\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.`,
+      text: `🔐 *رمز التحقق الخاص بك في Myla | ميلا:*\n\n*${otp}*\n\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.`,
     });
     return true;
   } catch (e: any) {
@@ -533,6 +534,6 @@ export async function disconnectWhatsApp(): Promise<void> {
   }
   waState = "disconnected";
   qrDataUrl = null;
-  try { fs.rmSync("/tmp/wa-auth", { recursive: true, force: true }); } catch {}
+  try { fs.rmSync(path.join(process.cwd(), "wa-auth"), { recursive: true, force: true }); } catch {}
   emit("state", { state: "disconnected" });
 }

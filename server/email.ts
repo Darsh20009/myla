@@ -26,8 +26,8 @@ const SMTP_CONFIG = {
 } as const;
 
 function createTransporter() {
-  const pass = process.env.SMTP_PASS;
-  if (!pass) throw new Error("[Email] SMTP_PASS env var is not set");
+  const pass = process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS;
+  if (!pass) throw new Error("[Email] CPANEL_SMTP_PASS env var is not set");
 
   return nodemailer.createTransport({
     host: SMTP_CONFIG.host,

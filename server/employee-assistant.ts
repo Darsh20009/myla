@@ -250,6 +250,27 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "create_employee",
+      description: "Create a new staff/employee account and send them an activation email. Use this when asked to add a new employee, cashier, accountant, or any staff member. NEVER use create_product for this.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Full name of the employee" },
+          phone: { type: "string", description: "Phone number (Saudi format, starts with 5)" },
+          email: { type: "string", description: "Work email — required for account activation" },
+          role: {
+            type: "string",
+            enum: ["employee", "cashier", "accountant", "support", "tech_support", "assistant_manager", "legal_consultant"],
+            description: "Role (default: employee)",
+          },
+        },
+        required: ["name", "phone", "email"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "send_push_notification",
       description: "Send a push notification to a customer's device (works even if app closed).",
       parameters: {
@@ -590,6 +611,60 @@ async function execTool(name: string, args: any, _user: any): Promise<any> {
         return { ok: true, categoryId: (cat as any)._id.toString(), message: `Category "${args.name}" created.` };
       }
 
+      case "create_employee": {
+        const phone = String(args.phone || "").replace(/\D/g, "").replace(/^0/, "").replace(/^966/, "");
+        const email = (args.email || "").trim();
+        const role = args.role || "employee";
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          return { ok: false, error: "بريد إلكتروني صالح مطلوب لإرسال رابط التفعيل" };
+        }
+        if (!phone || phone.length < 9) {
+          return { ok: false, error: "رقم الجوال غير صالح (يجب أن يبدأ بـ 5 ويكون 9 أرقام)" };
+        }
+        const existing = await UserModel.findOne({
+          $or: [{ phone }, { phone: "0" + phone }, { username: phone }],
+        });
+        if (existing && !["customer"].includes((existing as any).role)) {
+          return { ok: false, error: `رقم الجوال مسجّل مسبقاً بدور: ${(existing as any).role}` };
+        }
+        const { randomBytes } = await import("crypto");
+        const activationToken = randomBytes(32).toString("hex");
+        const activationExpires = new Date(Date.now() + 48 * 60 * 60 * 1000);
+        const user = await UserModel.create({
+          name: args.name,
+          phone,
+          email,
+          username: phone,
+          password: "",
+          role,
+          isActive: false,
+          mustChangePassword: true,
+          walletBalance: "0",
+          addresses: [],
+          permissions: [],
+          activationToken,
+          activationExpires,
+        } as any);
+        try {
+          const { sendActivationEmail } = await import("./email");
+          const baseUrl = process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost:5000"}`;
+          await sendActivationEmail({
+            to: email,
+            name: args.name,
+            role,
+            activationLink: `${baseUrl}/activate?token=${activationToken}`,
+            expiresInHours: 48,
+          });
+        } catch (e: any) {
+          console.error("[Assistant create_employee] activation email failed:", e.message);
+        }
+        return {
+          ok: true,
+          employeeId: (user as any)._id.toString(),
+          message: `✅ تم إنشاء حساب الموظف "${args.name}" (${role}) وأُرسل رابط التفعيل إلى ${email}. سيتمكن من تعيين كلمة المرور وتسجيل الدخول بعد التفعيل.`,
+        };
+      }
+
       case "send_email_to_customer": {
         const wrapped = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${args.subject}</title>
 <style>body{margin:0;background:#f5f5f0;font-family:Tahoma,sans-serif}
@@ -646,6 +721,7 @@ const SYSTEM_PROMPT_AR = (today: string, role: string, name: string) => `أنت 
 
 ▸ **"كيف المتجر اليوم؟"** → get_dashboard_stats(periodDays:1) ثم لخّصي: عدد طلبات + إيرادات + أكثر حالة شائعة
 ▸ **"أنشئ منتج..."** → list_categories أولاً (لتأكيد التصنيف الصحيح) → create_product
+▸ **"أضف موظف/كاشير/محاسب..."** → create_employee (اطلب الاسم + رقم الجوال + البريد إذا لم تُعطَ) — لا تستخدمي create_product أبداً للموظفين
 ▸ **"أرسل تنبيه للعميل أحمد..."** → search_customers("أحمد") → عرض النتائج للموظف لاختيار العميل المقصود → send_push_notification
 ▸ **"الطلب #ABC وش وضعه؟"** → search_orders ثم get_order_details(الـid الكامل) → اعرضي الملخص
 ▸ **"المنتجات اللي خلصت"** → get_low_stock_products(threshold:0) → عرض القائمة + اقتراح أن تعيد التخزين
@@ -689,6 +765,7 @@ const SYSTEM_PROMPT_EN = (today: string, role: string, name: string) => `You are
 
 ▸ **"How is the store today?"** → get_dashboard_stats(periodDays:1), then summarise: orders + revenue + most common status
 ▸ **"Create a product..."** → list_categories first (to pick the right category) → create_product
+▸ **"Add an employee/cashier/accountant..."** → create_employee (ask for name + phone + email if not given) — NEVER use create_product for employees
 ▸ **"Notify customer Ahmed..."** → search_customers("Ahmed") → show results to staff to pick → send_push_notification
 ▸ **"What's order #ABC?"** → search_orders, then get_order_details(full _id) → present a summary
 ▸ **"Out-of-stock items"** → get_low_stock_products(threshold:0) → list + suggest restocking

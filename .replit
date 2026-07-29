@@ -65,6 +65,11 @@ run = ["node", "dist/index.js"]
 EMAIL_SENDER = "noreply@myla-abayas.store"
 EMAIL_SENDER_NAME = "Myla | ميلا"
 PORT = "5000"
+CPANEL_SMTP_HOST = "server222.web-hosting.com"
+CPANEL_SMTP_PORT = "465"
+CPANEL_SMTP_SECURE = "true"
+CPANEL_SMTP_USER = "info@qirox.online"
+CPANEL_USERNAME = "rfpeddku"
 
 [postMerge]
 path = "scripts/post-merge.sh"
