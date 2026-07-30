@@ -232,7 +232,13 @@ export function setupAuth(app: Express) {
 
       const otp = String(Math.floor(100000 + Math.random() * 900000));
       pendingRegOtps.set(cleanPhone, { otp, expires: new Date(Date.now() + 10 * 60 * 1000), waRequired: true });
-      await sendWhatsAppOTP(cleanPhone, otp);
+      const sent = await sendWhatsAppOTP(cleanPhone, otp);
+      if (!sent) {
+        // WhatsApp failed to deliver — fall back to no-OTP flow
+        pendingRegOtps.set(cleanPhone, { otp: "", expires: new Date(Date.now() + 15 * 60 * 1000), waRequired: false });
+        console.warn("[RegOTP] sendWhatsAppOTP failed for", cleanPhone, "— falling back to no-OTP");
+        return res.json({ required: false });
+      }
       return res.json({ required: true, sent: true });
     } catch (err: any) {
       console.error("[RegOTP]", err?.message);
@@ -1045,18 +1051,22 @@ export function setupAuth(app: Express) {
       const { sendWhatsAppOTP, getWaStatus } = await import("./whatsapp");
       const waStatus = getWaStatus();
       if (waStatus.state === "connected") {
-        await sendWhatsAppOTP(phone, otp);
-        return res.json({ sent: true, via: "whatsapp" });
+        const sent = await sendWhatsAppOTP(phone, otp);
+        if (sent) {
+          return res.json({ sent: true, via: "whatsapp" });
+        }
+        // WhatsApp connected but send failed — fall through to email/error
+        console.warn("[OTP Send] sendWhatsAppOTP failed for", phone);
       }
 
-      // Fallback: if WhatsApp not connected, send via email if available
+      // Fallback: if WhatsApp not connected or send failed, try email
       if (user.email && /^\S+@\S+\.\S+$/.test(user.email)) {
         const { sendPasswordResetEmail } = await import("./email");
         await sendPasswordResetEmail({ to: user.email, customerName: user.name, otp });
         return res.json({ sent: true, via: "email", masked: user.email.replace(/(\S{2})\S*@/, "$1***@") });
       }
 
-      return res.status(503).json({ message: "واتساب غير متصل حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم." });
+      return res.status(503).json({ message: "واتساب غير متصل حالياً أو فشل الإرسال. يرجى المحاولة لاحقاً أو التواصل مع الدعم." });
     } catch (err: any) {
       console.error("[OTP Send]", err?.message);
       res.status(500).json({ message: "حدث خطأ، حاول مرة أخرى" });

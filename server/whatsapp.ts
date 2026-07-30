@@ -57,6 +57,9 @@ const autoReplyTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 // track when admin last replied per chat
 const adminLastReply: Map<string, number> = new Map();
 
+// chatId → { displayName, phone } — populated from incoming message metadata
+const chatMeta: Map<string, { displayName: string; phone: string }> = new Map();
+
 // event listeners (for SSE / polling)
 type WaEvent = { type: string; payload: any };
 const eventListeners: Array<(e: WaEvent) => void> = [];
@@ -114,6 +117,19 @@ async function checkCustomCommand(msg: string): Promise<string | null> {
 }
 
 // ─── Store helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Extract a clean international phone number from a WhatsApp JID.
+ * Handles:
+ *   "966501234567@s.whatsapp.net"       → "966501234567"
+ *   "966501234567:12@s.whatsapp.net"    → "966501234567"  (multi-device suffix)
+ *   "12345678:9@lid"                    → ""               (LID — not a real phone)
+ */
+function jidToPhone(jid: string): string {
+  if (jid.endsWith("@lid")) return ""; // not a phone-based JID
+  const stripped = jid.replace(/@s\.whatsapp\.net$/, "").replace(/@c\.us$/, "");
+  return stripped.split(":")[0].replace(/\D/g, ""); // remove device suffix, keep digits
+}
 
 function addMessage(chatId: string, msg: WaMessage) {
   if (!chatHistory.has(chatId)) chatHistory.set(chatId, []);
@@ -241,6 +257,19 @@ export async function connectToWhatsApp(): Promise<void> {
         : msg.message?.audioMessage ? "audio"
         : msg.message?.stickerMessage ? "sticker"
         : "text";
+
+      // ── Capture contact metadata (name + phone) ──────────────────────────
+      if (!fromMe) {
+        const phone = jidToPhone(chatId);
+        const pushName = (msg.pushName || "").trim();
+        if (phone || pushName) {
+          const existing = chatMeta.get(chatId);
+          chatMeta.set(chatId, {
+            displayName: pushName || existing?.displayName || phone || chatId,
+            phone:       phone   || existing?.phone || "",
+          });
+        }
+      }
 
       const waMsg: WaMessage = {
         id: msg.key.id!,
@@ -661,10 +690,11 @@ export function getWaChats(): WaChat[] {
   const chats: WaChat[] = [];
   for (const [chatId, messages] of chatHistory) {
     if (!messages.length) continue;
-    const last = messages[messages.length - 1];
-    const phone = chatId.replace("@s.whatsapp.net", "");
-    const name = phone; // could be enriched from contacts
-    const unread = messages.filter(m => !m.fromMe && m.timestamp > (adminLastReply.get(chatId) || 0)).length;
+    const last     = messages[messages.length - 1];
+    const meta     = chatMeta.get(chatId);
+    const phone    = meta?.phone    || jidToPhone(chatId);
+    const name     = meta?.displayName || phone || chatId;
+    const unread   = messages.filter(m => !m.fromMe && m.timestamp > (adminLastReply.get(chatId) || 0)).length;
     chats.push({
       id: chatId,
       name,
