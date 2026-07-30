@@ -252,4 +252,21 @@ process.on('uncaughtException', (err: any) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // ─── WhatsApp Auto-Startup ──────────────────────────────────────────────────
+  // If saved credentials exist, reconnect immediately without waiting for admin
+  // to click "Connect". Session persists until admin explicitly disconnects.
+  try {
+    const { connectToWhatsApp, hasStoredCredentials } = await import("./whatsapp");
+    if (hasStoredCredentials()) {
+      console.log("[WhatsApp] Saved session found — auto-connecting…");
+      connectToWhatsApp().catch((e: any) =>
+        console.warn("[WhatsApp] Auto-start failed:", e?.message),
+      );
+    } else {
+      console.log("[WhatsApp] No saved session — waiting for manual connect");
+    }
+  } catch (e: any) {
+    console.warn("[WhatsApp] Auto-start import failed:", e?.message);
+  }
 })();

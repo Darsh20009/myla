@@ -60,6 +60,10 @@ const adminLastReply: Map<string, number> = new Map();
 // chatId → { displayName, phone } — populated from incoming message metadata
 const chatMeta: Map<string, { displayName: string; phone: string }> = new Map();
 
+// Reconnect state — exponential backoff, reset on successful connect
+let reconnectAttempts = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
 // event listeners (for SSE / polling)
 type WaEvent = { type: string; payload: any };
 const eventListeners: Array<(e: WaEvent) => void> = [];
@@ -156,8 +160,18 @@ const silentLogger = {
 
 // ─── Connect to WhatsApp ────────────────────────────────────────────────────────
 
+/** Returns true if saved credentials exist (used for auto-startup). */
+export function hasStoredCredentials(): boolean {
+  return fs.existsSync(path.join(process.cwd(), "wa-auth", "creds.json"));
+}
+
 export async function connectToWhatsApp(): Promise<void> {
-  if (waState === "connected") return;
+  // Guard: don't start a second socket if already connecting or connected
+  if (waState === "connected" || waState === "connecting") return;
+
+  // Cancel any pending reconnect timer
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+
   waState = "connecting";
   emit("state", { state: "connecting" });
 
@@ -209,6 +223,7 @@ export async function connectToWhatsApp(): Promise<void> {
     if (connection === "open") {
       waState = "connected";
       qrDataUrl = null;
+      reconnectAttempts = 0; // reset backoff on successful connect
       emit("state", { state: "connected" });
       console.log("[WhatsApp] ✅ Connected successfully");
     }
@@ -222,12 +237,22 @@ export async function connectToWhatsApp(): Promise<void> {
       console.log(`[WhatsApp] Disconnected (code ${code})`);
 
       if (loggedOut) {
-        // Clean auth and start fresh
+        // User explicitly logged out — clear credentials and wait for manual reconnect
         try { fs.rmSync(path.join(process.cwd(), "wa-auth"), { recursive: true, force: true }); } catch {}
         sock = null;
+        reconnectAttempts = 0;
+        console.log("[WhatsApp] Session cleared — rescan QR to reconnect");
       } else {
-        // Auto-reconnect after 5 s
-        setTimeout(() => connectToWhatsApp(), 5000);
+        // Network drop / server hiccup / WhatsApp kicked us — auto-reconnect with backoff
+        sock = null;
+        reconnectAttempts++;
+        // 5s → 10s → 20s → 40s → 60s max
+        const delaySec = Math.min(5 * Math.pow(2, reconnectAttempts - 1), 60);
+        console.log(`[WhatsApp] Reconnecting in ${delaySec}s (attempt ${reconnectAttempts})…`);
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null;
+          connectToWhatsApp().catch(e => console.error("[WhatsApp] Reconnect error:", e.message));
+        }, delaySec * 1000);
       }
     }
   });
