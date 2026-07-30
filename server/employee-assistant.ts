@@ -877,6 +877,10 @@ async function groqWithTools(messages: any[], lang: "ar" | "en" = "ar", maxItera
   };
 }
 
+// ─── Exported helpers for WhatsApp staff AI ─────────────────────────────────
+
+export { groqWithTools, execTool, TOOLS, SYSTEM_PROMPT_AR, SYSTEM_PROMPT_EN };
+
 // ─── Express Route ──────────────────────────────────────────────────────────
 
 export function registerEmployeeAssistant(app: Express) {

@@ -242,7 +242,7 @@ export function setupAuth(app: Express) {
       return res.json({ required: true, sent: true });
     } catch (err: any) {
       console.error("[RegOTP]", err?.message);
-      res.json({ required: false }); // fail open — don't block registration on WA error
+      return res.status(503).json({ message: "خطأ أثناء معالجة الطلب، يرجى المحاولة مجدداً" });
     }
   });
 
@@ -270,8 +270,19 @@ export function setupAuth(app: Express) {
       }
 
       // ── WhatsApp OTP verification ──────────────────────────────────────────
-      // If a pending OTP was issued for this phone (WA was connected), verify it
       const pending = pendingRegOtps.get(cleanPhone);
+
+      // If WA is connected, OTP is always required — block any direct registration attempt
+      try {
+        const { getWaStatus } = await import("./whatsapp");
+        if (getWaStatus().state === "connected" && !pending) {
+          return res.status(400).json({
+            message: "يرجى طلب رمز التحقق عبر واتساب أولاً",
+            requireOtp: true,
+          });
+        }
+      } catch { /* whatsapp module not ready yet — allow registration */ }
+
       if (pending?.waRequired) {
         const { otpCode } = req.body;
         if (!otpCode) return res.status(400).json({ message: "رمز التحقق مطلوب — تحقق من واتساب" });

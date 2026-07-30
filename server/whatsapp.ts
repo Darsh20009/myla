@@ -387,10 +387,43 @@ async function sendAIAutoReply(chatId: string, userMsg: string, senderPhone?: st
     .filter(m => m.type === "text" && m.body)
     .map(m => ({ role: m.fromMe ? "assistant" : "user", content: m.body }));
 
-  let systemPrompt: string;
+  // ── Staff: full tool-calling AI (same engine as admin panel) ────────────────
   if (identity.type === "staff") {
-    systemPrompt = await buildStaffSystemPrompt(identity.user);
-  } else if (identity.type === "customer") {
+    try {
+      const { groqWithTools, SYSTEM_PROMPT_AR, SYSTEM_PROMPT_EN } = await import("./employee-assistant");
+      const { detectLang } = await import("./groq");
+      const lang: "ar" | "en" = detectLang(userMsg);
+      const today = new Date().toISOString().slice(0, 10);
+      const user = identity.user;
+      const systemPrompt = lang === "en"
+        ? SYSTEM_PROMPT_EN(today, user.role, user.name || user.phone)
+        : SYSTEM_PROMPT_AR(today, user.role, user.name || user.phone);
+
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        ...historyForAI,
+        { role: "user" as const, content: userMsg },
+      ];
+
+      const result = await groqWithTools(messages, lang);
+      const reply = result?.reply;
+      if (!reply) return;
+
+      await sock.sendMessage(chatId, { text: reply });
+      addMessage(chatId, {
+        id: `ai_${Date.now()}`, chatId, body: reply,
+        fromMe: true, timestamp: Date.now(), type: "text", isAI: true,
+      });
+      console.log(`[WhatsApp AI] ✅ Staff tool-reply to ${chatId} (role: ${user.role})`);
+    } catch (err: any) {
+      console.error("[WhatsApp AI] Staff tool-reply failed:", err.message);
+    }
+    return;
+  }
+
+  // ── Customer / Unknown: text AI ──────────────────────────────────────────────
+  let systemPrompt: string;
+  if (identity.type === "customer") {
     systemPrompt = await buildWhatsAppSystemPrompt(identity.user, identity.recentOrders);
   } else {
     systemPrompt = await buildWhatsAppSystemPrompt();
