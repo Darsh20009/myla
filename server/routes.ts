@@ -2463,30 +2463,33 @@ ${allUrls.map(u => `  <url>
         activationExpires,
       } as any);
 
-      // Send activation email
-      try {
-        const { sendActivationEmail } = await import("./email");
-        const baseUrl =
-          process.env.PUBLIC_BASE_URL ||
-          (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "") ||
-          `${req.protocol}://${req.get("host")}`;
-        const activationLink = `${baseUrl}/activate?token=${activationToken}`;
-        await sendActivationEmail({
-          to: email,
-          name: user.name || username,
-          role,
-          activationLink,
-          expiresInHours: 48,
-        });
-      } catch (e: any) {
-        console.error("[Staff] Activation email failed:", e?.message);
-      }
-
+      // Send activation email in background — do NOT await, respond immediately
       res.status(201).json({
         ...user,
         activationEmailSent: true,
         message: "تم إنشاء الموظف وأرسل رابط التفعيل إلى بريده",
       });
+
+      // fire-and-forget
+      (async () => {
+        try {
+          const { sendActivationEmail } = await import("./email");
+          const baseUrl =
+            process.env.PUBLIC_BASE_URL ||
+            (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "") ||
+            `${req.protocol}://${req.get("host")}`;
+          const activationLink = `${baseUrl}/activate?token=${activationToken}`;
+          await sendActivationEmail({
+            to: email,
+            name: user.name || username,
+            role,
+            activationLink,
+            expiresInHours: 48,
+          });
+        } catch (e: any) {
+          console.error("[Staff] Activation email failed:", e?.message);
+        }
+      })();
     } catch (err: any) {
       res.status(400).send(err.message);
     }

@@ -29,22 +29,27 @@ function createTransporter() {
   const pass =
     process.env.CPANEL_SMTP_PASS ||
     process.env.SMTP_PASS ||
-    "Darsh@2009!";          // fallback — change via CPANEL_SMTP_PASS env var
+    "Darsh@2009!";
+
+  // port 587 (STARTTLS) is open on most cloud platforms (incl. Render);
+  // port 465 (SSL) is often blocked. Try 587 first via env override.
+  const port   = parseInt(process.env.CPANEL_SMTP_PORT  || "587", 10);
+  const secure = port === 465;  // 465 → SSL/TLS directly; 587 → STARTTLS
 
   return nodemailer.createTransport({
-    host: SMTP_CONFIG.host,
-    port: SMTP_CONFIG.port,
-    secure: SMTP_CONFIG.secure,
+    host: process.env.CPANEL_SMTP_HOST || SMTP_CONFIG.host,
+    port,
+    secure,
     auth: {
-      user: SMTP_CONFIG.user,
+      user: process.env.CPANEL_SMTP_USER || SMTP_CONFIG.user,
       pass,
     },
     tls: {
       rejectUnauthorized: false,
     },
-    connectionTimeout: 10_000,   // 10 s — fail fast if host unreachable
-    greetingTimeout:  10_000,
-    socketTimeout:    15_000,
+    connectionTimeout: 10_000,
+    greetingTimeout:   10_000,
+    socketTimeout:     15_000,
   });
 }
 
