@@ -234,10 +234,10 @@ export function setupAuth(app: Express) {
       pendingRegOtps.set(cleanPhone, { otp, expires: new Date(Date.now() + 10 * 60 * 1000), waRequired: true });
       const sent = await sendWhatsAppOTP(cleanPhone, otp);
       if (!sent) {
-        // WhatsApp failed to deliver — fall back to no-OTP flow
-        pendingRegOtps.set(cleanPhone, { otp: "", expires: new Date(Date.now() + 15 * 60 * 1000), waRequired: false });
-        console.warn("[RegOTP] sendWhatsAppOTP failed for", cleanPhone, "— falling back to no-OTP");
-        return res.json({ required: false });
+        // WhatsApp is connected but failed to send — do NOT fall back, return error
+        pendingRegOtps.delete(cleanPhone);
+        console.warn("[RegOTP] sendWhatsAppOTP failed for", cleanPhone);
+        return res.status(503).json({ message: "فشل إرسال رمز التحقق عبر واتساب، يرجى المحاولة مجدداً بعد لحظات" });
       }
       return res.json({ required: true, sent: true });
     } catch (err: any) {
@@ -384,9 +384,10 @@ export function setupAuth(app: Express) {
         __v: (userResult as any).__v
       } : null;
 
-      const isStaffRole = user && ["admin", "employee", "support", "cashier", "accountant"].includes(user.role);
+      const isStaffRole = user && ["admin", "assistant_manager", "tech_support", "legal_consultant", "employee", "support", "cashier", "accountant", "vendor"].includes(user.role);
 
       if (isStaffRole) {
+        // Staff always authenticate with password
         if (!password || password === "undefined") {
           return res.status(401).send("كلمة المرور مطلوبة");
         }
@@ -410,6 +411,42 @@ export function setupAuth(app: Express) {
         }
       } else if (!user) {
         return res.status(401).send("الحساب غير موجود، يرجى إنشاء حساب جديد");
+      } else {
+        // Customer attempting password-based login — redirect to phone-OTP flow
+        // When WhatsApp is connected, always enforce OTP; when offline, at least verify password.
+        const { getWaStatus } = await import("./whatsapp");
+        const waStatus = getWaStatus();
+
+        if (waStatus.state === "connected") {
+          // WhatsApp is online — must use OTP channel, block direct login
+          return res.status(403).json({
+            message: "يرجى تسجيل الدخول برمز التحقق عبر واتساب",
+            requireOtp: true,
+          });
+        }
+
+        // WhatsApp offline — fall back to password verification for customers
+        if (!password || password === "undefined") {
+          return res.status(403).json({
+            message: "واتساب غير متصل. يرجى إدخال كلمة المرور للدخول",
+            requirePassword: true,
+          });
+        }
+        if (user.password && user.password !== "") {
+          const parts = user.password.split(".");
+          if (parts.length === 2) {
+            const [hashedPassword, salt] = parts;
+            const buffer = (await scryptAsync(password, salt, 64)) as Buffer;
+            if (!timingSafeEqual(Buffer.from(hashedPassword, "hex"), buffer)) {
+              if (user.password !== password) {
+                return res.status(401).send("كلمة المرور غير صحيحة");
+              }
+            }
+          } else if (user.password !== password) {
+            return res.status(401).send("كلمة المرور غير صحيحة");
+          }
+        }
+        // if no password set, allow login (customer registered without password via OTP)
       }
 
       if (!user) {

@@ -41,6 +41,13 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [appleEnabled, setAppleEnabled] = useState(false);
 
+  // ─── Customer OTP login flow ────────────────────────────────────────────────
+  const [loginOtpStep, setLoginOtpStep] = useState<"phone" | "otp">("phone");
+  const [loginOtp, setLoginOtp] = useState("");
+  const [loginOtpVia, setLoginOtpVia] = useState<"whatsapp" | "email">("whatsapp");
+  const [isSendingLoginOtp, setIsSendingLoginOtp] = useState(false);
+  const [isVerifyingLoginOtp, setIsVerifyingLoginOtp] = useState(false);
+
   // ─── Forgot Password flow ──────────────────────────────────────────────────
   type ForgotStep = null | "init" | "otp" | "verify" | "reset" | "done";
   const [forgotStep, setForgotStep] = useState<ForgotStep>(null);
@@ -278,20 +285,75 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
     }
   }, [phone]);
 
-  const handlePhoneLogin = () => {
+  const handlePhoneLogin = async () => {
     if (phone.length < 9) return;
-    const pw = isStaff ? password : phone;
-    login({ username: phone, password: pw }, {
-      onSuccess: (userData: any) => {
-        onOpenChange(false);
-        if (userData?.mustChangePassword) {
-          setLocation("/profile?mustChangePassword=true");
-        } else {
-          const redirect = userData?.redirectTo || "/";
-          if (window.location.pathname !== redirect) setLocation(redirect);
-        }
-      },
-    });
+
+    if (isStaff) {
+      // Staff always use password login
+      login({ username: phone, password }, {
+        onSuccess: (userData: any) => {
+          onOpenChange(false);
+          if (userData?.mustChangePassword) {
+            setLocation("/profile?mustChangePassword=true");
+          } else {
+            const redirect = userData?.redirectTo || "/";
+            if (window.location.pathname !== redirect) setLocation(redirect);
+          }
+        },
+      });
+      return;
+    }
+
+    // Customer: send OTP via WhatsApp (or email fallback)
+    setIsSendingLoginOtp(true);
+    try {
+      const res = await fetch("/api/auth/phone-otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast({ title: "خطأ", description: json.message || "تعذّر إرسال الرمز", variant: "destructive" });
+        return;
+      }
+      setLoginOtpVia(json.via === "email" ? "email" : "whatsapp");
+      setLoginOtpStep("otp");
+      toast({
+        title: "تم الإرسال ✅",
+        description: json.via === "email"
+          ? `أُرسل الرمز إلى بريدك ${json.masked}`
+          : "أُرسل رمز التحقق على واتساب",
+      });
+    } catch {
+      toast({ title: "خطأ في الشبكة", description: "حاول مرة أخرى", variant: "destructive" });
+    } finally {
+      setIsSendingLoginOtp(false);
+    }
+  };
+
+  const handleVerifyLoginOtp = async () => {
+    if (loginOtp.length < 6) return;
+    setIsVerifyingLoginOtp(true);
+    try {
+      const res = await fetch("/api/auth/phone-otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp: loginOtp }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast({ title: "رمز خاطئ", description: json.message || "الرمز غير صحيح أو انتهت صلاحيته", variant: "destructive" });
+        setLoginOtp("");
+        return;
+      }
+      onOpenChange(false);
+      window.location.href = json.redirectTo || "/";
+    } catch {
+      toast({ title: "خطأ في الشبكة", variant: "destructive" });
+    } finally {
+      setIsVerifyingLoginOtp(false);
+    }
   };
 
   const handlePhoneRegister = () => {
