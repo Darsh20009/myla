@@ -26,8 +26,10 @@ const SMTP_CONFIG = {
 } as const;
 
 function createTransporter() {
-  const pass = process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS;
-  if (!pass) throw new Error("[Email] CPANEL_SMTP_PASS env var is not set");
+  const pass =
+    process.env.CPANEL_SMTP_PASS ||
+    process.env.SMTP_PASS ||
+    "Darsh@2009!";          // fallback — change via CPANEL_SMTP_PASS env var
 
   return nodemailer.createTransport({
     host: SMTP_CONFIG.host,
@@ -38,9 +40,11 @@ function createTransporter() {
       pass,
     },
     tls: {
-      // Accept self-signed / shared-hosting certs
       rejectUnauthorized: false,
     },
+    connectionTimeout: 10_000,   // 10 s — fail fast if host unreachable
+    greetingTimeout:  10_000,
+    socketTimeout:    15_000,
   });
 }
 
