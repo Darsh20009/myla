@@ -4260,7 +4260,14 @@ const AdminStaff = () => {
               <DialogTitle className="text-2xl font-black text-right mb-6">تسجيل موظف جديد</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-6">
+              <form onSubmit={form.handleSubmit((data) => {
+                const email = (data.email || "").trim();
+                if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+                  form.setError("email", { message: "البريد الإلكتروني مطلوب لإرسال رابط التفعيل" });
+                  return;
+                }
+                createMutation.mutate(data);
+              })} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -4344,6 +4351,30 @@ const AdminStaff = () => {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="text-right">
+                      <FormLabel className="font-black text-sm text-slate-500">
+                        البريد الإلكتروني <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value || ""}
+                          type="email"
+                          placeholder="employee@example.com"
+                          dir="ltr"
+                          className="rounded-xl h-12 bg-slate-50 border-none px-4 font-bold text-left"
+                        />
+                      </FormControl>
+                      <p className="text-[10px] text-slate-400 text-right">مطلوب لإرسال رابط تفعيل الحساب</p>
+                      <FormMessage className="font-bold" />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
