@@ -29,6 +29,9 @@ const registerLimiter = rateLimit({
   message: { message: "تجاوزت حد التسجيل المسموح به" },
 });
 
+// In-memory OTP store for pending registrations (phone → {otp, expires, waRequired})
+const pendingRegOtps = new Map<string, { otp: string; expires: Date; waRequired: boolean }>();
+
 const scryptAsync = promisify(scrypt);
 
 /**
@@ -199,6 +202,44 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // ── WhatsApp OTP for Registration ────────────────────────────────────────
+  // POST /api/auth/register/send-otp  { phone }
+  // Returns { required: true }  → OTP sent via WhatsApp, must be verified before register
+  //         { required: false } → WhatsApp offline, proceed without OTP
+  app.post("/api/auth/register/send-otp", registerLimiter, async (req, res) => {
+    try {
+      let cleanPhone = (req.body?.phone || "").toString().trim().replace(/\D/g, "");
+      if (cleanPhone.startsWith("966")) cleanPhone = cleanPhone.substring(3);
+      while (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.substring(1);
+      if (cleanPhone.length < 8) return res.status(400).json({ message: "رقم الهاتف غير صحيح" });
+
+      const existing = await UserModel.findOne({
+        $or: [
+          { phone: cleanPhone }, { username: cleanPhone },
+          { phone: "0" + cleanPhone }, { phone: { $regex: new RegExp(cleanPhone + "$") } }
+        ]
+      }).lean();
+      if (existing && (existing.role === "customer" || (existing as any).isActive)) {
+        return res.status(400).json({ message: "هذا الحساب مسجل مسبقاً، يرجى تسجيل الدخول" });
+      }
+
+      const { getWaStatus, sendWhatsAppOTP } = await import("./whatsapp");
+      const waStatus = getWaStatus();
+      if (waStatus.state !== "connected") {
+        pendingRegOtps.set(cleanPhone, { otp: "", expires: new Date(Date.now() + 15 * 60 * 1000), waRequired: false });
+        return res.json({ required: false });
+      }
+
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      pendingRegOtps.set(cleanPhone, { otp, expires: new Date(Date.now() + 10 * 60 * 1000), waRequired: true });
+      await sendWhatsAppOTP(cleanPhone, otp);
+      return res.json({ required: true, sent: true });
+    } catch (err: any) {
+      console.error("[RegOTP]", err?.message);
+      res.json({ required: false }); // fail open — don't block registration on WA error
+    }
+  });
+
   app.post("/api/auth/register", registerLimiter, async (req, res, next) => {
     try {
       const { phone, password, name } = req.body;
@@ -220,6 +261,22 @@ export function setupAuth(app: Express) {
 
       if (cleanPhone.length < 8 || cleanPhone.length > 10) {
         return res.status(400).send("رقم الهاتف غير صحيح");
+      }
+
+      // ── WhatsApp OTP verification ──────────────────────────────────────────
+      // If a pending OTP was issued for this phone (WA was connected), verify it
+      const pending = pendingRegOtps.get(cleanPhone);
+      if (pending?.waRequired) {
+        const { otpCode } = req.body;
+        if (!otpCode) return res.status(400).json({ message: "رمز التحقق مطلوب — تحقق من واتساب" });
+        if (new Date() > pending.expires) {
+          pendingRegOtps.delete(cleanPhone);
+          return res.status(400).json({ message: "انتهت صلاحية الرمز، اطلب رمزاً جديداً" });
+        }
+        if (String(otpCode).trim() !== pending.otp) {
+          return res.status(400).json({ message: "رمز التحقق غير صحيح" });
+        }
+        pendingRegOtps.delete(cleanPhone);
       }
 
       const existingUser = await UserModel.findOne({

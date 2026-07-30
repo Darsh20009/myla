@@ -1,5 +1,3 @@
-import PhoneInput from 'react-phone-input-2';
-import 'react-phone-input-2/lib/style.css';
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthProviders } from "@/hooks/use-auth-providers";
 import { useForm } from "react-hook-form";
@@ -9,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useLocation, Link } from "wouter";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { z } from "zod";
 import { useState, useRef, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const logoDarkImg = "/myla-logo.png";
 
@@ -19,20 +18,20 @@ export default function Register() {
   const { register, isRegistering, user } = useAuth();
   const { googleEnabled, appleEnabled, anyEnabled } = useAuthProviders();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
 
-  // ALL hooks must be declared unconditionally — never put a `return` between
-  // hooks, that's what triggers React's "Rendered fewer hooks than expected"
-  // error. Redirect happens via useEffect after all hooks are registered.
+  // OTP flow state
+  type RegStep = "form" | "otp";
+  const [step, setStep] = useState<RegStep>("form");
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [pendingData, setPendingData] = useState<z.infer<typeof insertUserSchema> | null>(null);
+
   const form = useForm<z.infer<typeof insertUserSchema>>({
     resolver: zodResolver(insertUserSchema),
-    defaultValues: {
-      password: "",
-      name: "",
-      phone: "",
-      email: "",
-      role: "customer"
-    },
+    defaultValues: { password: "", name: "", phone: "", email: "", role: "customer" },
   });
 
   const [isPrePopulated, setIsPrePopulated] = useState(false);
@@ -40,30 +39,88 @@ export default function Register() {
   const lastCheckedPhoneRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (user && window.location.pathname !== "/") {
-      setLocation("/");
-    }
+    if (user && window.location.pathname !== "/") setLocation("/");
   }, [user, setLocation]);
 
   if (user) return null;
 
-  const onSubmit = (data: z.infer<typeof insertUserSchema>) => {
+  // Step 1: send OTP (or skip if WA is offline)
+  const handleSendOtp = async (data: z.infer<typeof insertUserSchema>) => {
+    setSendingOtp(true);
+    try {
+      const res = await fetch("/api/auth/register/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: data.phone }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast({ title: "خطأ", description: json.message || "حدث خطأ", variant: "destructive" });
+        return;
+      }
+      setPendingData(data);
+      if (json.required) {
+        // WA connected → show OTP input
+        setOtpRequired(true);
+        setStep("otp");
+        toast({ title: "تم إرسال رمز التحقق", description: "راجع واتساب وأدخل الرمز المكوّن من 6 أرقام" });
+      } else {
+        // WA offline → register directly
+        doRegister(data, "");
+      }
+    } catch {
+      toast({ title: "خطأ في الشبكة", variant: "destructive" });
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Step 2: final registration (with or without OTP)
+  const doRegister = (data: z.infer<typeof insertUserSchema>, otp: string) => {
     register({
       ...data,
       username: data.phone,
-      role: employeeData?.role || "customer"
-    }, {
+      role: employeeData?.role || "customer",
+      ...(otp ? { otpCode: otp } : {}),
+    } as any, {
       onSuccess: () => setLocation("/login"),
+      onError: (err: any) => {
+        const msg = err?.message || "حدث خطأ";
+        toast({ title: "فشل التسجيل", description: msg, variant: "destructive" });
+        if (msg.includes("رمز")) {
+          // wrong OTP → stay on OTP step
+          setOtpCode("");
+        }
+      },
     });
+  };
+
+  const handleOtpSubmit = () => {
+    if (!pendingData || otpCode.length !== 6) return;
+    doRegister(pendingData, otpCode);
+  };
+
+  const handleResendOtp = async () => {
+    if (!pendingData) return;
+    setSendingOtp(true);
+    try {
+      await fetch("/api/auth/register/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: pendingData.phone }),
+      });
+      setOtpCode("");
+      toast({ title: "تم إعادة الإرسال", description: "راجع واتساب مجدداً" });
+    } finally {
+      setSendingOtp(false);
+    }
   };
 
   const checkPhone = async (phone: string) => {
     if (phone === lastCheckedPhoneRef.current) return;
     lastCheckedPhoneRef.current = phone;
-    
     let cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.substring(1);
-    
     if (cleanPhone.length >= 9) {
       try {
         const response = await fetch(`/api/admin/users/by-phone/${cleanPhone}`);
@@ -73,26 +130,71 @@ export default function Register() {
             setEmployeeData(userData);
             form.setValue("name", userData.name || "");
             setIsPrePopulated(true);
-            if (userData.email) {
-              form.setValue("email", userData.email);
-            }
-          } else {
-            setEmployeeData(null);
-            setIsPrePopulated(false);
-          }
-        } else {
-          setEmployeeData(null);
-          setIsPrePopulated(false);
-        }
-      } catch (error) {
-        console.error("Error checking phone:", error);
-      }
-    } else {
-      setEmployeeData(null);
-      setIsPrePopulated(false);
-    }
+            if (userData.email) form.setValue("email", userData.email);
+          } else { setEmployeeData(null); setIsPrePopulated(false); }
+        } else { setEmployeeData(null); setIsPrePopulated(false); }
+      } catch { /* ignore */ }
+    } else { setEmployeeData(null); setIsPrePopulated(false); }
   };
 
+  // ── OTP Step ────────────────────────────────────────────────────────────────
+  if (step === "otp") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4 relative overflow-hidden" dir="rtl">
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, rgba(201,169,110,0.4) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div className="w-full max-w-md space-y-8 relative z-10">
+          <div className="text-center">
+            <Link href="/"><img src={logoDarkImg} alt="Myla" className="h-20 w-auto mx-auto mb-4 cursor-pointer object-contain" /></Link>
+            <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#E8637A] to-transparent mx-auto mb-4" />
+            <p className="text-slate-800 text-sm">التحقق من رقم الجوال</p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 shadow-xl space-y-6">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
+                <MessageCircle className="h-7 w-7 text-green-600" />
+              </div>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                تم إرسال رمز مكوّن من <span className="font-bold text-[#6B3F2A]">6 أرقام</span> إلى واتساب الرقم
+                <span className="font-bold text-[#6B3F2A] block text-base mt-1">+966 {pendingData?.phone}</span>
+              </p>
+            </div>
+
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otpCode}
+              onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={e => { if (e.key === "Enter") handleOtpSubmit(); }}
+              placeholder="------"
+              className="w-full h-16 text-center bg-[#FFFFFF] border border-slate-200 rounded-xl text-2xl tracking-[0.6em] font-black text-[#6B3F2A] focus:border-[#E8637A] focus:ring-2 focus:ring-[#E8637A]/20 outline-none"
+              autoFocus
+            />
+
+            <Button
+              onClick={handleOtpSubmit}
+              disabled={isRegistering || otpCode.length !== 6}
+              className="w-full h-14 font-bold tracking-[0.2em] text-xs rounded-xl bg-[#E8637A] text-white hover:bg-[#d44f66] border-none shadow-lg shadow-[#E8637A]/20"
+            >
+              {isRegistering ? <Loader2 className="animate-spin" /> : "تأكيد وإنشاء الحساب"}
+            </Button>
+
+            <div className="flex items-center justify-between text-xs">
+              <button onClick={handleResendOtp} disabled={sendingOtp} className="text-[#6B3F2A] font-bold hover:underline disabled:opacity-50">
+                {sendingOtp ? "جارٍ الإرسال..." : "إعادة إرسال الرمز"}
+              </button>
+              <button onClick={() => { setStep("form"); setOtpCode(""); }} className="text-slate-500 hover:text-slate-700 font-bold">
+                ← تعديل البيانات
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Form Step ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4 relative overflow-hidden" dir="rtl">
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, rgba(201,169,110,0.4) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
@@ -113,11 +215,7 @@ export default function Register() {
           {anyEnabled && (
             <div className="space-y-3 mb-6">
               {googleEnabled && (
-                <a
-                  href="/api/auth/google/start"
-                  className="w-full h-12 bg-white border-2 border-gray-200 rounded-xl font-bold text-sm text-[#6B3F2A] flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors"
-                  data-testid="button-register-google"
-                >
+                <a href="/api/auth/google/start" className="w-full h-12 bg-white border-2 border-gray-200 rounded-xl font-bold text-sm text-[#6B3F2A] flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors" data-testid="button-register-google">
                   <svg viewBox="0 0 48 48" className="h-5 w-5">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -128,11 +226,7 @@ export default function Register() {
                 </a>
               )}
               {appleEnabled && (
-                <a
-                  href="/api/auth/apple/start"
-                  className="w-full h-12 bg-black text-white rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-black/90 transition-colors"
-                  data-testid="button-register-apple"
-                >
+                <a href="/api/auth/apple/start" className="w-full h-12 bg-black text-white rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-black/90 transition-colors" data-testid="button-register-apple">
                   <svg viewBox="0 0 20 24" className="h-5 w-auto fill-white">
                     <path d="M13.23 3.02C14.28 1.71 14.94 0 14.94 0s-1.71.28-2.76 1.59c-.96 1.21-1.57 2.86-1.47 3.64.97.07 2.53-.3 3.52-2.21zM16.44 8.74c-1.77-.07-3.28 1-4.13 1-.85 0-2.14-.94-3.55-.91-1.82.03-3.5 1.06-4.43 2.71-1.9 3.28-.49 8.15 1.35 10.82.9 1.31 1.97 2.77 3.38 2.72 1.35-.05 1.86-.87 3.49-.87 1.62 0 2.09.87 3.51.84 1.46-.03 2.39-1.32 3.29-2.63.97-1.47 1.37-2.9 1.4-2.97-.03-.01-2.71-1.04-2.74-4.13-.03-2.59 2.11-3.83 2.21-3.9-1.2-1.78-3.08-1.68-3.78-1.68z"/>
                   </svg>
@@ -148,7 +242,7 @@ export default function Register() {
           )}
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={form.handleSubmit(handleSendOtp)} className="space-y-5">
               {isPrePopulated && (
                 <div className="bg-[#E8637A]/10 p-4 border border-[#E8637A]/20 mb-4 text-center">
                   <p className="text-[#E8637A] font-bold text-sm">تم العثور على حساب موظف مرتبط بهذا الرقم</p>
@@ -163,17 +257,13 @@ export default function Register() {
                   <FormItem className="text-right">
                     <FormLabel className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B3F2A]">الاسم الكامل</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="فلان الفلاني" 
-                        {...field} 
-                        readOnly={isPrePopulated}
-                        className={`h-12 bg-[#FFFFFF] border-slate-200 rounded-xl focus-visible:ring-[#E8637A]/40 text-[#6B3F2A] ${isPrePopulated ? 'opacity-60' : ''}`} 
-                      />
+                      <Input placeholder="فلان الفلاني" {...field} readOnly={isPrePopulated} className={`h-12 bg-[#FFFFFF] border-slate-200 rounded-xl focus-visible:ring-[#E8637A]/40 text-[#6B3F2A] ${isPrePopulated ? "opacity-60" : ""}`} />
                     </FormControl>
                     <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="phone"
@@ -207,12 +297,13 @@ export default function Register() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem className="text-right">
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B3F2A]">البريد الإلكتروني</FormLabel>
+                    <FormLabel className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B3F2A]">البريد الإلكتروني <span className="text-slate-400 normal-case">(اختياري)</span></FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="example@email.com" {...field} value={field.value || ""} className="h-12 bg-[#FFFFFF] border-slate-200 rounded-xl focus-visible:ring-[#E8637A]/40 text-[#6B3F2A]" />
                     </FormControl>
@@ -220,6 +311,7 @@ export default function Register() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="password"
@@ -229,13 +321,7 @@ export default function Register() {
                     <FormControl>
                       <div className="relative">
                         <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="h-12 bg-[#FFFFFF] border-slate-200 rounded-xl focus-visible:ring-[#E8637A]/40 text-[#6B3F2A] pr-12" />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-700 hover:text-[#6B3F2A] no-default-hover-elevate"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
+                        <Button type="button" variant="ghost" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-700 hover:text-[#6B3F2A] no-default-hover-elevate" onClick={() => setShowPassword(!showPassword)}>
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
@@ -245,17 +331,15 @@ export default function Register() {
                 )}
               />
 
-              <Button type="submit" className="w-full h-14 font-bold uppercase tracking-[0.3em] text-xs rounded-xl bg-[#E8637A] text-white hover:bg-[#d44f66] border-none transition-all duration-300 shadow-lg shadow-[#E8637A]/20 mt-2" disabled={isRegistering}>
-                {isRegistering ? <Loader2 className="animate-spin" /> : (isPrePopulated ? "تفعيل الحساب" : "إنشاء الحساب")}
+              <Button type="submit" className="w-full h-14 font-bold uppercase tracking-[0.3em] text-xs rounded-xl bg-[#E8637A] text-white hover:bg-[#d44f66] border-none transition-all duration-300 shadow-lg shadow-[#E8637A]/20 mt-2" disabled={sendingOtp || isRegistering}>
+                {sendingOtp ? <Loader2 className="animate-spin" /> : (isPrePopulated ? "تفعيل الحساب" : "التالي — إرسال رمز التحقق")}
               </Button>
             </form>
           </Form>
 
           <div className="mt-8 text-center text-[10px] font-bold uppercase tracking-widest text-slate-700">
             لديك حساب بالفعل؟{" "}
-            <Link href="/login" className="text-[#E8637A] hover:text-[#d44f66] mr-1 transition-colors">
-              سجل دخولك
-            </Link>
+            <Link href="/login" className="text-[#E8637A] hover:text-[#d44f66] mr-1 transition-colors">سجل دخولك</Link>
           </div>
         </div>
       </div>
