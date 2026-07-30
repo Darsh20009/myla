@@ -79,9 +79,43 @@ app.use(
 
 app.use(express.urlencoded({ extended: false, limit: "2mb" }));
 
-// ─── Serve uploaded files ─────────────────────────────────────────────────────
+// ─── WebP conversion endpoint for hero images ─────────────────────────────────
+// GET /hero-webp/model-01.webp → reads client/public/hero/model-01.png → WebP
+// Saves ~70-75% bandwidth vs PNG. Results cached in memory (max 30 entries).
 import path from "path";
 import fs from "fs";
+{
+  const webpCache = new Map<string, Buffer>();
+  const PUBLIC_HERO = path.join(process.cwd(), "client", "public", "hero");
+
+  app.get("/hero-webp/:file", async (req, res) => {
+    try {
+      const safeName = path.basename(req.params.file).replace(/\.webp$/i, "") + ".png";
+      if (webpCache.has(safeName)) {
+        res.setHeader("Content-Type", "image/webp");
+        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+        res.setHeader("X-Webp-Cache", "HIT");
+        return res.end(webpCache.get(safeName)!);
+      }
+      const srcPath = path.join(PUBLIC_HERO, safeName);
+      if (!srcPath.startsWith(PUBLIC_HERO) || !fs.existsSync(srcPath)) {
+        return res.status(404).end();
+      }
+      const { default: sharp } = await import("sharp");
+      const buf = await sharp(srcPath).webp({ quality: 82 }).toBuffer();
+      if (webpCache.size >= 30) webpCache.delete(webpCache.keys().next().value!);
+      webpCache.set(safeName, buf);
+      res.setHeader("Content-Type", "image/webp");
+      res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      res.setHeader("X-Webp-Cache", "MISS");
+      return res.end(buf);
+    } catch {
+      return res.status(500).end();
+    }
+  });
+}
+
+// ─── Serve uploaded files ─────────────────────────────────────────────────────
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use("/uploads", express.static(uploadsDir, {

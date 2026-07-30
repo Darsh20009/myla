@@ -2,30 +2,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
 
 /* ─── Images — ordered by actual abaya color for visual variety ── */
-/* pink → black → navy → brown → pink → gray-blue → black → dusty-pink
-   → dark-gray → black → teal-gray → black → mixed → black → blue-gray
-   → charcoal → black → charcoal → black-satin                        */
-const IMAGES = [
-  "/hero/model-16.png", // وردي فاتح  (light pink/lavender)
-  "/hero/model-01.png", // أسود       (black, lace trim)
-  "/hero/model-19.png", // كحلي       (navy blue, lace)
-  "/hero/model-10.png", // بني داكن   (dark chocolate brown)
-  "/hero/model-17.png", // لافندر     (lavender with scarf)
-  "/hero/model-07.png", // رمادي-أزرق (blue-gray, floor)
-  "/hero/model-03.png", // أسود       (black satin, sofa)
-  "/hero/model-18.png", // وردي مدخّن (dusty pink)
-  "/hero/model-11.png", // رمادي داكن (dark gray with hood)
-  "/hero/model-04.png", // أسود       (black plain, wall)
-  "/hero/model-08.png", // تيل-رمادي  (teal-gray close-up)
-  "/hero/model-02.png", // أسود ساتان (black satin, seated)
-  "/hero/model-13.png", // رمادي+أسود (two-tone gray/black)
-  "/hero/model-05.png", // أسود+طرحة  (black with scarf)
-  "/hero/model-09.png", // رمادي-أزرق (blue-gray seated)
-  "/hero/model-15.png", // شاركول     (charcoal satin panels)
-  "/hero/model-06.png", // أسود       (black lace, sofa)
-  "/hero/model-12.png", // شاركول     (charcoal, standing)
-  "/hero/model-14.png", // أسود ساتان (black satin, sofa)
-];
+/* Served as WebP (~75% smaller than PNG) via /hero-webp/:file.
+   PNG fallback applied automatically via onError handler.           */
+const MODEL_NUMBERS = [16,1,19,10,17,7,3,18,11,4,8,2,13,5,9,15,6,12,14];
+const IMAGES = MODEL_NUMBERS.map(n => `/hero-webp/model-${String(n).padStart(2,"0")}.webp`);
+const PNG_FALLBACK = MODEL_NUMBERS.map(n => `/hero/model-${String(n).padStart(2,"0")}.png`);
 
 const SLIDE_DURATION = 3500; // ms each image stays visible
 const FADE_DURATION  = 1.1;  // seconds for opacity crossfade
@@ -231,6 +212,11 @@ export function HeroCinematic({
 
   const preload = useCallback((src: string) => {
     const img = new Image();
+    img.onerror = () => {
+      // WebP failed — preload PNG fallback instead
+      const idx = IMAGES.indexOf(src);
+      if (idx !== -1) img.src = PNG_FALLBACK[idx];
+    };
     img.src = src;
   }, []);
 
@@ -397,12 +383,14 @@ export function HeroCinematic({
 
         {/* Slot A */}
         <div ref={slotA} className="myla-slot" style={{ zIndex: 2, opacity: 1 }}>
-          <img ref={imgA} src={IMAGES[0]} alt="" draggable={false} />
+          <img ref={imgA} src={IMAGES[0]} alt="" draggable={false}
+            onError={(e) => { const t = e.currentTarget; if (t.src !== PNG_FALLBACK[0]) t.src = PNG_FALLBACK[0]; }} />
         </div>
 
         {/* Slot B */}
         <div ref={slotB} className="myla-slot" style={{ zIndex: 1, opacity: 0 }}>
-          <img ref={imgB} src={IMAGES[1]} alt="" draggable={false} />
+          <img ref={imgB} src={IMAGES[1]} alt="" draggable={false}
+            onError={(e) => { const t = e.currentTarget; const i = IMAGES.indexOf(t.src.replace(location.origin,"")); if (i !== -1 && t.src !== PNG_FALLBACK[i]) t.src = PNG_FALLBACK[i]; }} />
         </div>
 
         {/* Shimmer */}
