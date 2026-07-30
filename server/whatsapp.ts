@@ -254,15 +254,17 @@ export async function connectToWhatsApp(): Promise<void> {
       addMessage(chatId, waMsg);
 
       if (!fromMe) {
-        // Check if sender is admin
+        // Extract sender phone
         const senderPhone = chatId.replace("@s.whatsapp.net", "");
+
+        // Check if sender is a manually-set admin (structured commands)
         if (isAdminPhone(senderPhone) && body.trim()) {
           await handleAdminCommand(chatId, body.trim(), senderPhone);
           return;
         }
 
-        // Schedule AI auto-reply (delay configured in bot settings)
-        void scheduleAutoReply(chatId, body);
+        // Schedule AI auto-reply with sender context (identity-aware)
+        void scheduleAutoReply(chatId, body, senderPhone);
       } else {
         // Human admin replied — cancel pending AI timer
         cancelAutoReply(chatId);
@@ -274,7 +276,7 @@ export async function connectToWhatsApp(): Promise<void> {
 
 // ─── Auto-reply logic ───────────────────────────────────────────────────────────
 
-async function scheduleAutoReply(chatId: string, latestMsg: string) {
+async function scheduleAutoReply(chatId: string, latestMsg: string, senderPhone?: string) {
   // Reset timer each time a new message arrives
   if (autoReplyTimers.has(chatId)) clearTimeout(autoReplyTimers.get(chatId)!);
 
@@ -289,7 +291,7 @@ async function scheduleAutoReply(chatId: string, latestMsg: string) {
     const lastAdmin = adminLastReply.get(chatId) || 0;
     // Double-check no admin replied in the window
     if (Date.now() - lastAdmin < delayMs) return;
-    await sendAIAutoReply(chatId, latestMsg);
+    await sendAIAutoReply(chatId, latestMsg, senderPhone);
   }, delayMs);
 
   autoReplyTimers.set(chatId, timer);
@@ -302,7 +304,7 @@ function cancelAutoReply(chatId: string) {
   }
 }
 
-async function sendAIAutoReply(chatId: string, userMsg: string) {
+async function sendAIAutoReply(chatId: string, userMsg: string, senderPhone?: string) {
   if (!sock || waState !== "connected") return;
 
   // 1. Check custom commands first (exact/keyword match)
@@ -322,13 +324,23 @@ async function sendAIAutoReply(chatId: string, userMsg: string) {
     return;
   }
 
-  // 2. Fallback to AI
+  // 2. Look up sender identity in the database
+  const identity = senderPhone ? await lookupSenderIdentity(senderPhone) : { type: "unknown" as const };
+
+  // 3. Build context-aware system prompt
   const history = (chatHistory.get(chatId) || []).slice(-10);
   const historyForAI = history
     .filter(m => m.type === "text" && m.body)
     .map(m => ({ role: m.fromMe ? "assistant" : "user", content: m.body }));
 
-  const systemPrompt = await buildWhatsAppSystemPrompt();
+  let systemPrompt: string;
+  if (identity.type === "staff") {
+    systemPrompt = await buildStaffSystemPrompt(identity.user);
+  } else if (identity.type === "customer") {
+    systemPrompt = await buildWhatsAppSystemPrompt(identity.user, identity.recentOrders);
+  } else {
+    systemPrompt = await buildWhatsAppSystemPrompt();
+  }
 
   try {
     const reply = await callWhatsAppAI(systemPrompt, historyForAI, userMsg);
@@ -346,7 +358,7 @@ async function sendAIAutoReply(chatId: string, userMsg: string) {
       isAI: true,
     };
     addMessage(chatId, aiMsg);
-    console.log(`[WhatsApp AI] ✅ Auto-replied to ${chatId}`);
+    console.log(`[WhatsApp AI] ✅ Auto-replied to ${chatId} (identity: ${identity.type})`);
   } catch (err: any) {
     console.error("[WhatsApp AI] Auto-reply failed:", err.message);
   }
@@ -354,20 +366,156 @@ async function sendAIAutoReply(chatId: string, userMsg: string) {
 
 // ─── AI providers ───────────────────────────────────────────────────────────────
 
-async function buildWhatsAppSystemPrompt(): Promise<string> {
+// ─── Sender identity lookup ─────────────────────────────────────────────────────
+
+type SenderIdentity =
+  | { type: "unknown" }
+  | { type: "staff"; user: any }
+  | { type: "customer"; user: any; recentOrders: any[] };
+
+async function lookupSenderIdentity(phone: string): Promise<SenderIdentity> {
+  try {
+    const { UserModel, OrderModel } = await import("./models");
+    const clean = phone.replace(/\D/g, "");
+    // Match phone in multiple formats (with/without 966 prefix)
+    const variants = Array.from(new Set([
+      clean,
+      clean.replace(/^966/, "0"),
+      "966" + clean.replace(/^0/, ""),
+      "+" + clean,
+    ]));
+
+    const user = await (UserModel as any).findOne({
+      phone: { $in: variants as any[] },
+      isActive: { $ne: false },
+    }).lean();
+
+    if (!user) return { type: "unknown" };
+
+    if (user.role && user.role !== "customer") {
+      return { type: "staff", user };
+    }
+
+    // Known customer — fetch recent orders
+    const recentOrders = await (OrderModel as any)
+      .find({ $or: [{ userId: user._id }, { customerPhone: { $in: variants as any[] } }] })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    return { type: "customer", user, recentOrders };
+  } catch (e: any) {
+    console.warn("[WhatsApp] lookupSenderIdentity failed:", e.message);
+    return { type: "unknown" };
+  }
+}
+
+// ─── Staff system prompt ────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<string, string> = {
+  admin:              "مدير عام",
+  assistant_manager:  "مساعد مدير",
+  accountant:         "محاسب",
+  tech_support:       "دعم تقني",
+  legal_consultant:   "مستشار قانوني",
+  employee:           "موظف",
+  support:            "خدمة عملاء",
+  cashier:            "كاشير",
+  vendor:             "مورّد",
+};
+
+async function buildStaffSystemPrompt(user: any): Promise<string> {
+  const siteUrl  = process.env.PUBLIC_SITE_URL || "https://myla-abayas.store";
+  const settings = await getBotSettings();
+  const roleLabel = ROLE_LABELS[user.role] || user.role;
+  const perms     = Array.isArray(user.permissions) && user.permissions.length
+    ? user.permissions.join("، ")
+    : "الصلاحيات الافتراضية لدوره";
+
+  const extra = settings.customSystemPrompt?.trim()
+    ? `\n\n## تعليمات إضافية من الإدارة\n${settings.customSystemPrompt}`
+    : "";
+
+  return `أنت مساعد داخلي ذكي لنظام Myla | ميلا على واتس‌آب.
+
+## هوية المستخدم (موظف)
+- الاسم: ${user.name || "غير محدد"}
+- الدور: ${roleLabel}
+- الصلاحيات: ${perms}
+- رابط لوحة التحكم: ${siteUrl}/admin
+
+## طريقة تعاملك معه
+- خاطبه بالاسم (${user.name?.split(" ")[0] || "زميل"}) وكن مهنياً ومختصراً
+- أنت مساعده الشخصي داخل النظام — ساعده على إنجاز مهامه
+- ذكّره بصلاحياته عند الحاجة وأخبره إذا كان الأمر يحتاج دوراً أعلى
+
+## الأوامر الجاهزة (يمكنه كتابتها مباشرة)
+- \`كوبون [اسم]\` ← إنشاء كوبون خصم 10%
+- \`تقرير\` ← ملخص مبيعات اليوم
+- \`رابط\` ← رابط المتجر
+- \`رمز [رقم]\` ← إرسال رمز تحقق OTP
+
+## ما يمكنك إخباره به
+- إحصائيات وتقارير من الصلاحيات المتاحة له
+- إجابات على أسئلة النظام والعمليات
+- إرشاده للصفحة الصحيحة في لوحة التحكم
+
+## قواعد
+- لا تشارك بيانات خارج نطاق دوره
+- لا تخترع أرقاماً أو بيانات — قل "راجع لوحة التحكم" إذا لم تعرف
+- رسائل واتس‌آب = قصيرة ومباشرة${extra}
+
+ABSOLUTE RULE: Never output Chinese, Japanese, Korean, or CJK characters.`;
+}
+
+// ─── Customer system prompt ─────────────────────────────────────────────────────
+
+async function buildWhatsAppSystemPrompt(customer?: any, recentOrders?: any[]): Promise<string> {
   const siteUrl = process.env.PUBLIC_SITE_URL || "https://myla-abayas.store";
-  const brand = "Myla | ميلا";
+  const brand   = "Myla | ميلا";
   const settings = await getBotSettings();
   const extra = settings.customSystemPrompt?.trim()
     ? `\n\n## تعليمات إضافية من الإدارة\n${settings.customSystemPrompt}`
     : "";
+
+  // Personalisation block for known customers
+  let customerCtx = "";
+  if (customer) {
+    const firstName = customer.name?.split(" ")[0] || customer.name || "";
+    customerCtx = `\n\n## معلومات العميل الحالي
+- الاسم المسجل: ${customer.name || "غير محدد"}
+- ناديه بالاسم الأول: ${firstName}`;
+
+    if (recentOrders && recentOrders.length > 0) {
+      const orderLines = recentOrders.map((o: any) => {
+        const statusMap: Record<string, string> = {
+          new:               "جديد",
+          pending_payment:   "بانتظار الدفع",
+          processing:        "قيد التجهيز",
+          ready_for_pickup:  "جاهز للاستلام",
+          out_for_delivery:  "في الطريق إليك",
+          shipped:           "تم الشحن",
+          completed:         "مكتمل",
+          cancelled:         "ملغي",
+          returned:          "مُعاد",
+        };
+        const st   = statusMap[o.status] || o.status;
+        const num  = o.orderNumber || String(o._id).slice(-6).toUpperCase();
+        const date = o.createdAt ? new Date(o.createdAt).toLocaleDateString("ar-SA") : "";
+        return `  • طلب #${num} — ${st}${date ? " (" + date + ")" : ""}`;
+      }).join("\n");
+      customerCtx += `\n- طلباته الأخيرة:\n${orderLines}`;
+    } else {
+      customerCtx += "\n- لا توجد طلبات سابقة مسجلة";
+    }
+  }
 
   return `أنت مساعدة Myla على واتس‌آب — مساعدة ذكية وودودة لمتجر ${brand} للعبايات الفاخرة.
 
 ## هويتك
 - اسمك: مساعدة ميلا
 - طبيعتك: ودود، دافئ، أنيق — مش رسمي ومش بارد
-- موقع المتجر: ${siteUrl}
+- موقع المتجر: ${siteUrl}${customerCtx}
 
 ## قاعدة اللغة والأسلوب (الأهم)
 - **طابق لهجة المرسل بالضبط**:
@@ -376,6 +524,7 @@ async function buildWhatsAppSystemPrompt(): Promise<string> {
   - خليجي عام → خليجي
   - فصحى → فصحى مبسطة
   - إنجليزي → إنجليزي طبيعي
+- إذا عرفت اسم العميل، ناديه به بشكل طبيعي في بداية الرد الأول
 - لا تبدأ برد فارغ أو بارد. ابدأ بإحماء طبيعي مناسب للهجة
 - **ممنوع** الرد بالصيني أو اليابانية أو أي لغة أخرى
 
@@ -383,6 +532,7 @@ async function buildWhatsAppSystemPrompt(): Promise<string> {
 - الإجابة على أسئلة المنتجات والأسعار والمقاسات
 - تقديم معلومات الشحن والتوصيل
 - مشاركة رابط المتجر: ${siteUrl}
+- متابعة حالة الطلبات (استخدم بيانات الطلبات المذكورة أعلاه عند السؤال)
 - إنشاء كود خصم (اطلب من النظام)
 - إرسال رابط التحقق أو رمز OTP
 - التواصل الودي وحل المشاكل
