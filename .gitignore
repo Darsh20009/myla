@@ -7,3 +7,4 @@ vite.config.ts.*
 attached_assets/AuthKey_*.p8
 *.p8
 uploads/
+wa-auth/

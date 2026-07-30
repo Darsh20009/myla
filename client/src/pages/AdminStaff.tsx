@@ -225,6 +225,11 @@ export default function AdminStaff() {
             if (!payload.password) delete (payload as any).password;
             updateMutation.mutate({ id: editingUser.id, data: payload });
           } else {
+            const email = (data.email || "").trim();
+            if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+              form.setError("email", { message: "البريد الإلكتروني مطلوب لإرسال رابط التفعيل" });
+              return;
+            }
             createMutation.mutate(data);
           }
         })}
@@ -258,10 +263,10 @@ export default function AdminStaff() {
           <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem className="text-right">
               <FormLabel className="font-black">
-                البريد الإلكتروني <span className="text-red-500">*</span>
+                البريد الإلكتروني {!isEdit && <span className="text-red-500">*</span>}
               </FormLabel>
-              <FormControl><Input {...field} value={field.value || ""} type="email" placeholder="email@example.com" dir="ltr" className="border-red-200 focus-visible:ring-red-300/40" /></FormControl>
-              <p className="text-[10px] text-slate-500 text-right">مطلوب لإرسال رابط تفعيل الحساب</p>
+              <FormControl><Input {...field} value={field.value || ""} type="email" placeholder="email@example.com" dir="ltr" /></FormControl>
+              {!isEdit && <p className="text-[10px] text-slate-500 text-right">مطلوب لإرسال رابط تفعيل الحساب</p>}
               <FormMessage />
             </FormItem>
           )} />
