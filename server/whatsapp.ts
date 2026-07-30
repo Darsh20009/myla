@@ -785,7 +785,11 @@ export async function sendWaImage(
 export async function sendWhatsAppOTP(phone: string, otp: string): Promise<boolean> {
   if (!sock || waState !== "connected") return false;
   try {
-    const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+    let digits = phone.replace(/\D/g, "");
+    // Strip leading zeros, then prepend 966 if not already international
+    digits = digits.replace(/^0+/, "");
+    if (!digits.startsWith("966")) digits = "966" + digits;
+    const jid = `${digits}@s.whatsapp.net`;
     await sock.sendMessage(jid, {
       text: `🔐 *رمز التحقق الخاص بك في Myla | ميلا:*\n\n*${otp}*\n\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.`,
     });
