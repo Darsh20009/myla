@@ -21,13 +21,11 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: false,
-    // Mark baileys and its native/ESM-only deps as external so they are
-    // loaded from node_modules at runtime (the Dockerfile runs npm ci).
+    // Keep only true native addons as external (they can't be bundled).
+    // @whiskeysockets/baileys is ESM-only ("type":"module") so it MUST be
+    // bundled by esbuild (ESM→CJS conversion) rather than left external —
+    // a CJS require() of an ESM package fails at runtime on Node 18+.
     external: [
-      "@whiskeysockets/baileys",
-      "node-cache",
-      "pino",
-      "pino-pretty",
       "bufferutil",
       "utf-8-validate",
     ],
