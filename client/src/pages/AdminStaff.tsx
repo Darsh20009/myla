@@ -253,13 +253,6 @@ export default function AdminStaff() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField control={form.control} name="password" render={({ field }) => (
-            <FormItem className="text-right">
-              <FormLabel className="font-black">{isEdit ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور"}</FormLabel>
-              <FormControl><Input {...field} value={field.value || ""} type="password" placeholder={isEdit ? "اتركها فارغة للإبقاء" : "كلمة مرور الدخول"} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
           <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem className="text-right">
               <FormLabel className="font-black">
@@ -267,6 +260,13 @@ export default function AdminStaff() {
               </FormLabel>
               <FormControl><Input {...field} value={field.value || ""} type="email" placeholder="email@example.com" dir="ltr" /></FormControl>
               {!isEdit && <p className="text-[10px] text-slate-500 text-right">مطلوب لإرسال رابط تفعيل الحساب</p>}
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="password" render={({ field }) => (
+            <FormItem className="text-right">
+              <FormLabel className="font-black">{isEdit ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور"}</FormLabel>
+              <FormControl><Input {...field} value={field.value || ""} type="password" placeholder={isEdit ? "اتركها فارغة للإبقاء" : "كلمة مرور الدخول"} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />

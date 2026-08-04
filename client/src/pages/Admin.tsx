@@ -483,6 +483,22 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
 
   useEffect(() => {
     if (open && product && product.id !== lastProductIdRef.current) {
+      // Reset the entire form with the current product's data (including images)
+      form.reset({
+        name: product.name || "",
+        nameEn: (product as any)?.nameEn || "",
+        description: product.description || "",
+        descriptionEn: (product as any)?.descriptionEn || "",
+        price: product.price || "0",
+        cost: product.cost || "0",
+        images: product.images || [],
+        categoryIds: [],
+        variants: (product as any)?.variants || [],
+        isFeatured: product.isFeatured || false,
+        isOnSale: (product as any)?.isOnSale || false,
+        salePrice: (product as any)?.salePrice || "",
+        aiNotes: (product as any)?.aiNotes || "",
+      } as any);
       setVariants(product.variants || []);
       lastProductIdRef.current = product.id;
       // Load existing categoryIds or fall back to single categoryId
@@ -4297,6 +4313,30 @@ const AdminStaff = () => {
                   />
                 </div>
 
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="text-right">
+                      <FormLabel className="font-black text-sm text-slate-500">
+                        البريد الإلكتروني <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value || ""}
+                          type="email"
+                          placeholder="employee@example.com"
+                          dir="ltr"
+                          className="rounded-xl h-12 bg-slate-50 border-none px-4 font-bold text-left"
+                        />
+                      </FormControl>
+                      <p className="text-[10px] text-slate-400 text-right">مطلوب لإرسال رابط تفعيل الحساب</p>
+                      <FormMessage className="font-bold" />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -4351,30 +4391,6 @@ const AdminStaff = () => {
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="text-right">
-                      <FormLabel className="font-black text-sm text-slate-500">
-                        البريد الإلكتروني <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value || ""}
-                          type="email"
-                          placeholder="employee@example.com"
-                          dir="ltr"
-                          className="rounded-xl h-12 bg-slate-50 border-none px-4 font-bold text-left"
-                        />
-                      </FormControl>
-                      <p className="text-[10px] text-slate-400 text-right">مطلوب لإرسال رابط تفعيل الحساب</p>
-                      <FormMessage className="font-bold" />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

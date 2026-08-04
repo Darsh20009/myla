@@ -202,12 +202,24 @@ export function ProductCard({ product }: ProductCardProps) {
               const sizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean))) as string[];
               const colorSwatch = (c: string) => {
                 const map: Record<string,string> = {
-                  'ذهبي':'#E8637A','أسود':'#1a1a1a','أبيض':'#ffffff','أحمر':'#b91c1c','أزرق':'#6B3F2A',
-                  'وردي':'#ec4899','بني':'#78350f','فضي':'#c0c0c0','أخضر':'#15803d','بنفسجي':'#7c3aed',
-                  'gold':'#E8637A','black':'#1a1a1a','white':'#ffffff','red':'#b91c1c','blue':'#6B3F2A',
-                  'pink':'#ec4899','brown':'#78350f','silver':'#c0c0c0','green':'#15803d','purple':'#7c3aed',
+                  // Arabic color names → correct hex
+                  'ذهبي':'#D4AF37','أسود':'#1a1a1a','أبيض':'#f5f5f5','أحمر':'#dc2626',
+                  'أزرق':'#1e40af','وردي':'#f472b6','بني':'#78350f','فضي':'#9ca3af',
+                  'أخضر':'#15803d','بنفسجي':'#7c3aed','كحلي':'#1e3a5f','ورد':'#f9a8d4',
+                  'زيتي':'#556b2f','بيج':'#d2b48c','كريمي':'#fffdd0','رمادي':'#6b7280',
+                  'نيلي':'#3730a3','برتقالي':'#ea580c','أصفر':'#ca8a04','تركواز':'#0891b2',
+                  'خمري':'#7f1d1d','سماوي':'#38bdf8','عسلي':'#92400e','قرنفلي':'#e11d48',
+                  'بلاتيني':'#e2e8f0','أرجواني':'#9333ea','زعفراني':'#f59e0b','نحاسي':'#b45309',
+                  // English equivalents
+                  'gold':'#D4AF37','black':'#1a1a1a','white':'#f5f5f5','red':'#dc2626',
+                  'blue':'#1e40af','pink':'#f472b6','brown':'#78350f','silver':'#9ca3af',
+                  'green':'#15803d','purple':'#7c3aed','navy':'#1e3a5f','rose':'#f9a8d4',
+                  'olive':'#556b2f','beige':'#d2b48c','cream':'#fffdd0','gray':'#6b7280',
+                  'grey':'#6b7280','indigo':'#3730a3','orange':'#ea580c','yellow':'#ca8a04',
+                  'turquoise':'#0891b2','maroon':'#7f1d1d','sky':'#38bdf8','copper':'#b45309',
                 };
-                return map[c.toLowerCase()] || map[c] || '#E8637A';
+                const lower = c.toLowerCase();
+                return map[c] || map[lower] || '#9ca3af';
               };
               return (
                 <div className="mt-2 flex flex-col gap-1.5 items-center">
