@@ -44,21 +44,38 @@ export function SupportChat() {
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
     try {
       const res = await fetch("/api/ai/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMsg,
-          history: messages.map(m => ({ role: m.role, content: m.content })),
+          history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
           customerInfo: user ? { name: (user as any).firstName || (user as any).phone } : undefined,
         }),
       });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "عذراً، حدث خطأ في الاتصال. حاول مرة أخرى أو تواصل معنا عبر الواتساب." }]);
+      if (data.response) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+      } else {
+        throw new Error("empty response");
+      }
+    } catch (err: any) {
+      clearTimeout(timeout);
+      const isTimeout = err?.name === "AbortError";
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: isTimeout
+          ? "الرد يستغرق وقتاً أطول من المعتاد. حاول مرة أخرى أو تواصل معنا عبر الواتساب 📱"
+          : "عذراً، حدث خطأ في الاتصال. حاول مرة أخرى أو تواصل معنا عبر الواتساب 📱"
+      }]);
     } finally {
       setIsLoading(false);
     }

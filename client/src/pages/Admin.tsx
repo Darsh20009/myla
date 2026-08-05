@@ -475,6 +475,33 @@ const LowStockWidget = () => {
   );
 };
 
+/** Shared color name → hex map used in admin variant editor swatches */
+const ADMIN_COLOR_MAP: Record<string, string> = {
+  'ذهبي':'#D4AF37','أسود':'#1a1a1a','أبيض':'#f5f5f5','أحمر':'#dc2626',
+  'أزرق':'#1e40af','وردي':'#f472b6','بني':'#78350f','فضي':'#c0c0c0',
+  'أخضر':'#15803d','بنفسجي':'#7c3aed','كحلي':'#1e3a5f','ورد':'#f9a8d4',
+  'زيتي':'#556b2f','بيج':'#d2b48c','كريمي':'#fffdd0','رمادي':'#6b7280',
+  'نيلي':'#3730a3','برتقالي':'#ea580c','أصفر':'#ca8a04','تركواز':'#0891b2',
+  'خمري':'#7f1d1d','سماوي':'#38bdf8','عسلي':'#92400e','قرنفلي':'#e11d48',
+  'بلاتيني':'#e2e8f0','أرجواني':'#9333ea','زعفراني':'#f59e0b','نحاسي':'#b45309',
+  'أبيض مكسور':'#faf7f2','ليموني':'#fef08a','تيفاني':'#81d8d0','سكري':'#f8b4c8',
+  'gold':'#D4AF37','black':'#1a1a1a','white':'#f5f5f5','red':'#dc2626',
+  'blue':'#1e40af','pink':'#f472b6','brown':'#78350f','silver':'#c0c0c0',
+  'green':'#15803d','purple':'#7c3aed','navy':'#1e3a5f','rose':'#f9a8d4',
+  'olive':'#556b2f','beige':'#d2b48c','cream':'#fffdd0','gray':'#6b7280',
+  'grey':'#6b7280','indigo':'#3730a3','orange':'#ea580c','yellow':'#ca8a04',
+  'turquoise':'#0891b2','maroon':'#7f1d1d','sky':'#38bdf8','copper':'#b45309',
+  'teal':'#0d9488','lavender':'#c4b5fd','mint':'#86efac','coral':'#fb7185',
+};
+
+/** Returns the hex preview for a color value (name or hex) */
+function resolveColorHex(val: string): string {
+  if (!val) return '#9ca3af';
+  if (/^#[0-9A-Fa-f]{3,6}$/.test(val)) return val;
+  const lower = val.toLowerCase().trim();
+  return ADMIN_COLOR_MAP[val] || ADMIN_COLOR_MAP[lower] || '#9ca3af';
+}
+
 const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any) => {
   const { toast } = useToast();
   const [variants, setVariants] = useState<any[]>([]);
@@ -808,10 +835,15 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
 
                 <div className="space-y-3">
                   {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-2 items-end bg-secondary/10 p-3 border border-black/5">
+                    <div key={v.sku || v._id || i} className="grid grid-cols-12 gap-2 items-end bg-secondary/10 p-3 border border-black/5">
                       <div className="col-span-2 space-y-1">
                         <Label className="text-[9px] font-bold">اللون</Label>
-                        <Input value={v.color || ""} onChange={(e) => updateVariant(i, "color", e.target.value)} className="h-8 rounded-none text-xs text-right" placeholder="ذهبي" data-testid={`input-variant-color-${i}`} />
+                        <div className="flex items-center gap-1">
+                          <label className="w-7 h-8 rounded border border-black/10 overflow-hidden cursor-pointer shrink-0 relative block" style={{ background: resolveColorHex(v.color || '') }} title="اختر لوناً من اللوحة">
+                            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={/^#[0-9A-Fa-f]{3,6}$/.test(v.color || '') ? v.color : resolveColorHex(v.color || '')} onChange={(e) => updateVariant(i, "color", e.target.value)} />
+                          </label>
+                          <Input value={v.color || ""} onChange={(e) => updateVariant(i, "color", e.target.value)} className="h-8 rounded-none text-xs text-right flex-1 min-w-0" placeholder="ذهبي أو #D4AF37" data-testid={`input-variant-color-${i}`} />
+                        </div>
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-[9px] font-bold">المقاس/الحجم</Label>
@@ -821,11 +853,15 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
                         <Label className="text-[9px] font-bold text-emerald-700">السعر (<RiyalSign />)</Label>
                         <Input type="number" step="0.01" value={v.price ?? 0} onChange={(e) => updateVariant(i, "price", parseFloat(e.target.value) || 0)} className="h-8 rounded-none text-xs text-right border-emerald-300" placeholder="0" data-testid={`input-variant-price-${i}`} />
                       </div>
-                      <div className="col-span-1 space-y-1">
-                        <Label className="text-[9px] font-bold">المخزون</Label>
-                        <Input type="number" value={v.stock ?? 0} onChange={(e) => updateVariant(i, "stock", parseInt(e.target.value) || 0)} className="h-8 rounded-none text-xs text-right" data-testid={`input-variant-stock-${i}`} />
-                      </div>
                       <div className="col-span-2 space-y-1">
+                        <Label className="text-[9px] font-bold">المخزون</Label>
+                        <div className="flex items-center border border-black/10 h-8 bg-white">
+                          <button type="button" onClick={() => updateVariant(i, "stock", Math.max(0, (v.stock ?? 0) - 1))} className="w-7 h-full text-black/50 hover:bg-gray-100 text-sm font-bold flex items-center justify-center shrink-0 select-none">−</button>
+                          <input type="number" value={v.stock ?? 0} onChange={(e) => updateVariant(i, "stock", parseInt(e.target.value) || 0)} className="flex-1 h-full text-xs text-center border-x border-black/10 min-w-0 focus:outline-none bg-transparent" data-testid={`input-variant-stock-${i}`} />
+                          <button type="button" onClick={() => updateVariant(i, "stock", (v.stock ?? 0) + 1)} className="w-7 h-full text-black/50 hover:bg-gray-100 text-sm font-bold flex items-center justify-center shrink-0 select-none">+</button>
+                        </div>
+                      </div>
+                      <div className="col-span-1 space-y-1">
                         <Label className="text-[9px] font-bold">SKU</Label>
                         <Input value={v.sku || ""} onChange={(e) => updateVariant(i, "sku", e.target.value)} className="h-8 rounded-none text-[10px] text-right" data-testid={`input-variant-sku-${i}`} />
                       </div>
@@ -1238,10 +1274,15 @@ const ProductsTable = memo(() => {
 
                 <div className="space-y-3">
                   {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-2 items-end bg-secondary/10 p-3 border border-black/5">
+                    <div key={v.sku || v._id || i} className="grid grid-cols-12 gap-2 items-end bg-secondary/10 p-3 border border-black/5">
                       <div className="col-span-2 space-y-1">
                         <Label className="text-[9px] font-bold">اللون</Label>
-                        <Input value={v.color || ""} onChange={(e) => updateVariant(i, "color", e.target.value)} className="h-8 rounded-none text-xs text-right" placeholder="ذهبي" />
+                        <div className="flex items-center gap-1">
+                          <label className="w-7 h-8 rounded border border-black/10 overflow-hidden cursor-pointer shrink-0 relative block" style={{ background: resolveColorHex(v.color || '') }} title="اختر لوناً من اللوحة">
+                            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={/^#[0-9A-Fa-f]{3,6}$/.test(v.color || '') ? v.color : resolveColorHex(v.color || '')} onChange={(e) => updateVariant(i, "color", e.target.value)} />
+                          </label>
+                          <Input value={v.color || ""} onChange={(e) => updateVariant(i, "color", e.target.value)} className="h-8 rounded-none text-xs text-right flex-1 min-w-0" placeholder="ذهبي أو #D4AF37" />
+                        </div>
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-[9px] font-bold">المقاس/الحجم</Label>
@@ -1251,11 +1292,15 @@ const ProductsTable = memo(() => {
                         <Label className="text-[9px] font-bold text-emerald-700">السعر (<RiyalSign />)</Label>
                         <Input type="number" step="0.01" value={v.price ?? 0} onChange={(e) => updateVariant(i, "price", parseFloat(e.target.value) || 0)} className="h-8 rounded-none text-xs text-right border-emerald-300" placeholder="0" />
                       </div>
-                      <div className="col-span-1 space-y-1">
-                        <Label className="text-[9px] font-bold">المخزون</Label>
-                        <Input type="number" value={v.stock ?? 0} onChange={(e) => updateVariant(i, "stock", parseInt(e.target.value) || 0)} className="h-8 rounded-none text-xs text-right" />
-                      </div>
                       <div className="col-span-2 space-y-1">
+                        <Label className="text-[9px] font-bold">المخزون</Label>
+                        <div className="flex items-center border border-black/10 h-8 bg-white">
+                          <button type="button" onClick={() => updateVariant(i, "stock", Math.max(0, (v.stock ?? 0) - 1))} className="w-7 h-full text-black/50 hover:bg-gray-100 text-sm font-bold flex items-center justify-center shrink-0 select-none">−</button>
+                          <input type="number" value={v.stock ?? 0} onChange={(e) => updateVariant(i, "stock", parseInt(e.target.value) || 0)} className="flex-1 h-full text-xs text-center border-x border-black/10 min-w-0 focus:outline-none bg-transparent" />
+                          <button type="button" onClick={() => updateVariant(i, "stock", (v.stock ?? 0) + 1)} className="w-7 h-full text-black/50 hover:bg-gray-100 text-sm font-bold flex items-center justify-center shrink-0 select-none">+</button>
+                        </div>
+                      </div>
+                      <div className="col-span-1 space-y-1">
                         <Label className="text-[9px] font-bold">SKU</Label>
                         <Input value={v.sku || ""} onChange={(e) => updateVariant(i, "sku", e.target.value)} className="h-8 rounded-none text-[10px] text-right" />
                       </div>
