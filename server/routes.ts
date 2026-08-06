@@ -2525,6 +2525,60 @@ ${allUrls.map(u => `  <url>
     }
   });
 
+  // ── Admin: directly activate an employee (bypass email) ──────────────────
+  app.post("/api/admin/users/:id/activate-direct", checkPermission("staff.manage"), async (req, res) => {
+    try {
+      const { password } = req.body || {};
+      if (!password || String(password).length < 6) {
+        return res.status(400).json({ message: "كلمة المرور مطلوبة (6 أحرف على الأقل)" });
+      }
+      const user: any = await UserModel.findById(req.params.id);
+      if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+      const { scrypt, randomBytes } = await import("crypto");
+      const { promisify } = await import("util");
+      const scryptAsync = promisify(scrypt);
+      const salt = randomBytes(16).toString("hex");
+      const buffer = (await scryptAsync(password, salt, 64)) as Buffer;
+      user.password = `${buffer.toString("hex")}.${salt}`;
+      user.isActive = true;
+      user.activationToken = undefined;
+      user.activationExpires = undefined;
+      user.mustChangePassword = false;
+      await user.save();
+
+      res.json({ ok: true, message: "تم تفعيل الحساب بنجاح" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ── Admin: get activation link for an employee ───────────────────────────
+  app.get("/api/admin/users/:id/activation-link", checkPermission("staff.manage"), async (req, res) => {
+    try {
+      const { randomBytes } = await import("crypto");
+      const user: any = await UserModel.findById(req.params.id);
+      if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+      // Regenerate token if expired or missing
+      const needsNew = !user.activationToken || !user.activationExpires || user.activationExpires < new Date();
+      if (needsNew) {
+        user.activationToken = randomBytes(32).toString("hex");
+        user.activationExpires = new Date(Date.now() + 48 * 60 * 60 * 1000);
+        await user.save();
+      }
+
+      const baseUrl =
+        process.env.PUBLIC_BASE_URL ||
+        (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "") ||
+        `${req.protocol}://${req.get("host")}`;
+      const link = `${baseUrl}/activate?token=${user.activationToken}`;
+      res.json({ link });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // ── Activate account (employee clicks the link, sets their password) ─────
   app.post("/api/auth/activate", async (req, res) => {
     try {

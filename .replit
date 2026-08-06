@@ -70,6 +70,7 @@ CPANEL_SMTP_PORT = "587"
 CPANEL_SMTP_SECURE = "true"
 CPANEL_SMTP_USER = "info@qirox.online"
 CPANEL_USERNAME = "rfpeddku"
+PUBLIC_BASE_URL = "https://myla-abayas.store"
 
 [postMerge]
 path = "scripts/post-merge.sh"

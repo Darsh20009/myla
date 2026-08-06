@@ -29,7 +29,7 @@ function createTransporter() {
   const pass =
     process.env.CPANEL_SMTP_PASS ||
     process.env.SMTP_PASS ||
-    "~@xYym83F,=^Y}yT";
+    "";
 
   // port 587 (STARTTLS) is open on most cloud platforms (incl. Render);
   // port 465 (SSL) is often blocked. Try 587 first via env override.
