@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const STATIC_CACHE  = `myla-static-${CACHE_VERSION}`;
 const API_CACHE     = `myla-api-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `myla-images-${CACHE_VERSION}`;
@@ -26,7 +26,8 @@ function isStaticAsset(url) {
 function isUploadImage(url) {
   const p = new URL(url).pathname;
   return p.startsWith('/uploads/') || p.startsWith('/images/') ||
-         p.startsWith('/banners/') || p.startsWith('/logos/');
+         p.startsWith('/banners/') || p.startsWith('/logos/') ||
+         p.startsWith('/hero/') || p.startsWith('/hero-webp/');
 }
 
 function isCachedApi(url) {
