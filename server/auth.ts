@@ -369,25 +369,34 @@ export function setupAuth(app: Express) {
     try {
       const { username, password } = req.body;
       if (!username) {
-        return res.status(400).send("رقم الهاتف مطلوب");
+        return res.status(400).send("رقم الهاتف أو البريد الإلكتروني مطلوب");
       }
 
-      let cleanInput = (username || "").toString().trim().replace(/\D/g, "");
+      const rawInput = (username || "").toString().trim();
 
-      if (cleanInput.startsWith("966")) cleanInput = cleanInput.substring(3);
-      if (cleanInput.startsWith("0")) cleanInput = cleanInput.substring(1);
-      cleanInput = cleanInput.replace(/\s/g, "");
+      // Email login path
+      const isEmail = rawInput.includes("@");
+      let userResult;
 
-      const userResult = await UserModel.findOne({
-        $or: [
-          { phone: cleanInput },
-          { username: cleanInput },
-          { phone: "0" + cleanInput },
-          { username: "0" + cleanInput },
-          { phone: "966" + cleanInput },
-          { phone: new RegExp(cleanInput + "$") }
-        ]
-      }).lean();
+      if (isEmail) {
+        userResult = await UserModel.findOne({ email: rawInput.toLowerCase() }).lean();
+      } else {
+        let cleanInput = rawInput.replace(/\D/g, "");
+        if (cleanInput.startsWith("966")) cleanInput = cleanInput.substring(3);
+        if (cleanInput.startsWith("0")) cleanInput = cleanInput.substring(1);
+        cleanInput = cleanInput.replace(/\s/g, "");
+
+        userResult = await UserModel.findOne({
+          $or: [
+            { phone: cleanInput },
+            { username: cleanInput },
+            { phone: "0" + cleanInput },
+            { username: "0" + cleanInput },
+            { phone: "966" + cleanInput },
+            { phone: new RegExp(cleanInput + "$") }
+          ]
+        }).lean();
+      }
 
       const user = userResult ? {
         ...userResult,
