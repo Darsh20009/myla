@@ -1,14 +1,12 @@
 /**
- * File upload abstraction.
+ * File upload abstraction — Myla
  *
- * • If `OBJECT_STORAGE_BUCKET` env is set AND `@replit/object-storage` is
- *   installed → uploads go to Replit Object Storage (durable, scales horizontally,
- *   survives container restarts/deploys).
- * • Otherwise → falls back to local disk (`/uploads`) so dev works out of the box.
+ * Priority order for storage backend:
+ *   1. Cloudinary  (CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET)
+ *   2. Replit Object Storage (OBJECT_STORAGE_BUCKET / REPLIT_OBJECT_STORAGE_BUCKET)
+ *   3. Local disk  (fallback — ephemeral on Render/cloud; dev only)
  *
- * Both modes return a public URL of the form `/uploads/<filename>` so frontend
- * code is identical. In cloud mode, Express transparently streams the file
- * from the bucket via the same `/uploads/:key` route.
+ * All modes return a public URL so frontend code is identical.
  */
 
 import fs from "fs";
@@ -18,13 +16,40 @@ import type { Request, Response } from "express";
 const LOCAL_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
 
-const BUCKET = process.env.OBJECT_STORAGE_BUCKET || process.env.REPLIT_OBJECT_STORAGE_BUCKET || "";
+// ─── Cloudinary ──────────────────────────────────────────────────────────────
+const CLOUDINARY_CLOUD = process.env.CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_KEY   = process.env.CLOUDINARY_API_KEY    || "";
+const CLOUDINARY_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const USE_CLOUDINARY = !!(CLOUDINARY_CLOUD && CLOUDINARY_KEY && CLOUDINARY_SECRET);
 
-// Shared promise prevents duplicate Client instances under concurrent first-hits
+let cloudinaryClient: any = null;
+
+async function getCloudinary(): Promise<any> {
+  if (!USE_CLOUDINARY) return null;
+  if (cloudinaryClient) return cloudinaryClient;
+  try {
+    const { v2: cloudinary } = await import("cloudinary") as any;
+    cloudinary.config({
+      cloud_name: CLOUDINARY_CLOUD,
+      api_key:    CLOUDINARY_KEY,
+      api_secret: CLOUDINARY_SECRET,
+      secure: true,
+    });
+    cloudinaryClient = cloudinary;
+    console.log(`[uploads] Cloudinary enabled (cloud: ${CLOUDINARY_CLOUD})`);
+    return cloudinaryClient;
+  } catch (e: any) {
+    console.warn(`[uploads] Cloudinary unavailable: ${e?.message}`);
+    return null;
+  }
+}
+
+// ─── Replit Object Storage ────────────────────────────────────────────────────
+const BUCKET = process.env.OBJECT_STORAGE_BUCKET || process.env.REPLIT_OBJECT_STORAGE_BUCKET || "";
 let bucketPromise: Promise<any> | null = null;
 
 function getBucket(): Promise<any> {
-  if (!BUCKET) return Promise.resolve(null);
+  if (!BUCKET || USE_CLOUDINARY) return Promise.resolve(null); // Cloudinary takes priority
   if (bucketPromise) return bucketPromise;
   bucketPromise = (async () => {
     try {
@@ -41,6 +66,7 @@ function getBucket(): Promise<any> {
   return bucketPromise;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const MIME_BY_EXT: Record<string, string> = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
   ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml",
@@ -51,43 +77,62 @@ function mimeFor(name: string): string {
 }
 
 export function getLocalUploadsDir() { return LOCAL_DIR; }
-export function isCloudMode() { return !!BUCKET; }
+export function isCloudMode() { return USE_CLOUDINARY || !!BUCKET; }
 
 export interface UploadResult {
   filename: string;
   url: string;
-  storage: "cloud" | "local";
+  storage: "cloudinary" | "cloud" | "local";
   bytes: number;
 }
 
 /** Persist a file (already on local disk via multer) into the active backend. */
 export async function persistUpload(localPath: string, filename: string): Promise<UploadResult> {
   const stats = fs.statSync(localPath);
+
+  // 1️⃣ Try Cloudinary first
+  const cloudinary = await getCloudinary();
+  if (cloudinary) {
+    try {
+      const publicId = filename.replace(/\.[^/.]+$/, ""); // strip extension for Cloudinary
+      const result = await cloudinary.uploader.upload(localPath, {
+        public_id: publicId,
+        folder: "myla",
+        overwrite: true,
+        resource_type: "auto",
+      });
+      try { fs.unlinkSync(localPath); } catch {}
+      // Store Cloudinary URL directly — no local proxy needed
+      return { filename, url: result.secure_url, storage: "cloudinary", bytes: stats.size };
+    } catch (e: any) {
+      console.error(`[uploads] Cloudinary upload failed (${filename}):`, e?.message);
+    }
+  }
+
+  // 2️⃣ Try Replit Object Storage
   const bucket = await getBucket();
   if (bucket) {
     try {
       const buf = fs.readFileSync(localPath);
       await bucket.uploadFromBytes(filename, buf);
-      // Cloud-stored — remove the temp local copy
       try { fs.unlinkSync(localPath); } catch {}
       return { filename, url: `/uploads/${filename}`, storage: "cloud", bytes: stats.size };
     } catch (e: any) {
       console.error(`[uploads] cloud put failed (${filename}), keeping local copy:`, e?.message);
     }
   }
-  // Local mode (or cloud failure) — file already saved by multer to LOCAL_DIR
+
+  // 3️⃣ Local fallback (dev / no credentials configured)
   return { filename, url: `/uploads/${filename}`, storage: "local", bytes: stats.size };
 }
 
-/** Express handler that serves /uploads/:key from cloud (if enabled) else from disk.
- *  Uses path.basename to strip any traversal attempts (../ or %2e%2e/), and verifies
- *  the resolved local path stays inside LOCAL_DIR before serving. */
+/** Express handler that serves /uploads/:key from cloud (if enabled) else from disk. */
 export async function serveUpload(req: Request, res: Response) {
   const rawKey = req.params.key || "";
-  const key = path.basename(rawKey); // strips any directory components
+  const key = path.basename(rawKey);
   if (!key || key !== rawKey) return res.sendStatus(400);
 
-  // Try local disk first (fast path — multer-saved files, dev mode, fallback)
+  // Local disk fast path
   const localPath = path.join(LOCAL_DIR, key);
   const resolved = path.resolve(localPath);
   if (!resolved.startsWith(path.resolve(LOCAL_DIR) + path.sep)) {
@@ -100,6 +145,7 @@ export async function serveUpload(req: Request, res: Response) {
     return res.sendFile(resolved);
   }
 
+  // Replit Object Storage fallback (Cloudinary files have absolute URLs, won't reach here)
   const bucket = await getBucket();
   if (!bucket) return res.sendStatus(404);
 
@@ -122,6 +168,16 @@ export async function deleteUpload(filename: string): Promise<boolean> {
   let ok = false;
   const localPath = path.join(LOCAL_DIR, filename);
   if (fs.existsSync(localPath)) { try { fs.unlinkSync(localPath); ok = true; } catch {} }
+
+  const cloudinary = await getCloudinary();
+  if (cloudinary) {
+    try {
+      const publicId = "myla/" + filename.replace(/\.[^/.]+$/, "");
+      await cloudinary.uploader.destroy(publicId);
+      ok = true;
+    } catch {}
+  }
+
   const bucket = await getBucket();
   if (bucket) { try { await bucket.delete(filename); ok = true; } catch {} }
   return ok;
