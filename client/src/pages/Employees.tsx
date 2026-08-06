@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, UserPlus, Shield, Edit2, Trash2, Search,
   Phone, Mail, Building, Users, CheckCircle2, XCircle,
-  Wallet, Plus
+  Wallet, Plus, Send, Copy, Zap
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import {
@@ -78,6 +78,10 @@ export default function Employees() {
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [depositOpen, setDepositOpen] = useState<string | null>(null);
+  const [activateDirectId, setActivateDirectId] = useState<string | null>(null);
+  const [directPassword, setDirectPassword] = useState("");
+  const [copyingLinkId, setCopyingLinkId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "", phone: "", email: "", password: "", role: "employee", isActive: true
@@ -119,7 +123,7 @@ export default function Employees() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "تم الإضافة", description: "تمت إضافة الموظف بنجاح" });
+      toast({ title: "تم الإضافة", description: "تمت إضافة الموظف وسيصله رابط التفعيل على بريده" });
       setCreateOpen(false);
       setForm({ name: "", phone: "", email: "", password: "", role: "employee", isActive: true });
     },
@@ -162,6 +166,55 @@ export default function Employees() {
     },
     onError: (err: any) => toast({ title: "خطأ", description: err?.message, variant: "destructive" }),
   });
+
+  const activateDirectMutation = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${id}/activate-direct`, { password });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "✅ تم التفعيل", description: "تم تفعيل حساب الموظف بنجاح" });
+      setActivateDirectId(null);
+      setDirectPassword("");
+    },
+    onError: (err: any) => toast({ title: "خطأ", description: err?.message || "فشل التفعيل", variant: "destructive" }),
+  });
+
+  const handleResendActivation = async (empId: string, empEmail: string) => {
+    setResendingId(empId);
+    try {
+      const res = await apiRequest("POST", `/api/admin/users/${empId}/resend-activation`, {});
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "✅ تم الإرسال", description: `أُرسل رابط التفعيل إلى ${empEmail}` });
+      } else {
+        toast({ title: "خطأ", description: data.message || "فشل الإرسال", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const handleCopyActivationLink = async (empId: string) => {
+    setCopyingLinkId(empId);
+    try {
+      const res = await apiRequest("GET", `/api/admin/users/${empId}/activation-link`);
+      const data = await res.json();
+      if (res.ok && data.link) {
+        await navigator.clipboard.writeText(data.link);
+        toast({ title: "✅ تم النسخ", description: "رابط التفعيل في الحافظة" });
+      } else {
+        toast({ title: "خطأ", description: data.message || "فشل جلب الرابط", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+    } finally {
+      setCopyingLinkId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -394,6 +447,11 @@ export default function Employees() {
                           {roleLabels[emp.role] || emp.role}
                         </span>
                       </div>
+                      {!emp.isActive && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+                          بانتظار التفعيل
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-3 space-y-1.5">
@@ -436,6 +494,55 @@ export default function Employees() {
 
                     {/* Actions */}
                     <div className="mt-4 pt-3 border-t border-[#E8637A]/10 flex items-center gap-2 flex-wrap">
+
+                      {/* ── Inactive-only actions ── */}
+                      {!emp.isActive && (
+                        <>
+                          {/* Direct activate */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[11px] font-black gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                            onClick={() => { setActivateDirectId(emp.id); setDirectPassword(""); }}
+                          >
+                            <Zap className="w-3 h-3" />
+                            تفعيل مباشر
+                          </Button>
+
+                          {/* Resend activation email */}
+                          {emp.email && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-[11px] font-black gap-1 border-sky-300 text-sky-700 hover:bg-sky-50"
+                              onClick={() => handleResendActivation(emp.id, emp.email)}
+                              disabled={resendingId === emp.id}
+                            >
+                              {resendingId === emp.id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Send className="w-3 h-3" />
+                              }
+                              إرسال البريد
+                            </Button>
+                          )}
+
+                          {/* Copy activation link */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[11px] font-black gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+                            onClick={() => handleCopyActivationLink(emp.id)}
+                            disabled={copyingLinkId === emp.id}
+                          >
+                            {copyingLinkId === emp.id
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <Copy className="w-3 h-3" />
+                            }
+                            نسخ الرابط
+                          </Button>
+                        </>
+                      )}
+
                       {/* Wallet deposit */}
                       <Dialog open={depositOpen === emp.id} onOpenChange={(v) => { if (!v) { setDepositOpen(null); setDepositData({ amount: "", description: "" }); } else setDepositOpen(emp.id); }}>
                         <DialogTrigger asChild>
@@ -542,6 +649,40 @@ export default function Employees() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Direct Activate Dialog */}
+      <Dialog open={!!activateDirectId} onOpenChange={(v) => { if (!v) { setActivateDirectId(null); setDirectPassword(""); } }}>
+        <DialogContent className="sm:max-w-[380px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right font-black text-[#6B3F2A]">تفعيل مباشر</DialogTitle>
+            <DialogDescription className="text-right text-gray-600">
+              حدّد كلمة مرور للموظف وفعّل حسابه فوراً بدون انتظار رابط البريد.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="font-black text-sm mb-1.5 block">كلمة المرور المؤقتة</Label>
+              <Input
+                type="password"
+                value={directPassword}
+                onChange={(e) => setDirectPassword(e.target.value)}
+                placeholder="6 أحرف على الأقل"
+                className="h-11"
+              />
+            </div>
+            <Button
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black gap-2"
+              onClick={() => activateDirectId && activateDirectMutation.mutate({ id: activateDirectId, password: directPassword })}
+              disabled={directPassword.length < 6 || activateDirectMutation.isPending}
+            >
+              {activateDirectMutation.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <><Zap className="h-4 w-4" /> تفعيل الحساب</>
+              }
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
