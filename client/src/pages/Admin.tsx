@@ -38,6 +38,7 @@ import AdminSystemHealth from "@/pages/admin/AdminSystemHealth";
 import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminPixels from "@/pages/admin/AdminPixels";
 import AdminWhatsApp from "@/pages/admin/AdminWhatsApp";
+import AdminMediaLibrary from "@/pages/admin/AdminMediaLibrary";
 import { PickupLocationPicker } from "@/components/PickupLocationPicker";
 import { EmployeeAssistant } from "@/components/admin/EmployeeAssistant";
 import { NotificationBell } from "@/components/notification-bell";
@@ -5605,6 +5606,12 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
       ]
     },
     {
+      label: "المحتوى",
+      items: [
+        { id: "media-library", label: "مكتبة الصور", icon: ImageIcon },
+      ]
+    },
+    {
       label: "التسويق",
       items: [
         { id: "marketing", label: "الحملات التسويقية", icon: Activity },
@@ -5843,7 +5850,8 @@ const pageTitles: Record<string, string> = {
   settings:     "إعدادات المتجر",
   health:       "صحة النظام",
   integrations: "ربط الخدمات والمفاتيح",
-  whatsapp:     "ربط النظام بواتس‌آب",
+  whatsapp:       "ربط النظام بواتس‌آب",
+  "media-library": "مكتبة الصور والملفات",
 };
 
 export default function Admin() {
@@ -5999,6 +6007,7 @@ export default function Admin() {
                 {activeTab === "health"    && user?.role === "admin" && <AdminSystemHealth />}
                 {activeTab === "integrations" && user?.role === "admin" && <AdminIntegrations />}
                 {activeTab === "whatsapp"     && user?.role === "admin" && <AdminWhatsApp />}
+               {activeTab === "media-library" && <AdminMediaLibrary />}
               </motion.div>
             </AnimatePresence>
           </div>

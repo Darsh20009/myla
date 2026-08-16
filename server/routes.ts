@@ -701,8 +701,8 @@ ${allUrls.map(u => `  <url>
     }
   });
 
-  // Image Upload Endpoint — persists to Object Storage if configured,
-  // else local disk. Both produce the same /uploads/<filename> URL.
+  // Image Upload Endpoint — persists to Cloudinary / Object Storage / local disk.
+  // Also saves every upload to the Media Library for reuse.
   app.post("/api/upload", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     upload.any()(req, res, async (err: any) => {
@@ -719,11 +719,23 @@ ${allUrls.map(u => `  <url>
         return res.status(400).json({ message: "لم يتم اختيار ملف" });
       }
       const { persistUpload } = await import("./uploads");
+      const { MediaLibraryItemModel } = await import("./models");
       const results: { url: string; storage: string; bytes?: number }[] = [];
+      const user = req.user as any;
       for (const f of all) {
         try {
           const r = await persistUpload(f.path, f.filename);
           results.push({ url: r.url, storage: r.storage, bytes: r.bytes });
+          // Save to media library (fire-and-forget, don't block response)
+          MediaLibraryItemModel.create({
+            url: r.url,
+            filename: f.originalname || f.filename,
+            mimeType: f.mimetype || "application/octet-stream",
+            bytes: r.bytes || f.size || 0,
+            source: "upload",
+            storage: r.storage,
+            uploadedBy: user?.id || "unknown",
+          }).catch((e: any) => console.warn("[media-lib] failed to index upload:", e?.message));
         } catch (e: any) {
           console.error("[upload] persist failed:", e?.message);
           results.push({ url: `/uploads/${f.filename}`, storage: "local" });
@@ -743,6 +755,100 @@ ${allUrls.map(u => `  <url>
     const { deleteUpload } = await import("./uploads");
     const ok = await deleteUpload(filename);
     res.json({ ok });
+  });
+
+  // ─── Media Library API ────────────────────────────────────────────────────────
+
+  // GET /api/admin/media-library — paginated list
+  app.get("/api/admin/media-library", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "staff", "assistant_manager", "tech_support"].includes(user?.role)) return res.sendStatus(403);
+    const { MediaLibraryItemModel } = await import("./models");
+    const page   = Math.max(1, parseInt(String(req.query.page  || "1")));
+    const limit  = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "48"))));
+    const type   = String(req.query.type || ""); // "image" | "video" | "" (all)
+    const q      = String(req.query.q || "").trim();
+    const filter: any = {};
+    if (type === "image") filter.mimeType = { $regex: /^image\// };
+    if (type === "video") filter.mimeType = { $regex: /^video\// };
+    if (q) filter.filename = { $regex: q, $options: "i" };
+    const [items, total] = await Promise.all([
+      MediaLibraryItemModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      MediaLibraryItemModel.countDocuments(filter),
+    ]);
+    res.json({ items: items.map(i => ({ ...i, id: (i as any)._id.toString() })), total, page, limit });
+  });
+
+  // DELETE /api/admin/media-library/:id
+  app.delete("/api/admin/media-library/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "staff"].includes(user?.role)) return res.sendStatus(403);
+    const { MediaLibraryItemModel } = await import("./models");
+    const item = await MediaLibraryItemModel.findById(req.params.id).lean() as any;
+    if (!item) return res.status(404).json({ message: "Not found" });
+    // Delete from cloud storage too if possible
+    if (item.cloudinaryPublicId) {
+      const { deleteUpload } = await import("./uploads");
+      deleteUpload(item.cloudinaryPublicId).catch(() => {});
+    }
+    await MediaLibraryItemModel.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  });
+
+  // POST /api/admin/media-library/import-url — import from any URL (Google Drive, etc.)
+  app.post("/api/admin/media-library/import-url", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "staff", "assistant_manager"].includes(user?.role)) return res.sendStatus(403);
+
+    let { url: sourceUrl } = req.body as { url?: string };
+    if (!sourceUrl) return res.status(400).json({ message: "url مطلوب" });
+
+    // Convert Google Drive share link → direct download link
+    const gdMatch = sourceUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    const gdId    = gdMatch?.[1];
+    if (gdId) sourceUrl = `https://drive.google.com/uc?export=download&id=${gdId}`;
+
+    try {
+      const fetchRes = await fetch(sourceUrl, { redirect: "follow" });
+      if (!fetchRes.ok) return res.status(400).json({ message: `فشل جلب الملف: ${fetchRes.status}` });
+      const contentType = fetchRes.headers.get("content-type") || "application/octet-stream";
+      const buf = Buffer.from(await fetchRes.arrayBuffer());
+      const ext = contentType.startsWith("image/png") ? ".png"
+        : contentType.startsWith("image/webp") ? ".webp"
+        : contentType.startsWith("image/gif")  ? ".gif"
+        : contentType.startsWith("video/mp4")  ? ".mp4"
+        : ".jpg";
+      const tmpName = `import_${Date.now()}${ext}`;
+      const tmpPath = path.join(process.cwd(), "uploads", tmpName);
+
+      // Write to temp, persist, then remove
+      const fs = await import("fs");
+      await fs.promises.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+      await fs.promises.writeFile(tmpPath, buf);
+
+      const { persistUpload } = await import("./uploads");
+      const r = await persistUpload(tmpPath, tmpName);
+      fs.promises.unlink(tmpPath).catch(() => {});
+
+      const { MediaLibraryItemModel } = await import("./models");
+      const item = await MediaLibraryItemModel.create({
+        url: r.url,
+        filename: gdId ? `google-drive-${gdId}${ext}` : tmpName,
+        mimeType: contentType.split(";")[0],
+        bytes: buf.length,
+        source: gdId ? "google_drive" : "url",
+        sourceUrl,
+        storage: r.storage,
+        uploadedBy: user?.id || "unknown",
+      });
+      res.json({ ...item.toObject(), id: item._id.toString() });
+    } catch (e: any) {
+      console.error("[media-lib] import-url failed:", e?.message);
+      res.status(500).json({ message: "فشل الاستيراد: " + (e?.message || "خطأ غير متوقع") });
+    }
   });
 
   // Bank Transfer Receipt Upload

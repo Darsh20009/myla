@@ -71,7 +71,7 @@ CPANEL_SMTP_SECURE = "true"
 CPANEL_SMTP_USER = "info@qirox.online"
 CPANEL_USERNAME = "rfpeddku"
 PUBLIC_BASE_URL = "https://myla-abayas.store"
-CLOUDINARY_CLOUD_NAME = "zvzvnhc8"
+CLOUDINARY_CLOUD_NAME = "z2vqwufk"
 
 [postMerge]
 path = "scripts/post-merge.sh"

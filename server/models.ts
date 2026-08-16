@@ -1217,3 +1217,23 @@ const waBotSettingsSchema = new Schema({
 
 export const WaBotSettingsModel = mongoose.model("WaBotSettings", waBotSettingsSchema);
 
+// ─── Media Library ────────────────────────────────────────────────────────────
+
+const mediaLibraryItemSchema = new Schema({
+  url:               { type: String, required: true },
+  filename:          { type: String, default: "" },
+  mimeType:          { type: String, default: "image/jpeg" },
+  bytes:             { type: Number, default: 0 },
+  source:            { type: String, enum: ["upload", "url", "google_drive"], default: "upload" },
+  sourceUrl:         { type: String, default: "" },
+  storage:           { type: String, default: "cloudinary" },
+  cloudinaryPublicId:{ type: String, default: "" },
+  tags:              [{ type: String }],
+  uploadedBy:        { type: String, default: "" },
+}, { timestamps: true });
+
+mediaLibraryItemSchema.index({ createdAt: -1 });
+mediaLibraryItemSchema.index({ mimeType: 1 });
+
+export const MediaLibraryItemModel = mongoose.model("MediaLibraryItem", mediaLibraryItemSchema);
+
