@@ -768,9 +768,8 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
 
                <ProductImageGallery
                  images={form.watch("images") || []}
-                 onUpload={(e) => handleImageUpload(e)}
+                 onAdd={addImageFromUrl}
                  onRemove={removeProductImage}
-                 onAddUrl={addImageFromUrl}
                />
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
@@ -1175,9 +1174,8 @@ const ProductsTable = memo(() => {
 
               <ProductImageGallery
                  images={form.watch("images") || []}
-                 onUpload={(e) => handleImageUpload(e)}
+                 onAdd={addImageFromUrl}
                  onRemove={removeProductImage}
-                 onAddUrl={addImageFromUrl}
                />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
                 <div className="space-y-2">
