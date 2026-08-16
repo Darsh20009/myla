@@ -39,6 +39,7 @@ import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminPixels from "@/pages/admin/AdminPixels";
 import AdminWhatsApp from "@/pages/admin/AdminWhatsApp";
 import AdminMediaLibrary from "@/pages/admin/AdminMediaLibrary";
+import { ProductImageGallery } from "@/components/admin/ProductImageGallery";
 import { PickupLocationPicker } from "@/components/PickupLocationPicker";
 import { EmployeeAssistant } from "@/components/admin/EmployeeAssistant";
 import { NotificationBell } from "@/components/notification-bell";
@@ -643,6 +644,11 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
     }
   };
 
+  const addImageFromUrl = (url: string) => {
+    const currentImages = form.getValues("images") || [];
+    form.setValue("images", [...currentImages, url], { shouldDirty: true });
+  };
+
   const addVariant = () => {
     setVariants([...variants, { color: "", size: "", sku: `SKU-${Date.now()}`, stock: 0, price: 0, cost: 0, image: "" }]);
   };
@@ -759,48 +765,13 @@ const EditProductDialog = memo(({ product, categories, open, onOpenChange }: any
                 </div>
               )}
 
-           <div className="space-y-2 text-right">
-                <div className="flex justify-between items-center">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-black/40">صور المنتج</Label>
-                  <div className="relative">
-                    <Button variant="outline" type="button" className="h-8 px-3 rounded-none flex gap-1 overflow-visible text-[9px]">
-                      <Plus className="h-3 w-3" />
-                      <span className="font-black uppercase">إضافة صورة</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={(e) => handleImageUpload(e)} 
-                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                      />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-6 gap-2 bg-secondary/5 p-3 border border-black/5">
-                  {(form.watch("images") || []).map((img: string, idx: number) => (
-                    <div key={idx} className="relative group">
-                      <div className="aspect-square bg-secondary/20 rounded-none overflow-hidden border border-black/5">
-                        <img src={img} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeProductImage(idx)}
-                        className="absolute top-0 right-0 h-6 w-6 rounded-none bg-destructive/80 hover:bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {(!form.watch("images") || form.watch("images").length === 0) && (
-                    <div className="col-span-6 text-center py-8 text-black/30">
-                      <p className="text-[9px]">لم يتم رفع أي صور بعد</p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[8px] text-black/40 mt-1">يمكنك رفع عدة صور للمنتج. الصورة الأولى ستظهر في قائمة المنتجات</p>
-              </div>
+
+               <ProductImageGallery
+                 images={form.watch("images") || []}
+                 onUpload={(e) => handleImageUpload(e)}
+                 onRemove={removeProductImage}
+                 onAddUrl={addImageFromUrl}
+               />
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
                 <div className="space-y-2">
@@ -1103,6 +1074,11 @@ const ProductsTable = memo(() => {
     }
   };
 
+  const addImageFromUrl = (url: string) => {
+    const currentImages = form.getValues("images") || [];
+    form.setValue("images", [...currentImages, url], { shouldDirty: true });
+  };
+
   if (isLoading) return <Loader2 className="animate-spin" />;
 
   return (
@@ -1197,50 +1173,12 @@ const ProductsTable = memo(() => {
                 </div>
               )}
 
-              <div className="space-y-2 text-right">
-                <div className="flex justify-between items-center">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-black/40">صور المنتج</Label>
-                  <div className="relative">
-                    <Button variant="outline" type="button" className="h-8 px-3 rounded-none flex gap-1 overflow-visible text-[9px]">
-                      <Plus className="h-3 w-3" />
-                      <span className="font-black uppercase">إضافة صورة</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={(e) => handleImageUpload(e)} 
-                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                      />
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Image Gallery */}
-                <div className="grid grid-cols-6 gap-2 bg-secondary/5 p-3 border border-black/5">
-                  {(form.watch("images") || []).map((img: string, idx: number) => (
-                    <div key={idx} className="relative group">
-                      <div className="aspect-square bg-secondary/20 rounded-none overflow-hidden border border-black/5">
-                        <img src={img} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeProductImage(idx)}
-                        className="absolute top-0 right-0 h-6 w-6 rounded-none bg-destructive/80 hover:bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {(!form.watch("images") || form.watch("images").length === 0) && (
-                    <div className="col-span-6 text-center py-8 text-black/30">
-                      <p className="text-[9px]">لم يتم رفع أي صور بعد</p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[8px] text-black/40 mt-1">يمكنك رفع عدة صور للمنتج. الصورة الأولى ستظهر في قائمة المنتجات</p>
-              </div>
-
+              <ProductImageGallery
+                 images={form.watch("images") || []}
+                 onUpload={(e) => handleImageUpload(e)}
+                 onRemove={removeProductImage}
+                 onAddUrl={addImageFromUrl}
+               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-black/40">الوصف التفصيلي (عربي)</Label>
@@ -4577,6 +4515,28 @@ const AdminStaff = () => {
                         <span className="text-xs font-black text-slate-500">{member.permissions?.length || 0} صلاحيات</span>
                       </div>
                     </div>
+
+                    {member.isActive === false && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-9 rounded-xl text-xs font-black gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 mt-1"
+                        onClick={async () => {
+                          try {
+                            const res = await apiRequest("GET", `/api/admin/users/${member.id}/activation-link`);
+                            const data = await res.json();
+                            await navigator.clipboard.writeText(data.link);
+                            toast({ title: "✅ تم النسخ", description: "رابط التفعيل جاهز للإرسال" });
+                          } catch {
+                            toast({ title: "خطأ", description: "تعذر الحصول على رابط التفعيل", variant: "destructive" });
+                          }
+                        }}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        نسخ رابط التفعيل
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
