@@ -1,54 +1,56 @@
 import { Layout } from "@/components/Layout";
-import { Store, MapPin, Bell, Clock, Package, Phone, Truck, CheckCircle } from "lucide-react";
+import { MapPin, Bell, Clock, Package, Phone, Truck, CheckCircle, Wallet, AlertCircle } from "lucide-react";
 
 const sections = [
   {
-    icon: Store,
-    title: "الاستلام من الفرع",
-    content:
-      "حالياً يتوفر الاستلام من فروع ميلا. بعد إتمام طلبك ودفعه بنجاح، يمكنك الحضور لأقرب فرع من فروعنا لاستلام طلبك. يُرجى إحضار رقم الطلب أو رسالة التأكيد عند الاستلام لتسهيل العملية.",
-  },
-  {
-    icon: Bell,
-    title: "إشعار جاهزية الطلب",
-    content:
-      "ستصلك رسالة نصية أو إشعار فور جاهزية طلبك للاستلام. يُجهَّز الطلب في الغالب خلال ١-٢ ساعة من تأكيد الدفع خلال أوقات الدوام الرسمي. يُرجى انتظار إشعار الجاهزية قبل التوجه إلى الفرع لضمان تجربة استلام سريحة.",
+    icon: Package,
+    title: "معالجة الطلبات",
+    bullets: [
+      "تتم معالجة وتجهيز الطلبات خلال 1–5 أيام عمل من تاريخ تأكيد الطلب.",
+      "لا تشمل أيام العمل: الجمعة، السبت، والإجازات الرسمية.",
+    ],
   },
   {
     icon: Truck,
-    title: "التوصيل المنزلي",
-    content:
-      "نعمل على توفير خدمة التوصيل للمنازل قريباً في مناطق المملكة العربية السعودية. سيتم إشعار العملاء عند إطلاق هذه الخدمة. في الوقت الراهن، الاستلام من الفروع متاح في الرياض.",
+    title: "مدة التوصيل",
+    bullets: [
+      "داخل مدينة الرياض: خلال 5–7 أيام عمل.",
+      "باقي مدن المملكة العربية السعودية: خلال 7–10 أيام عمل.",
+      "قد تزيد مدة التوصيل خلال مواسم التخفيضات أو الظروف الخارجة عن إرادتنا.",
+    ],
   },
   {
-    icon: Clock,
-    title: "مدة الاحتفاظ بالطلب",
-    content:
-      "يُحتفظ بطلبك في الفرع لمدة ٧ أيام من تاريخ إشعار الجاهزية. في حال عدم الاستلام خلال هذه المدة، يُرجى التواصل مع خدمة العملاء لترتيب موعد بديل. قد يُلغى الطلب بعد انتهاء المدة مع استرداد كامل للمبلغ المدفوع.",
+    icon: Wallet,
+    title: "رسوم الشحن",
+    bullets: [
+      "يتم احتساب رسوم الشحن عند إتمام عملية الشراء وفقاً لمدينة التوصيل.",
+      "قد يوفر المتجر شحناً مجانياً عند تجاوز قيمة معينة للطلب، ويتم الإعلان عن ذلك ضمن العروض السارية.",
+    ],
+  },
+  {
+    icon: Bell,
+    title: "تتبع الطلب",
+    intro: "بعد شحن الطلب، سيتم إرسال رقم التتبع عبر البريد الإلكتروني أو رسالة نصية، ليتمكن العميل من متابعة حالة الشحنة حتى وصولها.",
   },
   {
     icon: MapPin,
-    title: "فروع الاستلام",
-    content:
-      "فرع الرياض — حي السويدي: متاح السبت إلى الخميس ٩ص–١١م، الجمعة ٢م–١١م. سيتم افتتاح فروع جديدة في مدن رئيسية أخرى قريباً. تابع حساباتنا الرسمية لمعرفة أحدث المواقع.",
-  },
-  {
-    icon: Package,
-    title: "التغليف والجودة",
-    content:
-      "جميع منتجات ميلا تُعبَّأ بعناية فائقة في أكياس وعلب فاخرة تعكس هوية العلامة التجارية. يُرجى فحص الطلب عند الاستلام والتأكد من مطابقته قبل المغادرة. في حال وجود أي ملاحظة أو خلل، أخبر الموظف المختص فوراً.",
+    title: "بيانات الشحن",
+    intro: "يتحمل العميل مسؤولية إدخال بيانات الشحن بشكل صحيح وكامل. وفي حال وجود خطأ في العنوان أو رقم الجوال أدى إلى إعادة الشحنة، فقد يتم احتساب رسوم شحن إضافية لإعادة إرسال الطلب.",
   },
   {
     icon: CheckCircle,
-    title: "ضمان رضا العميل",
-    content:
-      "رضاك التام أولويتنا. إذا لم يكن الطلب مطابقاً لما طُلب أو كان به عيب ظاهر، يُعاد معالجته أو استبداله فوراً. راجع سياسة الاسترجاع للاطلاع على الشروط الكاملة.",
+    title: "استلام الطلب",
+    intro: "يرجى التأكد من سلامة الشحنة عند الاستلام، وفي حال وجود تلف ظاهر في التغليف أو نقص في محتويات الطلب، يُرجى إبلاغ شركة الشحن والتواصل معنا خلال 24 ساعة من الاستلام.",
+  },
+  {
+    icon: AlertCircle,
+    title: "تأخير الشحن",
+    intro: "قد يحدث تأخير في التوصيل بسبب الأحوال الجوية أو الظروف التشغيلية أو أي أسباب خارجة عن إرادة المتجر أو شركة الشحن، وسنعمل على متابعة الطلب وإبلاغ العميل بأي مستجدات.",
   },
   {
     icon: Phone,
     title: "تواصل معنا",
-    content:
-      "لأي استفسار حول طلبك أو مواعيد الاستلام، تواصل معنا: واتساب +966507378047. فريق خدمة العملاء متاح السبت إلى الخميس من ٩ صباحاً حتى ١٠ مساءً.",
+    intro: "في حال وجود أي استفسار بخصوص حالة الطلب أو الشحن، يسعدنا التواصل معكم عبر وسائل التواصل الرسمية الخاصة بالمتجر، وسنعمل على تقديم الدعم في أسرع وقت ممكن.",
   },
 ];
 
@@ -64,23 +66,29 @@ export default function ShippingPolicy() {
             <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-5 bg-white/10 border border-white/30 rounded-2xl flex items-center justify-center">
               <Truck className="h-7 w-7 text-[#C9A882]" />
             </div>
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-3">سياسة الشحن والاستلام</h1>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-3">سياسة الشحن والتوصيل</h1>
             <div className="w-16 h-0.5 bg-[#C9A882] mx-auto mb-4" />
             <p className="max-w-xl mx-auto text-sm sm:text-base text-white/80 font-medium leading-relaxed">
-              كل ما تحتاج معرفته حول استلام طلباتك من ميلا
+              نسعى إلى توصيل طلباتكم بأسرع وقت وبأفضل جودة
             </p>
             <p className="text-xs text-white/50 mt-3">آخر تحديث: ٢٠٢٦</p>
           </div>
         </div>
 
-        {/* Pickup-only notice */}
+        {/* Delivery summary */}
         <div className="border-b" style={{ background: "#82655510", borderColor: "#82655530" }}>
           <div className="container px-4 py-5 max-w-3xl mx-auto">
-            <div className="flex items-center justify-center gap-3 text-center">
-              <MapPin className="h-5 w-5 shrink-0" style={{ color: "#826555" }} />
-              <p className="text-sm font-bold" style={{ color: "#6B3F2A" }}>
-                الاستلام من فروع ميلا متاح — سيتم إشعارك فور جاهزية طلبك
-              </p>
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-10 text-center">
+              {[
+                { label: "تجهيز الطلب", value: "1–5 أيام" },
+                { label: "داخل الرياض", value: "5–7 أيام" },
+                { label: "باقي المدن", value: "7–10 أيام" },
+              ].map((item, i) => (
+                <div key={i}>
+                  <p className="text-lg sm:text-xl font-black" style={{ color: "#826555" }}>{item.value}</p>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">{item.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -98,29 +106,22 @@ export default function ShippingPolicy() {
                     </div>
                     <h2 className="text-base sm:text-lg font-black tracking-wide" style={{ color: "#826555" }}>{s.title}</h2>
                   </div>
-                  <p className="text-sm sm:text-[15px] text-gray-600 leading-relaxed">{s.content}</p>
+                  {s.intro && <p className="text-sm sm:text-[15px] text-gray-600 leading-relaxed">{s.intro}</p>}
+                  {s.bullets && (
+                    <ul className="space-y-3 text-sm sm:text-[15px] text-gray-600 leading-relaxed list-disc pr-5">
+                      {s.bullets.map((bullet, bulletIndex) => (
+                        <li key={bulletIndex} className="ps-1">{bullet}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* CTA: Branches */}
-          <div className="mt-8 p-6 rounded-2xl text-white text-center" style={{ background: "linear-gradient(135deg, #826555 0%, #6B3F2A 100%)" }}>
-            <MapPin className="h-8 w-8 text-[#C9A882] mx-auto mb-3" />
-            <p className="font-black text-base mb-1">ابحث عن أقرب فرع إليك</p>
-            <p className="text-xs text-white/60 mb-4">اعرض مواقع الفروع وأوقات الدوام</p>
-            <a
-              href="/branches"
-              className="inline-block px-8 py-3 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:opacity-90"
-              style={{ background: "#C9A882", color: "#1A0E08" }}
-            >
-              عرض الفروع
-            </a>
-          </div>
-
           <div className="mt-6 p-6 rounded-2xl text-center border" style={{ background: "#82655510", borderColor: "#82655530" }}>
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              تُطبَّق هذه السياسة على جميع طلبات متجر ميلا الإلكتروني. نحتفظ بحق تعديلها في أي وقت.
+              تُطبَّق هذه السياسة على جميع طلبات متجرنا. نحتفظ بحق تحديثها عند الحاجة مع الحفاظ على حقوق العملاء.
             </p>
             <p className="text-xs font-bold mt-3 tracking-widest uppercase" style={{ color: "#C9A882" }}>Myla — Abayas by HMBL</p>
           </div>

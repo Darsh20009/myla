@@ -334,7 +334,7 @@ export default function Login() {
             </Link>
           </div>
           <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-            <a href="https://api.whatsapp.com/send/?phone=966507378047" target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-slate-700 hover:text-[#6B3F2A] transition-colors">
+            <a href="https://api.whatsapp.com/send/?phone=966553844578" target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-slate-700 hover:text-[#6B3F2A] transition-colors">
               هل تواجه مشكلة؟ تواصل مع الدعم الفني
             </a>
           </div>

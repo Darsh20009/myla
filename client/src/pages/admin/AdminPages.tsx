@@ -42,12 +42,15 @@ export default function AdminPages() {
 
   const upsert = useMutation({
     mutationFn: async () => {
-      if (editing) await apiRequest("PATCH", `/api/admin/pages/${editing.id}`, form);
-      else await apiRequest("POST", "/api/admin/pages", form);
+      const response = editing
+        ? await apiRequest("PATCH", `/api/admin/pages/${editing.id}`, form)
+        : await apiRequest("POST", "/api/admin/pages", form);
+      return response.json() as Promise<Page>;
     },
-    onSuccess: () => {
+    onSuccess: (savedPage) => {
       qc.invalidateQueries({ queryKey: ["/api/admin/pages"] });
       qc.invalidateQueries({ queryKey: ["/api/pages"] });
+      qc.setQueryData(["/api/pages", savedPage.slug], savedPage);
       toast({ title: editing ? "تم التحديث" : "تمت الإضافة" });
       setOpen(false); setEditing(null); setForm(empty);
     },
@@ -63,7 +66,12 @@ export default function AdminPages() {
     },
   });
 
-  const startEdit = (p: Page) => { setEditing(p); setForm({ ...p }); setOpen(true); };
+  const startEdit = (p: Page) => {
+    const { id: _id, ...page } = p;
+    setEditing(p);
+    setForm(page);
+    setOpen(true);
+  };
   const startCreate = () => { setEditing(null); setForm({ ...empty }); setOpen(true); };
 
   const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

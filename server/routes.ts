@@ -3652,7 +3652,9 @@ ${allUrls.map(u => `  <url>
     try {
       const navOnly = req.query.nav === "1" || req.query.nav === "true";
       const items = await storage.getCustomPages({ activeOnly: true, navOnly });
-      res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+      // Admin-managed pages must appear immediately after they are saved.
+      // Do not serve an old page list or navigation entry from the HTTP cache.
+      res.set("Cache-Control", "no-store");
       res.json(items);
     } catch (err: any) { res.json([]); }
   });
@@ -3661,6 +3663,7 @@ ${allUrls.map(u => `  <url>
     try {
       const page = await storage.getCustomPageBySlug(req.params.slug);
       if (!page || !page.isActive) return res.status(404).json({ message: "Page not found" });
+      res.set("Cache-Control", "no-store");
       res.json(page);
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
@@ -3686,6 +3689,7 @@ ${allUrls.map(u => `  <url>
         contentEn: DOMPurify.sanitize(String(req.body.contentEn || "")),
       };
       const item = await storage.createCustomPage(sanitized);
+      res.set("Cache-Control", "no-store");
       res.status(201).json(item);
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
@@ -3705,6 +3709,8 @@ ${allUrls.map(u => `  <url>
       if (update.contentAr != null) update.contentAr = DOMPurify.sanitize(String(update.contentAr));
       if (update.contentEn != null) update.contentEn = DOMPurify.sanitize(String(update.contentEn));
       const item = await storage.updateCustomPage(req.params.id, update);
+      if (!item) return res.status(404).json({ message: "الصفحة غير موجودة" });
+      res.set("Cache-Control", "no-store");
       res.json(item);
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });

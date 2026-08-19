@@ -306,7 +306,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                           <ChevronRight className={`h-4 w-4 text-muted-foreground ${language === 'ar' ? 'rotate-180' : ''}`} />
                         </div>
                       </Link>
-                      <a href="https://api.whatsapp.com/send?phone=966507378047" target="_blank" rel="noreferrer" onClick={closeSidebar}>
+                      <a href="https://api.whatsapp.com/send?phone=966553844578" target="_blank" rel="noreferrer" onClick={closeSidebar}>
                         <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-muted transition-all active:scale-95 cursor-pointer">
                           <div className="w-7 h-7 rounded-lg bg-[#25D366]/10 flex items-center justify-center shrink-0"><SiWhatsapp className="h-4 w-4 text-[#25D366]" /></div>
                           <span className="font-bold text-[13px] text-foreground flex-1">{t('contactUs')}</span>
@@ -343,7 +343,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
 
                     {/* Contact row */}
                     <div className="flex gap-2 mb-5">
-                      <a href="tel:+966507378047" className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors active:scale-95">
+                      <a href="tel:+966553844578" className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors active:scale-95">
                         <Phone className="h-4 w-4 text-primary shrink-0" />
                         <div>
                           <p className="text-[9px] text-muted-foreground font-bold">{t('call')}</p>
@@ -583,17 +583,17 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                 </Link>
               </li>
               <li>
-                <a href="https://api.whatsapp.com/send?phone=966507378047" target="_blank" rel="noreferrer" className="hover:text-[#C9A882] transition-colors">
+                <a href="https://api.whatsapp.com/send?phone=966553844578" target="_blank" rel="noreferrer" className="hover:text-[#C9A882] transition-colors">
                   {language === 'ar' ? 'خدمة العملاء' : 'Customer Service'}
                 </a>
               </li>
               <li>
-                <a href="https://api.whatsapp.com/send?phone=966507378047" target="_blank" rel="noreferrer" className="hover:text-[#C9A882] transition-colors">
+                <a href="https://api.whatsapp.com/send?phone=966553844578" target="_blank" rel="noreferrer" className="hover:text-[#C9A882] transition-colors">
                   {language === 'ar' ? 'للشكاوى أو المقترحات' : 'Complaints & Suggestions'}
                 </a>
               </li>
               <li>
-                <a href="https://api.whatsapp.com/send?phone=966507378047" target="_blank" rel="noreferrer" className="hover:text-[#C9A882] transition-colors">
+                <a href="https://api.whatsapp.com/send?phone=966553844578" target="_blank" rel="noreferrer" className="hover:text-[#C9A882] transition-colors">
                   {language === 'ar' ? 'مبيعات الشركات والجملة' : 'Corporate & Wholesale Sales'}
                 </a>
               </li>
@@ -605,7 +605,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
             <h3 className="font-bold text-sm sm:text-base md:text-lg mb-3 sm:mb-4 md:mb-6 text-[#C9A882]">{language === 'ar' ? 'معلومات التواصل' : 'Get in Touch'}</h3>
             <div className="space-y-4 text-sm text-gray-800">
               <a 
-                href="tel:+966507378047" 
+                href="tel:+966553844578"
                 target="_blank" 
                 rel="noreferrer" 
                 className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#E8637A]/5 hover:text-[#C9A882] transition-all group"
@@ -613,14 +613,14 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                 <span className="bg-[#E8637A]/10 p-2.5 rounded-lg text-[#C9A882] group-hover:bg-[#E8637A] group-hover:text-white transition-colors"><Phone className="h-4 w-4" /></span>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-700 font-medium">{t('callUs')}</span>
-                  <span dir="ltr" className="font-bold text-gray-600">966 50 737 8047</span>
+                  <span dir="ltr" className="font-bold text-gray-600">0553844578</span>
                 </div>
               </a>
               <div className="flex items-center gap-3 p-2">
                 <span className="bg-[#E8637A]/10 p-2.5 rounded-lg text-[#C9A882]"><SiWhatsapp className="h-4 w-4" /></span>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-700 font-medium">{t('whatsapp')}</span>
-                  <a href="https://api.whatsapp.com/send?phone=966507378047" target="_blank" rel="noreferrer" dir="ltr" className="font-bold text-gray-600 hover:text-[#C9A882] transition-colors">966 50 737 8047</a>
+                  <a href="https://api.whatsapp.com/send?phone=966553844578" target="_blank" rel="noreferrer" dir="ltr" className="font-bold text-gray-600 hover:text-[#C9A882] transition-colors">0553844578</a>
                 </div>
               </div>
             </div>

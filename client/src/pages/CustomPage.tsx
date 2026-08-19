@@ -24,12 +24,15 @@ export default function CustomPage() {
   const { data: page, isLoading, error } = useQuery<Page>({
     queryKey: ["/api/pages", slug],
     queryFn: async () => {
-      const res = await fetch(`/api/pages/${slug}`);
+      const res = await fetch(`/api/pages/${slug}`, { cache: "no-store" });
       if (!res.ok) throw new Error("not-found");
       return res.json();
     },
     enabled: !!slug,
     retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {

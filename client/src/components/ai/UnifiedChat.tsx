@@ -32,7 +32,7 @@ interface Message {
 type TabType = "advisor" | "support";
 type ViewMode = "closed" | "menu" | "chat";
 
-const WHATSAPP_URL = "https://api.whatsapp.com/send?phone=966507378047";
+const WHATSAPP_URL = "https://api.whatsapp.com/send?phone=966553844578";
 
 export const UnifiedChat = memo(function UnifiedChat() {
   const { user } = useAuth();
