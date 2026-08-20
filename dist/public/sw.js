@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const STATIC_CACHE  = `myla-static-${CACHE_VERSION}`;
 const API_CACHE     = `myla-api-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `myla-images-${CACHE_VERSION}`;
@@ -13,7 +13,6 @@ const STATIC_EXTENSIONS = ['.js', '.css', '.woff2', '.woff', '.ttf', '.ico', '.w
 const CACHED_API_PATHS = [
   '/api/marketing/active',
   '/api/store/settings',
-  '/api/pages',
   '/api/reviews/featured',
 ];
 

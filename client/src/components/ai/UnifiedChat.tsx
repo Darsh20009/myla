@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, X, Loader2, Sparkles, Headphones, ShoppingBag, Eye, Check } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,7 +34,7 @@ type ViewMode = "closed" | "menu" | "chat";
 
 const WHATSAPP_URL = "https://api.whatsapp.com/send?phone=966553844578";
 
-export const UnifiedChat = memo(function UnifiedChat() {
+export function UnifiedChat() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -524,4 +524,4 @@ export const UnifiedChat = memo(function UnifiedChat() {
       </AnimatePresence>
     </div>
   );
-});
+}
