@@ -606,7 +606,15 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+    const user = (req.user as any)?.toObject?.() ?? req.user;
+    const {
+      password: _password,
+      passwordResetCode: _passwordResetCode,
+      passwordResetCodeExpires: _passwordResetCodeExpires,
+      passwordResetAttempts: _passwordResetAttempts,
+      ...safeUser
+    } = user as any;
+    res.json(safeUser);
   });
 
   app.get("/api/auth/google/init", (req, res) => {

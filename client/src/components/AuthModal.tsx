@@ -48,6 +48,14 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
   const [isSendingLoginOtp, setIsSendingLoginOtp] = useState(false);
   const [isVerifyingLoginOtp, setIsVerifyingLoginOtp] = useState(false);
 
+  const resetLoginOtpState = () => {
+    setLoginOtpStep("phone");
+    setLoginOtp("");
+    setLoginOtpVia("whatsapp");
+    setIsSendingLoginOtp(false);
+    setIsVerifyingLoginOtp(false);
+  };
+
   // ─── Forgot Password flow ──────────────────────────────────────────────────
   type ForgotStep = null | "init" | "otp" | "verify" | "reset" | "done";
   const [forgotStep, setForgotStep] = useState<ForgotStep>(null);
@@ -166,6 +174,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       setShowPassword(false);
       setIsStaff(false);
       setSocialLoading(null);
+      resetLoginOtpState();
       resetForgotState();
       return;
     }
@@ -513,8 +522,73 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
           </div>
         )}
 
+        {/* ─── Customer login OTP panel ──────────────────────────────────── */}
+        {!forgotStep && loginOtpStep === "otp" && tab === "login" && (
+          <div className="px-6 pb-6 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <button
+                type="button"
+                onClick={resetLoginOtpState}
+                className="text-[11px] font-bold text-gray-500 hover:text-[#6B3F2A]"
+                data-testid="button-login-otp-back"
+              >
+                {isAr ? "← تعديل الرقم" : "← Change number"}
+              </button>
+              <h3 className="text-sm font-black text-[#6B3F2A]">
+                {isAr ? "تأكيد رقم الجوال" : "Confirm your phone"}
+              </h3>
+            </div>
+
+            <p className="text-xs text-gray-700 leading-relaxed">
+              {loginOtpVia === "email"
+                ? tx("أرسلنا رمز تحقق مكوّناً من ٦ أرقام إلى بريدك الإلكتروني.", "We sent a 6-digit verification code to your email.")
+                : tx("أرسلنا رمز تحقق مكوّناً من ٦ أرقام إلى واتساب على الرقم", "We sent a 6-digit verification code by WhatsApp to")}
+              {loginOtpVia === "whatsapp" && (
+                <span dir="ltr" className="mr-1 font-black text-[#6B3F2A]">+966 {displayPhone(phone)}</span>
+              )}
+            </p>
+
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              maxLength={6}
+              value={loginOtp}
+              onChange={e => setLoginOtp(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={e => { if (e.key === "Enter") handleVerifyLoginOtp(); }}
+              placeholder="------"
+              aria-label={isAr ? "رمز التحقق المكوّن من ستة أرقام" : "Six-digit verification code"}
+              className="w-full h-14 text-center bg-[#FFFFFF] border border-gray-200 rounded-xl text-xl tracking-[0.5em] font-black text-[#6B3F2A] focus:border-[#6B3F2A] focus:ring-2 focus:ring-[#6B3F2A]/20 outline-none"
+              data-testid="input-login-otp"
+            />
+
+            <button
+              type="button"
+              onClick={handleVerifyLoginOtp}
+              disabled={isVerifyingLoginOtp || loginOtp.length !== 6}
+              className="w-full h-12 bg-[#2C1810] text-white rounded-xl font-bold text-sm hover:bg-[#3D2517] disabled:opacity-40 flex items-center justify-center"
+              data-testid="button-login-verify-otp"
+            >
+              {isVerifyingLoginOtp ? <Loader2 className="h-5 w-5 animate-spin" /> : tx("تأكيد الرمز والدخول", "Verify and sign in")}
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePhoneLogin}
+              disabled={isSendingLoginOtp || isVerifyingLoginOtp}
+              className="w-full text-center text-[11px] font-bold text-[#6B3F2A] hover:underline disabled:opacity-50"
+              data-testid="button-login-resend-otp"
+            >
+              {isSendingLoginOtp
+                ? <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                : tx("إعادة إرسال الرمز", "Resend code")}
+            </button>
+          </div>
+        )}
+
         {/* ─── Normal Login / Register UI (hidden during forgot flow) ──── */}
-        {!forgotStep && (
+        {!forgotStep && loginOtpStep === "phone" && (
         <>
         <div className="flex mx-6 bg-[#FFFFFF] rounded-xl p-1 mb-4">
           <button

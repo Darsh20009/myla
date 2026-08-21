@@ -167,18 +167,6 @@ export default function ProductDetails() {
   // Collect all unique images (product images only, excluding variant images as per request)
   const allImages = product?.images || [];
 
-  // Auto-rotate images every 4 seconds with creative slide direction
-  useEffect(() => {
-    if (allImages.length <= 1) return;
-    
-    const interval = setInterval(() => {
-      setSlideDirection(1);
-      setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [allImages.length]);
-
   const goToImage = (idx: number) => {
     setSlideDirection(idx > currentImageIndex ? 1 : -1);
     setCurrentImageIndex(idx);

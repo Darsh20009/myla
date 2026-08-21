@@ -20,13 +20,6 @@ export function ProductImageGallery({ images, onAdd, onRemove, onAddUrl }: Produ
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Auto-advance carousel every 3 s
-  useEffect(() => {
-    if (images.length < 2) return;
-    const iv = setInterval(() => setCurrent(c => (c + 1) % images.length), 3000);
-    return () => clearInterval(iv);
-  }, [images.length]);
-
   // Keep index in bounds after removal
   useEffect(() => {
     if (images.length === 0) { setCurrent(0); return; }
