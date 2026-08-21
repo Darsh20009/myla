@@ -1220,11 +1220,15 @@ ${allUrls.map(u => `  <url>
   });
 
   // Orders
-  app.get(api.orders.list.path, checkPermission("orders.view"), async (req, res) => {
+  app.get(api.orders.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const user = req.user as any;
-      if (user.role === "admin" || (user.permissions && user.permissions.includes("orders.view"))) {
+      const staffRoles = ["admin", "assistant_manager", "tech_support", "accountant", "legal_consultant", "employee", "support", "cashier", "vendor"];
+      const isStaff = staffRoles.includes(user.role);
+      const canViewAllOrders = user.role === "admin" || user.permissions?.includes("orders.view");
+
+      if (canViewAllOrders) {
         const orders = await storage.getOrders();
         const enriched = await Promise.all(orders.map(async (order: any) => {
           if (order.customerName) return order;
@@ -1239,6 +1243,8 @@ ${allUrls.map(u => `  <url>
           } catch { return order; }
         }));
         res.json(enriched);
+      } else if (isStaff) {
+        return res.status(403).json({ message: "ليس لديك صلاحية لعرض الطلبات" });
       } else {
         const orders = await storage.getOrdersByUser(user.id || user._id);
         res.json(orders);
@@ -6456,12 +6462,40 @@ ${allUrls.map(u => `  <url>
       if (!user) return res.status(404).json({ message: "User not found" });
       const addresses = (user as any).addresses || [];
       const newAddr = { id: Date.now().toString(), ...req.body };
+      if (addresses.length === 0) newAddr.isDefault = true;
       if (newAddr.isDefault) {
         addresses.forEach((a: any) => a.isDefault = false);
       }
       addresses.push(newAddr);
       await storage.updateUserAddresses(u.id, addresses);
       res.json(newAddr);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const u = req.user as any;
+    try {
+      const user = await storage.getUser(u.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const addresses = [...((user as any).addresses || [])];
+      const addressIndex = addresses.findIndex((address: any) => address.id === req.params.id);
+      if (addressIndex === -1) return res.status(404).json({ message: "Address not found" });
+
+      const current = addresses[addressIndex] as any;
+      const allowedFields = ["name", "city", "street", "district", "notes", "lat", "lng"];
+      for (const field of allowedFields) {
+        if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) current[field] = req.body[field];
+      }
+      if (req.body?.isDefault === true) {
+        addresses.forEach((address: any) => { address.isDefault = false; });
+        current.isDefault = true;
+      }
+      addresses[addressIndex] = current;
+      await storage.updateUserAddresses(u.id, addresses);
+      res.json(current);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

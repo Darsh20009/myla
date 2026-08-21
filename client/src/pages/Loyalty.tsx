@@ -78,7 +78,7 @@ export default function Loyalty() {
             )}
             {user && (
               <div className="mt-8">
-                <Link href="/account">
+                <Link href="/profile">
                   <button className="px-8 py-3.5 font-black text-sm uppercase tracking-widest rounded-xl transition-all hover:opacity-90 active:scale-95 flex items-center gap-2 mx-auto" style={{ background: "#C9A882", color: "#1A0E08" }}>
                     <Star className="h-4 w-4" />
                     اعرضي نقاطك
