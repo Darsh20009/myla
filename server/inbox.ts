@@ -182,6 +182,40 @@ export const PROVIDER_PRESETS: Record<string, {
   custom: { imapHost: "",                    imapPort: 993, smtpHost: "",                    smtpPort: 465 },
 };
 
+/** Ensure the shared Myla mailbox exists and uses the current secure secret. */
+export async function ensureInstitutionalMailbox(): Promise<string | null> {
+  const password = process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || "";
+  if (!password) {
+    console.warn("[Inbox] Institutional mailbox skipped: no mailbox secret configured");
+    return null;
+  }
+  const email = process.env.INBOX_MAIL_EMAIL || "myla@qirox.online";
+  const account = await MailAccountModel.findOneAndUpdate(
+    { email: email.toLowerCase() },
+    {
+      $set: {
+        email: email.toLowerCase(),
+        displayName: process.env.INBOX_MAIL_DISPLAY_NAME || "Myla",
+        provider: "custom",
+        userId: "",
+        imapHost: process.env.INBOX_IMAP_HOST || "qirox.online",
+        imapPort: Number(process.env.INBOX_IMAP_PORT || 993),
+        smtpHost: process.env.INBOX_SMTP_HOST || "qirox.online",
+        smtpPort: Number(process.env.INBOX_SMTP_PORT || 465),
+        password: encryptSecret(password),
+        isActive: true,
+      },
+      $setOnInsert: { color: "#E8637A", lastSyncStatus: "pending" },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
+  console.log(`[Inbox] Institutional mailbox ready (${account.email})`);
+  syncAccount(account._id.toString(), { limit: 50 }).catch((e: any) =>
+    console.warn("[Inbox] Initial institutional mailbox sync failed:", e?.message),
+  );
+  return account._id.toString();
+}
+
 // ─── IMAP ──────────────────────────────────────────────────────────────────────
 async function openImap(account: any) {
   let password: string;

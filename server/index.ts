@@ -326,4 +326,13 @@ process.on('uncaughtException', (err: any) => {
   } catch (e: any) {
     console.warn("[Email] Could not start SMTP health check:", e?.message);
   }
+
+  // Provision the shared institutional mailbox from encrypted Replit Secrets.
+  // Its password is never logged or sent to the browser.
+  try {
+    const { ensureInstitutionalMailbox } = await import("./inbox");
+    await ensureInstitutionalMailbox();
+  } catch (e: any) {
+    console.warn("[Inbox] Could not provision institutional mailbox:", e?.message);
+  }
 })();

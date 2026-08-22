@@ -7177,7 +7177,7 @@ ${allUrls.map(u => `  <url>
     if (!account) return { ok: false, status: 404, message: "الحساب غير موجود" };
     const userId = String(req.user?._id || req.user?.id || "");
     const isAdmin = ADMIN_ROLES.includes(req.user?.role);
-    if (!isAdmin && String((account as any).userId || "") !== userId) {
+    if (!isAdmin && String((account as any).userId || "") !== "" && String((account as any).userId || "") !== userId) {
       return { ok: false, status: 403, message: "ليس لديك صلاحية على هذا الحساب" };
     }
     return { ok: true, account };
@@ -7192,7 +7192,7 @@ ${allUrls.map(u => `  <url>
       const userId = (req as any).user?._id || (req as any).user?.id;
       const isAdmin = ["admin", "assistant_manager", "tech_support"].includes((req as any).user?.role);
       const filter: any = { isActive: true };
-      if (!isAdmin) filter.userId = userId;
+       if (!isAdmin) filter.$or = [{ userId }, { userId: "" }];
       const accounts = await MailAccountModel.find(filter).sort({ createdAt: 1 }).lean();
       const result = await Promise.all(accounts.map(async (a: any) => {
         const unreadCount = await MailMessageModel.countDocuments({ accountId: a._id.toString(), folder: "INBOX", isRead: false });

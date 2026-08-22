@@ -27,6 +27,7 @@ const SMTP_CONFIG = {
 
 function getSmtpSettings(portOverride?: number) {
   const pass =
+    process.env.INBOX_MAIL_PASSWORD ||
     process.env.CPANEL_SMTP_PASS ||
     process.env.SMTP_PASS ||
     "";
