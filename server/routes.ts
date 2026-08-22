@@ -606,7 +606,7 @@ export async function registerRoutes(
         storage.getProducts(),
         storage.getCategories(),
       ]);
-      const BASE = "https://myla.sa";
+      const BASE = "https://myla-abayas.store";
       const now = new Date().toISOString().split("T")[0];
 
       const staticUrls = [

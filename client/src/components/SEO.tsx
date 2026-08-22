@@ -23,7 +23,7 @@ interface SEOProps {
   breadcrumbs?: { name: string; url: string }[];
 }
 
-const BASE_URL = "https://myla.sa";
+const BASE_URL = "https://myla-abayas.store";
 const BRAND = "Myla — Abayas by HMBL";
 const BRAND_AR = "Myla — عبايات HMBL";
 const DEFAULT_IMG = `${BASE_URL}/myla-logo.png`;
