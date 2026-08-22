@@ -63,6 +63,8 @@ const chatMeta: Map<string, { displayName: string; phone: string }> = new Map();
 // Reconnect state — exponential backoff, reset on successful connect
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let authPersistTimer: ReturnType<typeof setInterval> | null = null;
+const AUTH_SNAPSHOT_KEY = "primary";
 
 // event listeners (for SSE / polling)
 type WaEvent = { type: string; payload: any };
@@ -165,6 +167,58 @@ export function hasStoredCredentials(): boolean {
   return fs.existsSync(path.join(process.cwd(), "wa-auth", "creds.json"));
 }
 
+/** Restore Baileys' multi-file auth directory from durable MongoDB storage. */
+export async function restoreWhatsAppAuthFromDatabase(): Promise<boolean> {
+  try {
+    const { WhatsAppAuthSnapshotModel } = await import("./models");
+    const snapshot: any = await WhatsAppAuthSnapshotModel.findOne({ key: AUTH_SNAPSHOT_KEY }).lean();
+    if (!snapshot?.files || Object.keys(snapshot.files).length === 0) return false;
+    const authDir = path.join(process.cwd(), "wa-auth");
+    fs.mkdirSync(authDir, { recursive: true });
+    for (const [filename, content] of Object.entries(snapshot.files as Record<string, string>)) {
+      if (!/^[a-zA-Z0-9._-]+$/.test(filename)) continue;
+      fs.writeFileSync(path.join(authDir, filename), content, "utf8");
+    }
+    console.log(`[WhatsApp] Restored saved session from MongoDB (${Object.keys(snapshot.files).length} files)`);
+    return hasStoredCredentials();
+  } catch (e: any) {
+    console.warn("[WhatsApp] Could not restore session from MongoDB:", e?.message);
+    return false;
+  }
+}
+
+/** Mirror the current Baileys auth files into MongoDB without exposing them. */
+export async function persistWhatsAppAuthToDatabase(): Promise<void> {
+  try {
+    const authDir = path.join(process.cwd(), "wa-auth");
+    if (!fs.existsSync(authDir)) return;
+    const files: Record<string, string> = {};
+    for (const filename of fs.readdirSync(authDir)) {
+      if (!/^[a-zA-Z0-9._-]+$/.test(filename)) continue;
+      const filePath = path.join(authDir, filename);
+      if (fs.statSync(filePath).isFile()) files[filename] = fs.readFileSync(filePath, "utf8");
+    }
+    if (!files["creds.json"] && !hasStoredCredentials()) return;
+    const { WhatsAppAuthSnapshotModel } = await import("./models");
+    await WhatsAppAuthSnapshotModel.findOneAndUpdate(
+      { key: AUTH_SNAPSHOT_KEY },
+      { $set: { files } },
+      { upsert: true, setDefaultsOnInsert: true },
+    );
+  } catch (e: any) {
+    console.warn("[WhatsApp] Session backup failed:", e?.message);
+  }
+}
+
+export async function clearWhatsAppAuthFromDatabase(): Promise<void> {
+  try {
+    const { WhatsAppAuthSnapshotModel } = await import("./models");
+    await WhatsAppAuthSnapshotModel.deleteOne({ key: AUTH_SNAPSHOT_KEY });
+  } catch (e: any) {
+    console.warn("[WhatsApp] Could not clear durable session:", e?.message);
+  }
+}
+
 export async function connectToWhatsApp(): Promise<void> {
   // Guard: don't start a second socket if already connecting or connected
   if (waState === "connected" || waState === "connecting") return;
@@ -226,6 +280,9 @@ export async function connectToWhatsApp(): Promise<void> {
       reconnectAttempts = 0; // reset backoff on successful connect
       emit("state", { state: "connected" });
       console.log("[WhatsApp] ✅ Connected successfully");
+      void persistWhatsAppAuthToDatabase();
+      if (authPersistTimer) clearInterval(authPersistTimer);
+      authPersistTimer = setInterval(() => void persistWhatsAppAuthToDatabase(), 30_000);
     }
 
     if (connection === "close") {
@@ -239,6 +296,8 @@ export async function connectToWhatsApp(): Promise<void> {
       if (loggedOut) {
         // User explicitly logged out — clear credentials and wait for manual reconnect
         try { fs.rmSync(path.join(process.cwd(), "wa-auth"), { recursive: true, force: true }); } catch {}
+        if (authPersistTimer) { clearInterval(authPersistTimer); authPersistTimer = null; }
+        void clearWhatsAppAuthFromDatabase();
         sock = null;
         reconnectAttempts = 0;
         console.log("[WhatsApp] Session cleared — rescan QR to reconnect");
@@ -258,6 +317,10 @@ export async function connectToWhatsApp(): Promise<void> {
   });
 
   sock.ev.on("creds.update", saveCreds);
+  sock.ev.on("creds.update", async () => {
+    // creds.update can contain new keys during multi-device rotation.
+    await persistWhatsAppAuthToDatabase();
+  });
 
   // ── Incoming messages ──
   sock.ev.on("messages.upsert", async ({ messages, type }: any) => {
@@ -849,5 +912,7 @@ export async function disconnectWhatsApp(): Promise<void> {
   waState = "disconnected";
   qrDataUrl = null;
   try { fs.rmSync(path.join(process.cwd(), "wa-auth"), { recursive: true, force: true }); } catch {}
+  if (authPersistTimer) { clearInterval(authPersistTimer); authPersistTimer = null; }
+  await clearWhatsAppAuthFromDatabase();
   emit("state", { state: "disconnected" });
 }

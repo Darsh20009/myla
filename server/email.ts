@@ -25,7 +25,7 @@ const SMTP_CONFIG = {
   senderName: "Myla",
 } as const;
 
-function createTransporter() {
+function getSmtpSettings(portOverride?: number) {
   const pass =
     process.env.CPANEL_SMTP_PASS ||
     process.env.SMTP_PASS ||
@@ -33,16 +33,22 @@ function createTransporter() {
 
   // port 587 (STARTTLS) is open on most cloud platforms (incl. Render);
   // port 465 (SSL) is often blocked. Try 587 first via env override.
-  const port   = parseInt(process.env.CPANEL_SMTP_PORT  || "587", 10);
+  const port   = portOverride || parseInt(process.env.CPANEL_SMTP_PORT  || "587", 10);
   const secure = port === 465;  // 465 → SSL/TLS directly; 587 → STARTTLS
+  const host = process.env.CPANEL_SMTP_HOST || SMTP_CONFIG.host;
+  const user = process.env.CPANEL_SMTP_USER || SMTP_CONFIG.user;
+  return { host, port, secure, user, pass };
+}
 
+function createTransporter(portOverride?: number) {
+  const config = getSmtpSettings(portOverride);
   return nodemailer.createTransport({
-    host: process.env.CPANEL_SMTP_HOST || SMTP_CONFIG.host,
-    port,
-    secure,
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
     auth: {
-      user: process.env.CPANEL_SMTP_USER || SMTP_CONFIG.user,
-      pass,
+      user: config.user,
+      pass: config.pass,
     },
     tls: {
       rejectUnauthorized: false,
@@ -64,11 +70,13 @@ async function sendEmail(params: {
   /** Nodemailer-style attachments — content is base64-encoded string */
   attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }): Promise<{ success: boolean; error?: string }> {
+  const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "587", 10);
   try {
     const transporter = createTransporter();
+    const smtpUser = getSmtpSettings().user;
 
     await transporter.sendMail({
-      from: `"${SMTP_CONFIG.senderName}" <${SMTP_CONFIG.user}>`,
+      from: `"${SMTP_CONFIG.senderName}" <${smtpUser}>`,
       to: params.toName ? `"${params.toName}" <${params.to}>` : params.to,
       subject: params.subject,
       html: params.html,
@@ -83,8 +91,55 @@ async function sendEmail(params: {
     console.log(`[Email] ✅ Sent to ${params.to} — Subject: ${params.subject}`);
     return { success: true };
   } catch (err: any) {
+    const retryable = ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "EHOSTUNREACH", "ENETUNREACH"].includes(err?.code);
+    if (retryable && (configuredPort === 587 || configuredPort === 465)) {
+      try {
+        const fallbackPort = configuredPort === 587 ? 465 : 587;
+        const transporter = createTransporter(fallbackPort);
+        const smtpUser = getSmtpSettings(fallbackPort).user;
+        await transporter.sendMail({
+          from: `"${SMTP_CONFIG.senderName}" <${smtpUser}>`,
+          to: params.toName ? `"${params.toName}" <${params.to}>` : params.to,
+          subject: params.subject,
+          html: params.html,
+          text: params.text || "",
+          attachments: params.attachments?.map((a) => ({
+            filename: a.filename,
+            content: Buffer.from(a.content, "base64"),
+            contentType: a.contentType || "application/octet-stream",
+          })),
+        });
+        console.log(`[Email] ✅ Sent using fallback SMTP port ${fallbackPort}`);
+        return { success: true };
+      } catch (fallbackErr: any) {
+        console.error("[Email] SMTP fallback error:", fallbackErr?.message);
+      }
+    }
     console.error("[Email] SMTP error:", err.message);
     return { success: false, error: err.message };
+  }
+}
+
+/** Verify the same SMTP transport used by every store email. */
+export async function verifyEmailConnection(): Promise<{ ok: boolean; error?: string }> {
+  const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "587", 10);
+  try {
+    await createTransporter().verify();
+    console.log(`[Email] SMTP connection verified (${getSmtpSettings().host}:${configuredPort})`);
+    return { ok: true };
+  } catch (err: any) {
+    if (configuredPort === 587 || configuredPort === 465) {
+      try {
+        const fallbackPort = configuredPort === 587 ? 465 : 587;
+        await createTransporter(fallbackPort).verify();
+        console.log(`[Email] SMTP connection verified on fallback port ${fallbackPort}`);
+        return { ok: true };
+      } catch (fallbackErr: any) {
+        console.error("[Email] SMTP verification failed:", fallbackErr?.message);
+      }
+    }
+    console.error("[Email] SMTP verification failed:", err?.message);
+    return { ok: false, error: err?.message || "SMTP verification failed" };
   }
 }
 

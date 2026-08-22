@@ -291,7 +291,8 @@ process.on('uncaughtException', (err: any) => {
   // If saved credentials exist, reconnect immediately without waiting for admin
   // to click "Connect". Session persists until admin explicitly disconnects.
   try {
-    const { connectToWhatsApp, hasStoredCredentials } = await import("./whatsapp");
+    const { connectToWhatsApp, hasStoredCredentials, restoreWhatsAppAuthFromDatabase } = await import("./whatsapp");
+    await restoreWhatsAppAuthFromDatabase();
     if (hasStoredCredentials()) {
       console.log("[WhatsApp] Saved session found — auto-connecting…");
       connectToWhatsApp().catch((e: any) =>
@@ -302,5 +303,15 @@ process.on('uncaughtException', (err: any) => {
     }
   } catch (e: any) {
     console.warn("[WhatsApp] Auto-start import failed:", e?.message);
+  }
+
+  // Verify the live SMTP transport after boot and periodically. This catches
+  // Render environment/port issues without sending a test email.
+  try {
+    const { verifyEmailConnection } = await import("./email");
+    void verifyEmailConnection();
+    setInterval(() => void verifyEmailConnection(), 10 * 60 * 1000);
+  } catch (e: any) {
+    console.warn("[Email] Could not start SMTP health check:", e?.message);
   }
 })();

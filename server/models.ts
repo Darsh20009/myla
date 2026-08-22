@@ -919,6 +919,18 @@ export const NotificationModel = mongoose.model("Notification", notificationSche
 export const PushSubscriptionModel = mongoose.model("PushSubscription", pushSubscriptionSchema);
 export const StoreSettingsModel = mongoose.model("StoreSettings", storeSettingsSchema);
 
+// Baileys auth files are mirrored here because Render's local filesystem is
+// ephemeral. The local wa-auth directory remains a fast cache, while MongoDB
+// is the durable source used to restore the session after redeploys.
+const whatsappAuthSnapshotSchema = new Schema(
+  {
+    key: { type: String, unique: true, required: true },
+    files: { type: Map, of: String, default: {} },
+  },
+  { timestamps: true },
+);
+export const WhatsAppAuthSnapshotModel = mongoose.model("WhatsAppAuthSnapshot", whatsappAuthSnapshotSchema);
+
 const marketingCampaignSchema = new Schema(
   {
     name: { type: String, required: true },
