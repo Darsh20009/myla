@@ -448,19 +448,17 @@ export function setupAuth(app: Express) {
         const { getWaStatus } = await import("./whatsapp");
         const waStatus = getWaStatus();
 
-        if (waStatus.state === "connected") {
-          // WhatsApp is online — must use OTP channel, block direct login
-          return res.status(403).json({
-            message: "يرجى تسجيل الدخول برمز التحقق عبر واتساب",
-            requireOtp: true,
-          });
-        }
-
-        // WhatsApp offline — fall back to password verification for customers
+        // OTP is the preferred customer login method. If sending OTP is
+        // unavailable, the UI exposes the password fallback. Keep accepting a
+        // supplied password even while WhatsApp is connected so a failed send
+        // never traps customers outside their account.
         if (!password || password === "undefined") {
           return res.status(403).json({
-            message: "واتساب غير متصل. يرجى إدخال كلمة المرور للدخول",
+            message: waStatus.state === "connected"
+              ? "يرجى تسجيل الدخول برمز التحقق عبر واتساب أو استخدام كلمة المرور"
+              : "واتساب غير متصل. يرجى إدخال كلمة المرور للدخول",
             requirePassword: true,
+            requireOtp: waStatus.state === "connected",
           });
         }
         if (user.password && user.password !== "") {

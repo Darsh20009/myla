@@ -35,6 +35,7 @@ export default function Login() {
   const [otpVia, setOtpVia] = useState<"whatsapp" | "email">("whatsapp");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [customerPasswordFallback, setCustomerPasswordFallback] = useState(false);
   const { toast } = useToast();
   const { theme } = useTheme();
   const { googleEnabled, appleEnabled, anyEnabled } = useAuthProviders();
@@ -82,6 +83,7 @@ export default function Login() {
         });
         const json = await res.json();
         if (!res.ok) {
+          setCustomerPasswordFallback(true);
           toast({ title: "خطأ", description: json.message || "تعذّر إرسال الرمز", variant: "destructive" });
           return;
         }
@@ -94,7 +96,9 @@ export default function Login() {
             ? `أُرسل الرمز إلى بريدك ${json.masked}`
             : "أُرسل رمز التحقق على واتساب",
         });
+        setCustomerPasswordFallback(false);
       } catch (error: any) {
+        setCustomerPasswordFallback(true);
         toast({
           title: error?.name === "AbortError" ? "تأخر إرسال الرمز" : "خطأ في الشبكة",
           description: "تحقق من إعدادات الإرسال وحاول مرة أخرى",
@@ -128,6 +132,31 @@ export default function Login() {
     } finally {
       setIsVerifyingOtp(false);
     }
+  };
+
+  const loginWithCustomerPassword = () => {
+    const phone = form.getValues("phone");
+    const password = form.getValues("password") || "";
+    if (!password) {
+      toast({ title: "كلمة المرور مطلوبة", variant: "destructive" });
+      return;
+    }
+    login({ username: phone, password }, {
+      onSuccess: (userData: any) => {
+        if (userData?.mustChangePassword) {
+          setLocation("/profile?mustChangePassword=true");
+          return;
+        }
+        setLocation(redirectParam ? decodeURIComponent(redirectParam) : (userData?.redirectTo || "/"));
+      },
+      onError: (error: any) => {
+        toast({
+          title: "تعذر تسجيل الدخول",
+          description: error?.message || "رقم الهاتف أو كلمة المرور غير صحيحة",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const phoneValue = form.watch("phone");
@@ -322,6 +351,40 @@ export default function Login() {
                     <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-[11px] text-green-700 font-bold">
                       <MessageCircle className="h-4 w-4 shrink-0" />
                       سيُرسل رمز تحقق على واتساب
+                    </div>
+                  )}
+
+                  {!isStaff && customerPasswordFallback && (
+                    <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-xs font-bold text-amber-800">
+                        لم يتم إرسال رمز التحقق. يمكنك الدخول باستخدام كلمة المرور.
+                      </p>
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-amber-900">كلمة المرور</FormLabel>
+                            <FormControl>
+                              <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="أدخل كلمة المرور"
+                                {...field}
+                                className="h-12 bg-white border-amber-200"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        onClick={loginWithCustomerPassword}
+                        disabled={isLoggingIn}
+                        className="w-full h-12 bg-[#6B3F2A] text-white font-bold"
+                      >
+                        {isLoggingIn ? <Loader2 className="animate-spin" /> : "الدخول بكلمة المرور"}
+                      </Button>
                     </div>
                   )}
 
