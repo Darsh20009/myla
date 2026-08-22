@@ -5513,7 +5513,7 @@ const StoreSettingsPanel = () => {
   );
 };
 
-const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = false, onMobileClose }: { activeTab: string, onTabChange: (tab: string) => void, pendingOrders?: number, mobileOpen?: boolean, onMobileClose?: () => void }) => {
+const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadNotifications, mobileOpen = false, onMobileClose }: { activeTab: string, onTabChange: (tab: string) => void, pendingOrders?: number, newUsers?: number, unreadNotifications?: number, mobileOpen?: boolean, onMobileClose?: () => void }) => {
   const { user, logout: handleLogout } = useAuth();
   const [, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -5556,7 +5556,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
     {
       label: "العملاء",
       items: [
-        { id: "customers", label: "قاعدة العملاء", icon: UserIcon },
+        { id: "customers", label: "قاعدة العملاء", icon: UserIcon, badge: newUsers },
         { id: "reviews", label: "تقييمات العملاء", icon: Star },
         { id: "vendors", label: "البائعون", icon: Store },
         { id: "coupons", label: "أكواد الخصم", icon: Tag },
@@ -5597,7 +5597,7 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, mobileOpen = fals
     {
       label: "النظام",
       items: [
-        { id: "inbox", label: "صندوق البريد", icon: Bell },
+        { id: "inbox", label: "صندوق البريد", icon: Bell, badge: unreadNotifications },
         { id: "email", label: "البريد الإلكتروني", icon: Send },
         { id: "logs", label: "سجل العمليات", icon: History },
         { id: "settings", label: "إعدادات المتجر", icon: Settings2 },
@@ -5818,6 +5818,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("overview");
   const [time, setTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const adminRoles = ['admin', 'assistant_manager', 'tech_support', 'accountant', 'legal_consultant'];
+  const isStaff = user && adminRoles.includes(user.role);
 
   // Lock body scroll while drawer is open
   useEffect(() => {
@@ -5836,13 +5838,24 @@ export default function Admin() {
 
   const pendingCount = (allOrders || []).filter((o: any) => o.status === "pending_payment").length;
 
+  const { data: sidebarCounts } = useQuery<{
+    unreadNotifications: number;
+    pendingOrders: number;
+    newUsers: number;
+  }>({
+    queryKey: ["/api/sidebar-counts"],
+    queryFn: async () => {
+      const r = await fetch("/api/sidebar-counts", { credentials: "include" });
+      return r.ok ? r.json() : { unreadNotifications: 0, pendingOrders: 0, newUsers: 0 };
+    },
+    enabled: !!user && !!isStaff,
+    refetchInterval: 30_000,
+  });
+
   useEffect(() => {
     const iv = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(iv);
   }, []);
-
-  const adminRoles = ['admin', 'assistant_manager', 'tech_support', 'accountant', 'legal_consultant'];
-  const isStaff = user && adminRoles.includes(user.role);
 
   useEffect(() => {
     if (!authLoading && !isStaff) {
@@ -5870,7 +5883,9 @@ export default function Admin() {
       <AdminSidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        pendingOrders={pendingCount}
+        pendingOrders={sidebarCounts?.pendingOrders ?? pendingCount}
+        newUsers={sidebarCounts?.newUsers || 0}
+        unreadNotifications={sidebarCounts?.unreadNotifications || 0}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
       />

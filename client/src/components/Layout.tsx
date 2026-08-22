@@ -41,6 +41,20 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<"login" | "register">("login");
 
+  const { data: sidebarCounts } = useQuery<{
+    unreadNotifications: number;
+    pendingOrders: number;
+    newUsers: number;
+  }>({
+    queryKey: ["/api/sidebar-counts"],
+    queryFn: async () => {
+      const r = await fetch("/api/sidebar-counts", { credentials: "include" });
+      return r.ok ? r.json() : { unreadNotifications: 0, pendingOrders: 0, newUsers: 0 };
+    },
+    enabled: !!user,
+    refetchInterval: 30_000,
+  });
+
   const { data: storeSettings } = useQuery<any>({
     queryKey: ["/api/store/settings"],
     queryFn: async () => { const r = await fetch("/api/store/settings"); return r.ok ? r.json() : {}; },
@@ -237,8 +251,8 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                           icon: Tag,
                           label: language === 'ar' ? (p.titleAr || p.titleEn || p.slug) : (p.titleEn || p.titleAr || p.slug),
                         })),
-                        ...(user ? [{ href: "/orders", icon: Package, label: t('myOrders') }] : []),
-                        ...(user?.role === 'admin' ? [{ href: "/admin", icon: LayoutDashboard, label: t('adminPanel'), accent: true, badge: pendingAdminCount }] : []),
+                        ...(user ? [{ href: "/orders", icon: Package, label: t('myOrders'), badge: sidebarCounts?.unreadNotifications || 0 }] : []),
+                        ...(user?.role === 'admin' ? [{ href: "/admin", icon: LayoutDashboard, label: t('adminPanel'), accent: true, badge: sidebarCounts?.pendingOrders || pendingAdminCount }] : []),
                         ...(user?.role === 'admin' || user?.role === 'assistant_manager'
                           ? [{ href: "/admin/branch-analytics", icon: LayoutDashboard, label: language === 'ar' ? 'تحليلات الفروع' : 'Branch Analytics' }]
                           : []),

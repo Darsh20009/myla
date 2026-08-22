@@ -11,7 +11,7 @@ import path from "path";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { UserModel, NotificationModel, PushSubscriptionModel, ActivityLogModel, StoreSettingsModel, MailAccountModel, MailMessageModel } from "./models";
+import { UserModel, OrderModel, NotificationModel, PushSubscriptionModel, ActivityLogModel, StoreSettingsModel, MailAccountModel, MailMessageModel } from "./models";
 import { encryptSecret, PROVIDER_PRESETS, testConnection as testInboxConnection, syncAccount as syncInboxAccount, setMessageFlags as setInboxFlags, deleteMessage as deleteInboxMessage, sendFromAccount as sendInboxMessage } from "./inbox";
 import { paymentGateway } from "./payments";
 import { fireNotify, fireNotifyAdmins, VAPID_PUBLIC_KEY } from "./notifications";
@@ -1070,6 +1070,36 @@ ${allUrls.map(u => `  <url>
         activeVendors: 0, pendingVendors: 0,
         allTime: { totalRevenue: 0 }, today: { totalRevenue: 0 }, thisMonth: { totalRevenue: 0 }, dailyOrders: 0,
       });
+    }
+  });
+
+  // Small, role-aware counters for sidebars. Keep this endpoint cheap so all
+  // dashboards can refresh it without downloading complete orders/users lists.
+  app.get("/api/sidebar-counts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as any;
+      const userId = user?._id?.toString() || user?.id;
+      const unreadNotifications = userId
+        ? await NotificationModel.countDocuments({ userId, isRead: false })
+        : 0;
+      const staffRoles = ["admin", "assistant_manager", "tech_support", "accountant", "legal_consultant", "employee", "support", "cashier"];
+
+      if (!staffRoles.includes(user?.role)) {
+        return res.json({ unreadNotifications, pendingOrders: 0, newUsers: 0 });
+      }
+
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const [pendingOrders, newUsers] = await Promise.all([
+        OrderModel.countDocuments({
+          status: { $in: ["new", "pending_payment", "processing"] },
+        }),
+        UserModel.countDocuments({ role: "customer", createdAt: { $gte: since } }),
+      ]);
+      res.json({ unreadNotifications, pendingOrders, newUsers });
+    } catch (err: any) {
+      console.error("[API] sidebar-counts error:", err?.message);
+      res.json({ unreadNotifications: 0, pendingOrders: 0, newUsers: 0 });
     }
   });
 
