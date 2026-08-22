@@ -2090,8 +2090,11 @@ ${allUrls.map(u => `  <url>
       if (!to || !/^\S+@\S+\.\S+$/.test(to)) {
         return res.status(400).json({ success: false, message: "البريد الإلكتروني غير صالح" });
       }
-      if (!process.env.SMTP2GO_API_KEY) {
-        return res.status(503).json({ success: false, message: "SMTP2GO_API_KEY غير مُعدّ في متغيّرات البيئة" });
+      // Email service uses cPanel SMTP (server/email.ts), not SMTP2GO.
+      // The old check rejected valid cPanel configuration before attempting
+      // the actual send.
+      if (!process.env.CPANEL_SMTP_PASS && !process.env.SMTP_PASS) {
+        return res.status(503).json({ success: false, message: "كلمة مرور SMTP غير مُعدة في متغيّرات البيئة" });
       }
 
       const customerName = name || "عميل تجريبي";
