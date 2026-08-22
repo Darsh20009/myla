@@ -67,7 +67,10 @@ export function setupAuth(app: Express) {
   const useCrossSiteCookie = isReplit || isProd;
 
   const sessionSettings: session.SessionOptions = {
-    name: "myla.sid",
+    // Bump the cookie name to invalidate cookies issued by older deployments.
+    // HttpOnly cookies cannot be removed from every device by frontend JS, but
+    // an unknown session name makes all old cookies unusable immediately.
+    name: "myla.sid.v2",
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -98,6 +101,14 @@ export function setupAuth(app: Express) {
   }
 
   app.use(session(sessionSettings));
+  // Clear the previous cookie name whenever an old client visits. This is
+  // harmless for new clients and completes the server-side session reset.
+  app.use((req, res, next) => {
+    if (req.headers.cookie?.includes("myla.sid=")) {
+      res.clearCookie("myla.sid", { path: "/" });
+    }
+    next();
+  });
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -1127,8 +1138,11 @@ export function setupAuth(app: Express) {
       // Fallback: if WhatsApp not connected or send failed, try email
       if (user.email && /^\S+@\S+\.\S+$/.test(user.email)) {
         const { sendPasswordResetEmail } = await import("./email");
-        await sendPasswordResetEmail({ to: user.email, customerName: user.name, otp });
-        return res.json({ sent: true, via: "email", masked: user.email.replace(/(\S{2})\S*@/, "$1***@") });
+        const emailResult = await sendPasswordResetEmail({ to: user.email, customerName: user.name, otp });
+        if (emailResult?.success) {
+          return res.json({ sent: true, via: "email", masked: user.email.replace(/(\S{2})\S*@/, "$1***@") });
+        }
+        console.warn("[OTP Send] email delivery failed:", emailResult?.error || "unknown error");
       }
 
       return res.status(503).json({ message: "واتساب غير متصل حالياً أو فشل الإرسال. يرجى المحاولة لاحقاً أو التواصل مع الدعم." });

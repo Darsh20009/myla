@@ -122,7 +122,13 @@ export async function persistUpload(localPath: string, filename: string): Promis
     }
   }
 
-  // 3️⃣ Local fallback (dev / no credentials configured)
+  // Never claim success with a local URL in production. Render's filesystem
+  // is ephemeral, so that URL becomes a broken image after a restart/redeploy.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("No persistent upload storage configured. Configure Cloudinary or Object Storage.");
+  }
+
+  // 3️⃣ Local fallback is for local development only.
   return { filename, url: `/uploads/${filename}`, storage: "local", bytes: stats.size };
 }
 

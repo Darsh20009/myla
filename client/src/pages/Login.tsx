@@ -70,11 +70,15 @@ export default function Login() {
     } else {
       // Customer: send OTP via WhatsApp
       setIsSendingOtp(true);
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 20_000);
       try {
         const res = await fetch("/api/auth/phone-otp/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: data.phone }),
+          credentials: "include",
+          signal: controller.signal,
         });
         const json = await res.json();
         if (!res.ok) {
@@ -90,9 +94,14 @@ export default function Login() {
             ? `أُرسل الرمز إلى بريدك ${json.masked}`
             : "أُرسل رمز التحقق على واتساب",
         });
-      } catch {
-        toast({ title: "خطأ في الشبكة", description: "حاول مرة أخرى", variant: "destructive" });
+      } catch (error: any) {
+        toast({
+          title: error?.name === "AbortError" ? "تأخر إرسال الرمز" : "خطأ في الشبكة",
+          description: "تحقق من إعدادات الإرسال وحاول مرة أخرى",
+          variant: "destructive",
+        });
       } finally {
+        window.clearTimeout(timeout);
         setIsSendingOtp(false);
       }
     }

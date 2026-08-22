@@ -738,7 +738,10 @@ ${allUrls.map(u => `  <url>
           }).catch((e: any) => console.warn("[media-lib] failed to index upload:", e?.message));
         } catch (e: any) {
           console.error("[upload] persist failed:", e?.message);
-          results.push({ url: `/uploads/${f.filename}`, storage: "local" });
+          try { await fs.promises.unlink(f.path); } catch {}
+          return res.status(503).json({
+            message: "تعذر حفظ الصورة بشكل دائم. يجب إعداد تخزين الصور قبل المحاولة مجدداً.",
+          });
         }
       }
       res.json({ urls: results.map(r => r.url), files: results, url: results[0].url, storage: results[0].storage, bytes: results[0].bytes });
@@ -865,7 +868,12 @@ ${allUrls.map(u => `  <url>
         return res.sendStatus(403);
       }
       
-      const receiptUrl = `/uploads/${req.file.filename}`;
+      const { persistUpload } = await import("./uploads");
+      const persisted = await persistUpload(req.file.path, req.file.filename);
+      const receiptUrl = persisted.url;
+      if (persisted.storage !== "local") {
+        try { await fs.promises.unlink(req.file.path); } catch {}
+      }
       const updatedOrder = await storage.updateOrderReceipt(req.params.id, receiptUrl);
       res.json(updatedOrder);
     } catch (err) {
