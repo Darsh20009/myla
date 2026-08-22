@@ -87,7 +87,7 @@ const upload = multer({
 });
 
 import { registerEmployeeAssistant } from "./employee-assistant";
-import { CartSessionModel, CancellationPolicyModel, OrderModel } from "./models";
+import { CartSessionModel, CancellationPolicyModel } from "./models";
 import { cancelOrder, canCustomerCancel, getPolicy as getCancellationPolicy } from "./cancellation";
 import { startAbandonedCartWorker, notifyCart, markCartConverted } from "./abandoned-carts";
 import { startPickupExpiryWorker } from "./pickup-expiry";
