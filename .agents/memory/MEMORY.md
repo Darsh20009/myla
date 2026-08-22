@@ -5,3 +5,4 @@
 - [RF Perfume rebrand](rf-rebrand.md) — Myla → RF Perfume / رفيف العود brand values, Arabic word-boundary replace gotcha, and what was left out (artwork, content, DB).
 - [TypeScript config gotchas](ts-config-gotchas.md) — tsconfig had no target (defaulted to ES3), breaking iterators, regex /u, top-level await; Mongoose Schema<T> body needs whole-object `as any` cast (not per-field value cast) to suppress TS2353; groqChatFor arg order is (audience, messages, maxTokens).
 - [Mapit integration](mapit-integration.md) — Mapit shipping API wired into Myla; coordinates are mandatory for order creation; Mongoose $in with string[] needs `as any[]` cast; idempotency guard in dispatchOrderPaidSideEffects re-fetches order before creating.
+- [Production storage and email](production-storage-email.md) — Render needs persistent media storage; diagnostics must validate the SMTP provider actually used for sending.
