@@ -291,7 +291,7 @@ process.on('uncaughtException', (err: any) => {
   // If saved credentials exist, reconnect immediately without waiting for admin
   // to click "Connect". Session persists until admin explicitly disconnects.
   try {
-    const { connectToWhatsApp, hasStoredCredentials, restoreWhatsAppAuthFromDatabase } = await import("./whatsapp");
+    const { connectToWhatsApp, hasStoredCredentials, restoreWhatsAppAuthFromDatabase, getWaStatus } = await import("./whatsapp");
     await restoreWhatsAppAuthFromDatabase();
     if (hasStoredCredentials()) {
       console.log("[WhatsApp] Saved session found — auto-connecting…");
@@ -301,6 +301,18 @@ process.on('uncaughtException', (err: any) => {
     } else {
       console.log("[WhatsApp] No saved session — waiting for manual connect");
     }
+    // A dropped socket normally emits "close", but this guard also recovers
+    // from silent network failures or a proxy timeout on cloud deployments.
+    setInterval(() => {
+      if (hasStoredCredentials()) {
+        const { state } = getWaStatus();
+        if (state === "disconnected") {
+          connectToWhatsApp().catch((e: any) =>
+            console.warn("[WhatsApp] Health-check reconnect failed:", e?.message),
+          );
+        }
+      }
+    }, 60_000);
   } catch (e: any) {
     console.warn("[WhatsApp] Auto-start import failed:", e?.message);
   }

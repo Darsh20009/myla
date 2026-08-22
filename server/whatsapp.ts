@@ -316,9 +316,9 @@ export async function connectToWhatsApp(): Promise<void> {
     }
   });
 
-  sock.ev.on("creds.update", saveCreds);
   sock.ev.on("creds.update", async () => {
     // creds.update can contain new keys during multi-device rotation.
+    await saveCreds();
     await persistWhatsAppAuthToDatabase();
   });
 
