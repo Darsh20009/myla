@@ -7573,7 +7573,6 @@ ${allUrls.map(u => `  <url>
           key3: !!process.env.GEMINI_API_KEY_3,
         },
         kimi: { apiKey: !!process.env.KIMI_API_KEY },
-        smtp: { apiKey: !!process.env.SMTP2GO_API_KEY },
         google: { clientId: !!process.env.GOOGLE_CLIENT_ID, clientSecret: !!process.env.GOOGLE_CLIENT_SECRET },
         apple: { clientId: !!process.env.APPLE_CLIENT_ID, redirectUri: !!process.env.APPLE_REDIRECT_URI },
         storageStation: { apiKey: !!process.env.STORAGE_STATION_API_KEY, apiSecret: !!process.env.STORAGE_STATION_API_SECRET },
