@@ -2132,7 +2132,7 @@ ${allUrls.map(u => `  <url>
       if (!to || !/^\S+@\S+\.\S+$/.test(to)) {
         return res.status(400).json({ success: false, message: "البريد الإلكتروني غير صالح" });
       }
-      // Email service uses cPanel SMTP (server/email.ts), not SMTP2GO.
+      // Email service uses cPanel SMTP only (server/email.ts).
       // The old check rejected valid cPanel configuration before attempting
       // the actual send.
       if (!process.env.INBOX_MAIL_PASSWORD && !process.env.CPANEL_SMTP_PASS && !process.env.SMTP_PASS) {
