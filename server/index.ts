@@ -321,6 +321,7 @@ process.on('uncaughtException', (err: any) => {
   // Render environment/port issues without sending a test email.
   try {
     const { verifyEmailConnection } = await import("./email");
+    console.log(`[Email] HTTPS fallback configured: ${Boolean(process.env.SMTP2GO_API_KEY)}`);
     void verifyEmailConnection();
     setInterval(() => void verifyEmailConnection(), 10 * 60 * 1000);
   } catch (e: any) {

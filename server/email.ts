@@ -71,7 +71,12 @@ async function sendViaSmtp2Go(params: {
 }): Promise<{ success: boolean; error?: string }> {
   const apiKey = process.env.SMTP2GO_API_KEY || "";
   if (!apiKey) return { success: false, error: "SMTP2GO_API_KEY غير مُعد" };
-  const sender = process.env.EMAIL_SENDER || "noreply@myla-abayas.store";
+  // Prefer the cPanel mailbox as the HTTPS sender too; SMTP2GO requires a
+  // verified sender/domain and the institutional mailbox is the canonical one.
+  const sender = process.env.SMTP2GO_SENDER ||
+    process.env.INBOX_MAIL_EMAIL ||
+    process.env.CPANEL_SMTP_USER ||
+    "myla@qirox.online";
   const senderName = process.env.EMAIL_SENDER_NAME || "Myla | ميلا";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
@@ -169,6 +174,8 @@ async function sendEmail(params: {
     if (httpsResult.success) return httpsResult;
     if (process.env.SMTP2GO_API_KEY) {
       console.error("[Email] HTTPS provider error:", httpsResult.error);
+    } else {
+      console.error("[Email] HTTPS provider unavailable: SMTP2GO_API_KEY is not present in the running service");
     }
     console.error("[Email] SMTP error:", err.message);
     return { success: false, error: err.message };

@@ -1,0 +1,59 @@
+
+Search
+Search logs
+
+
+Last hour
+
+
+
+[OTP Send] email delivery failed: Connection timeout
+4:48:47 PM [express] POST /api/auth/phone-otp/send 503 in 20192ms :: {"message":"واتساب غير متصل حالياً أو فشل الإرسال. يرجى المحاولة لاحقاً أو التواصل مع الدعم."}
+[Email] SMTP fallback error: Connection timeout
+[Email] SMTP error: Connection timeout
+[OTP Send] email delivery failed: Connection timeout
+4:48:48 PM [express] POST /api/auth/phone-otp/send 503 in 20190ms :: {"message":"واتساب غير متصل حالياً أو فشل الإرسال. يرجى المحاولة لاحقاً أو التواصل مع الدعم."}
+[Email] SMTP fallback error: Connection timeout
+[Email] SMTP error: Connection timeout
+[OTP Send] email delivery failed: Connection timeout
+4:48:51 PM [express] POST /api/auth/phone-otp/send 503 in 20185ms :: {"message":"واتساب غير متصل حالياً أو فشل الإرسال. يرجى المحاولة لاحقاً أو التواصل مع الدعم."}
+[Email] SMTP fallback error: Connection timeout
+[Email] SMTP error: Connection timeout
+4:48:55 PM [express] POST /api/auth/forgot/init 200 in 20191ms :: {"method":"otp","masked":"yo***@gmail.com","allowVerify":true}
+==> Detected service running on port 5000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+[Email] SMTP verification failed: Connection timeout
+[Email] SMTP verification failed: Connection timeout
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+[Paymob] Using base URL: https://accept.paymob.com
+Connected to MongoDB successfully
+[Migration] Store legal data updated
+Seeding Myla admin user...
+(node:1) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'before'` instead.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Admin user updated (canonical fields refreshed, password preserved)
+[AbandonedCarts] worker started (idle≥300s, tick=60s)
+[PickupExpiry] worker started (expire>=7d, tick=60m)
+[PendingPaymentExpiry] worker started (expire>=30min, tick=5min)
+[AI Learn] Scheduler started — runs nightly at 03:00 UTC
+[AI Learn] Next run in 10h (2026-08-24T03:00:00.000Z)
+[WS] WebSocket server ready on /ws
+4:56:43 PM [express] serving on port 5000
+[WhatsApp] No saved session — waiting for manual connect
+(node:1) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+[Inbox] Institutional mailbox ready (myla@qirox.online)
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://myla-abayas.store + 2 more domains
+==> 
+==> ///////////////////////////////////////////////////////////
+[Email] SMTP verification failed: Connection timeout
+[Email] SMTP verification failed: Connection timeout
+[Email] SMTP fallback error: Connection timeout
+[Email] SMTP error: Connection timeout
+4:58:23 PM [express] POST /api/auth/forgot/init 200 in 20209ms :: {"method":"otp","masked":"yo***@gmail.com","allowVerify":true}
+[Inbox] decryption failed for mylaabayas@gmail.com — will retry in 1h. Re-add account to fix.
+[Inbox] decryption failed for myla@qirox.online — will retry in 1h. Re-add account to fix.
