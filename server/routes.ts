@@ -2064,8 +2064,8 @@ ${allUrls.map(u => `  <url>
   // ─── Admin Email Testing ────────────────────────────────────────────────
   app.get("/api/admin/email/status", checkPermission("settings.manage"), (_req, res) => {
     res.json({
-      configured: !!(process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS),
-      sender: "info@qirox.online",
+      configured: !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS),
+      sender: process.env.CPANEL_SMTP_USER || process.env.INBOX_MAIL_EMAIL || "myla@qirox.online",
       senderName: "Myla | ميلا",
       provider: "cPanel SMTP",
     });
@@ -2123,7 +2123,7 @@ ${allUrls.map(u => `  <url>
       // Email service uses cPanel SMTP (server/email.ts), not SMTP2GO.
       // The old check rejected valid cPanel configuration before attempting
       // the actual send.
-      if (!process.env.CPANEL_SMTP_PASS && !process.env.SMTP_PASS) {
+      if (!process.env.INBOX_MAIL_PASSWORD && !process.env.CPANEL_SMTP_PASS && !process.env.SMTP_PASS) {
         return res.status(503).json({ success: false, message: "كلمة مرور SMTP غير مُعدة في متغيّرات البيئة" });
       }
 
