@@ -60,6 +60,54 @@ function createTransporter(portOverride?: number) {
   });
 }
 
+/** HTTPS fallback for cloud hosts where outbound SMTP is blocked or throttled. */
+async function sendViaSmtp2Go(params: {
+  to: string;
+  toName?: string;
+  subject: string;
+  html: string;
+  text?: string;
+  attachments?: Array<{ filename: string; content: string; contentType?: string }>;
+}): Promise<{ success: boolean; error?: string }> {
+  const apiKey = process.env.SMTP2GO_API_KEY || "";
+  if (!apiKey) return { success: false, error: "SMTP2GO_API_KEY غير مُعد" };
+  const sender = process.env.EMAIL_SENDER || "noreply@myla-abayas.store";
+  const senderName = process.env.EMAIL_SENDER_NAME || "Myla | ميلا";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch("https://api.smtp2go.com/v3/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        api_key: apiKey,
+        sender: `${senderName} <${sender}>`,
+        to: [params.toName ? `${params.toName} <${params.to}>` : params.to],
+        subject: params.subject,
+        html_body: params.html,
+        text_body: params.text || "",
+        attachments: params.attachments?.map((a) => ({
+          filename: a.filename,
+          mime_type: a.contentType || "application/octet-stream",
+          fileblob: a.content,
+        })),
+      }),
+    });
+    const result: any = await response.json().catch(() => ({}));
+    if (!response.ok || result?.data?.succeeded === 0 || result?.data?.failed > 0) {
+      const message = result?.data?.error || result?.error || `SMTP2GO HTTP ${response.status}`;
+      return { success: false, error: message };
+    }
+    console.log(`[Email] ✅ Sent using HTTPS provider to ${params.to}`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.name === "AbortError" ? "SMTP2GO timeout" : (err?.message || "SMTP2GO error") };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ─── Core Send Function ────────────────────────────────────────────────────────
 
 async function sendEmail(params: {
@@ -116,6 +164,11 @@ async function sendEmail(params: {
       } catch (fallbackErr: any) {
         console.error("[Email] SMTP fallback error:", fallbackErr?.message);
       }
+    }
+    const httpsResult = await sendViaSmtp2Go(params);
+    if (httpsResult.success) return httpsResult;
+    if (process.env.SMTP2GO_API_KEY) {
+      console.error("[Email] HTTPS provider error:", httpsResult.error);
     }
     console.error("[Email] SMTP error:", err.message);
     return { success: false, error: err.message };
