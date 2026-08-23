@@ -18,10 +18,10 @@ const BANNER_URL = ASSETS.EMAIL_BANNER;
 // ─── cPanel SMTP config ────────────────────────────────────────────────────────
 // All values are hardcoded except SMTP_PASS which must be set as a secret.
 const SMTP_CONFIG = {
-  host: "server222.web-hosting.com",
+  host: "qirox.online",
   port: 465,
   secure: true,           // port 465 = SSL/TLS
-  user: "info@qirox.online",
+  user: "myla@qirox.online",
   senderName: "Myla",
 } as const;
 
@@ -34,7 +34,7 @@ function getSmtpSettings(portOverride?: number) {
 
   // port 587 (STARTTLS) is open on most cloud platforms (incl. Render);
   // port 465 (SSL) is often blocked. Try 587 first via env override.
-  const port   = portOverride || parseInt(process.env.CPANEL_SMTP_PORT  || "587", 10);
+  const port   = portOverride || parseInt(process.env.CPANEL_SMTP_PORT  || "465", 10);
   const secure = port === 465;  // 465 → SSL/TLS directly; 587 → STARTTLS
   const host = process.env.CPANEL_SMTP_HOST || SMTP_CONFIG.host;
   const user = process.env.CPANEL_SMTP_USER || SMTP_CONFIG.user;
@@ -71,7 +71,7 @@ async function sendEmail(params: {
   /** Nodemailer-style attachments — content is base64-encoded string */
   attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }): Promise<{ success: boolean; error?: string }> {
-  const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "587", 10);
+  const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "465", 10);
   try {
     const transporter = createTransporter();
     const smtpUser = getSmtpSettings().user;
@@ -123,7 +123,7 @@ async function sendEmail(params: {
 
 /** Verify the same SMTP transport used by every store email. */
 export async function verifyEmailConnection(): Promise<{ ok: boolean; error?: string }> {
-  const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "587", 10);
+  const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "465", 10);
   try {
     await createTransporter().verify();
     console.log(`[Email] SMTP connection verified (${getSmtpSettings().host}:${configuredPort})`);

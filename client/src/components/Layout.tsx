@@ -253,6 +253,9 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
                         })),
                         ...(user ? [{ href: "/orders", icon: Package, label: t('myOrders'), badge: sidebarCounts?.unreadNotifications || 0 }] : []),
                         ...(user?.role === 'admin' ? [{ href: "/admin", icon: LayoutDashboard, label: t('adminPanel'), accent: true, badge: sidebarCounts?.pendingOrders || pendingAdminCount }] : []),
+                        ...(['admin', 'assistant_manager', 'tech_support', 'accountant', 'legal_consultant', 'employee', 'cashier', 'support'].includes(user?.role || "")
+                          ? [{ href: "/inbox", icon: Mail, label: language === 'ar' ? 'البريد المؤسسي' : 'Institutional Mail', accent: true }]
+                          : []),
                         ...(user?.role === 'admin' || user?.role === 'assistant_manager'
                           ? [{ href: "/admin/branch-analytics", icon: LayoutDashboard, label: language === 'ar' ? 'تحليلات الفروع' : 'Branch Analytics' }]
                           : []),
