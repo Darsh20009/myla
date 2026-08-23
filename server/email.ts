@@ -92,7 +92,8 @@ async function sendEmail(params: {
     console.log(`[Email] ✅ Sent to ${params.to} — Subject: ${params.subject}`);
     return { success: true };
   } catch (err: any) {
-    const retryable = ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "EHOSTUNREACH", "ENETUNREACH"].includes(err?.code);
+    const retryable = ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "EHOSTUNREACH", "ENETUNREACH"].includes(err?.code)
+      || /greeting|timed out|timeout|connection|socket/i.test(err?.message || "");
     if (retryable && (configuredPort === 587 || configuredPort === 465)) {
       try {
         const fallbackPort = configuredPort === 587 ? 465 : 587;
@@ -1127,7 +1128,7 @@ export async function sendAdminNewOrderEmail(params: {
   try {
     const transporter = createTransporter();
     await transporter.sendMail({
-      from: `"${SMTP_CONFIG.senderName} — الإدارة" <${SMTP_CONFIG.user}>`,
+      from: `"${SMTP_CONFIG.senderName} — الإدارة" <${getSmtpSettings().user}>`,
       to: adminEmail,
       subject: `🛒 طلب جديد #${params.orderRef} — ${params.total.toLocaleString("ar-SA")} ر.س — ${params.customerName}`,
       html,
