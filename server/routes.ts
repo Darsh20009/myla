@@ -1905,7 +1905,10 @@ ${allUrls.map(u => `  <url>
           if (!result?.success) {
             return res.status(503).json({ message: "تعذر إرسال رمز التحقق الآن. حاول لاحقًا." });
           }
-        } catch (e: any) { console.error("[Forgot] email failed:", e?.message); }
+        } catch (e: any) {
+          console.error("[Forgot] email failed:", e?.message);
+          return res.status(503).json({ message: "تعذر إرسال رمز التحقق الآن. حاول لاحقًا." });
+        }
         return res.json({ method: "otp", masked: maskEmail(user.email) });
       }
 
@@ -1922,7 +1925,10 @@ ${allUrls.map(u => `  <url>
           if (!result?.success) {
             return res.status(503).json({ message: "تعذر إرسال رمز التحقق الآن. حاول لاحقًا." });
           }
-        } catch (e: any) { console.error("[Forgot] email failed:", e?.message); }
+        } catch (e: any) {
+          console.error("[Forgot] email failed:", e?.message);
+          return res.status(503).json({ message: "تعذر إرسال رمز التحقق الآن. حاول لاحقًا." });
+        }
         return res.json({ method: "otp", masked: maskEmail(user.email), allowVerify: true });
       }
 
