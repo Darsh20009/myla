@@ -747,23 +747,28 @@ ${allUrls.map(u => `  <url>
       }
       const { persistUpload } = await import("./uploads");
       const { MediaLibraryItemModel } = await import("./models");
+      const { deleteUpload } = await import("./uploads");
       const results: { url: string; storage: string; bytes?: number }[] = [];
       const user = req.user as any;
       for (const f of all) {
         try {
           const r = await persistUpload(f.path, f.filename);
           results.push({ url: r.url, storage: r.storage, bytes: r.bytes });
-          // Save to media library (fire-and-forget, don't block response)
-          MediaLibraryItemModel.create({
-            url: r.url,
-            filename: f.originalname || f.filename,
-            mimeType: f.mimetype || "application/octet-stream",
-            bytes: r.bytes || f.size || 0,
-            source: "upload",
-             storage: r.storage,
-             storageKey: r.filename,
-            uploadedBy: user?.id || "unknown",
-          }).catch((e: any) => console.warn("[media-lib] failed to index upload:", e?.message));
+          try {
+            await MediaLibraryItemModel.create({
+              url: r.url,
+              filename: f.originalname || f.filename,
+              mimeType: f.mimetype || "application/octet-stream",
+              bytes: r.bytes || f.size || 0,
+              source: "upload",
+              storage: r.storage,
+              storageKey: r.filename,
+              uploadedBy: user?.id || "unknown",
+            });
+          } catch (indexError) {
+            await deleteUpload(r.filename).catch(() => {});
+            throw indexError;
+          }
         } catch (e: any) {
           console.error("[upload] persist failed:", e?.message);
           try { await fs.promises.unlink(f.path); } catch {}
@@ -848,6 +853,15 @@ ${allUrls.map(u => `  <url>
     try {
       const parsed = new URL(sourceUrl);
       if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
+      const hostname = parsed.hostname.toLowerCase();
+      if (
+        hostname === "localhost" ||
+        hostname === "::1" ||
+        hostname === "0.0.0.0" ||
+        hostname === "metadata.google.internal" ||
+        /^(127|10|192\.168|169\.254)\./.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)
+      ) throw new Error();
     } catch {
       return res.status(400).json({ message: "أدخل رابط http أو https صالحاً" });
     }

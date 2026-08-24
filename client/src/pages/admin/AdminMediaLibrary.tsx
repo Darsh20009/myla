@@ -246,6 +246,7 @@ export default function AdminMediaLibrary({ onSelect, filterType = "" }: MediaLi
       <div className="flex items-center gap-3 text-xs text-slate-500">
         <span>{total.toLocaleString("ar")} ملف في المكتبة</span>
         {typeFilter && <Badge variant="secondary" className="text-[10px] rounded-full">{typeFilter === "image" ? "صور فقط" : "فيديو فقط"}</Badge>}
+        {!onSelect && <span className="text-blue-600">للاختيار من Drive الخاصة: اربط Google Drive من إعدادات التكامل</span>}
       </div>
 
       {/* Grid */}

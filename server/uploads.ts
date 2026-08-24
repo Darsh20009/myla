@@ -2,8 +2,8 @@
  * File upload abstraction — Myla
  *
  * Priority order for storage backend:
- *   1. Cloudinary  (CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET)
- *   2. Replit Object Storage (OBJECT_STORAGE_BUCKET / REPLIT_OBJECT_STORAGE_BUCKET)
+ *   1. Replit Object Storage (OBJECT_STORAGE_BUCKET / REPLIT_OBJECT_STORAGE_BUCKET)
+ *   2. Cloudinary  (CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET)
  *   3. Local disk  (fallback — ephemeral on Render/cloud; dev only)
  *
  * All modes return a public URL so frontend code is identical.
@@ -49,7 +49,7 @@ const BUCKET = process.env.OBJECT_STORAGE_BUCKET || process.env.REPLIT_OBJECT_ST
 let bucketPromise: Promise<any> | null = null;
 
 function getBucket(): Promise<any> {
-  if (!BUCKET || USE_CLOUDINARY) return Promise.resolve(null); // Cloudinary takes priority
+  if (!BUCKET) return Promise.resolve(null);
   if (bucketPromise) return bucketPromise;
   bucketPromise = (async () => {
     try {
@@ -59,7 +59,7 @@ function getBucket(): Promise<any> {
       console.log(`[uploads] Object Storage enabled (bucket: ${BUCKET})`);
       return client;
     } catch (e: any) {
-      console.warn(`[uploads] Object Storage unavailable, falling back to local disk: ${e?.message}`);
+      console.warn(`[uploads] Object Storage unavailable, trying Cloudinary/local fallback: ${e?.message}`);
       return null;
     }
   })();
@@ -105,26 +105,7 @@ export interface UploadResult {
 export async function persistUpload(localPath: string, filename: string): Promise<UploadResult> {
   const stats = fs.statSync(localPath);
 
-  // 1️⃣ Try Cloudinary first
-  const cloudinary = await getCloudinary();
-  if (cloudinary) {
-    try {
-      const publicId = filename.replace(/\.[^/.]+$/, ""); // strip extension for Cloudinary
-      const result = await cloudinary.uploader.upload(localPath, {
-        public_id: publicId,
-        folder: "myla",
-        overwrite: true,
-        resource_type: "auto",
-      });
-      try { fs.unlinkSync(localPath); } catch {}
-      // Store Cloudinary URL directly — no local proxy needed
-      return { filename, url: result.secure_url, storage: "cloudinary", bytes: stats.size };
-    } catch (e: any) {
-      console.error(`[uploads] Cloudinary upload failed (${filename}):`, e?.message);
-    }
-  }
-
-  // 2️⃣ Try Replit Object Storage
+  // 1️⃣ Try Replit Object Storage (the durable default)
   const bucket = await getBucket();
   if (bucket) {
     try {
@@ -134,6 +115,24 @@ export async function persistUpload(localPath: string, filename: string): Promis
       return { filename, url: `/uploads/${filename}`, storage: "cloud", bytes: stats.size };
     } catch (e: any) {
       console.error(`[uploads] cloud put failed (${filename}), keeping local copy:`, e?.message);
+    }
+  }
+
+  // 2️⃣ Try Cloudinary when configured (durable fallback)
+  const cloudinary = await getCloudinary();
+  if (cloudinary) {
+    try {
+      const publicId = filename.replace(/\.[^/.]+$/, "");
+      const result = await cloudinary.uploader.upload(localPath, {
+        public_id: publicId,
+        folder: "myla",
+        overwrite: true,
+        resource_type: "auto",
+      });
+      try { fs.unlinkSync(localPath); } catch {}
+      return { filename, url: result.secure_url, storage: "cloudinary", bytes: stats.size };
+    } catch (e: any) {
+      console.error(`[uploads] Cloudinary upload failed (${filename}):`, e?.message);
     }
   }
 
