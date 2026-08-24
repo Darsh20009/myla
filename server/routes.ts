@@ -1690,7 +1690,7 @@ ${allUrls.map(u => `  <url>
         return res.status(409).json({ message: "لا يمكن تسجيل الإرجاع قبل اكتمال الطلب" });
       }
 
-      const order = await storage.updateOrderStatus(req.params.id, status, {
+       const order = await storage.updateOrderStatus(req.params.id, status as any, {
         provider: shippingProvider,
         tracking: trackingNumber,
         deliveryDriver: status === "out_for_delivery" && deliveryDriverName ? { name: deliveryDriverName, phone: deliveryDriverPhone, assignedAt: new Date() } : undefined,
