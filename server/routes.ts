@@ -149,6 +149,18 @@ function normalizeOrderStatus(value: unknown): string | null {
   return (orderStatuses as readonly string[]).includes(status) ? status : null;
 }
 
+const allowedOrderTransitions: Record<string, string[]> = {
+  new: ["pending_payment", "processing", "cancelled"],
+  pending_payment: ["processing", "cancelled"],
+  processing: ["ready_for_pickup", "out_for_delivery", "shipped", "cancelled"],
+  ready_for_pickup: ["completed", "cancelled"],
+  out_for_delivery: ["completed", "cancelled"],
+  shipped: ["out_for_delivery", "completed", "cancelled"],
+  completed: ["returned"],
+  cancelled: [],
+  returned: [],
+};
+
 // ─── Auth helpers ────────────────────────────────────────────────────────────
 import type { Request, Response, NextFunction } from "express";
 type AuthRequest = Request & { user?: any };
@@ -1686,8 +1698,8 @@ ${allUrls.map(u => `  <url>
       if (["cancelled", "returned"].includes(currentStatus)) {
         return res.status(409).json({ message: "الطلب في حالة نهائية ولا يمكن تغييرها" });
       }
-      if (status === "returned" && currentStatus !== "completed") {
-        return res.status(409).json({ message: "لا يمكن تسجيل الإرجاع قبل اكتمال الطلب" });
+      if (status !== currentStatus && !allowedOrderTransitions[currentStatus]?.includes(status)) {
+        return res.status(409).json({ message: "الانتقال المطلوب غير مسموح من حالة الطلب الحالية" });
       }
 
        const order = await storage.updateOrderStatus(req.params.id, status as any, {

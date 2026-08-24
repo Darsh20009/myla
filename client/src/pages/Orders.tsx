@@ -59,7 +59,9 @@ const getStepIndex = (status: string) => {
 
 // ─── Order Tracking Stepper ──────────────────────────────────────────────────
 const TrackingStepper = ({ order }: { order: any }) => {
-  const currentStep = getStepIndex(order.status);
+  const currentStep = order.shippingMethod === "pickup"
+    ? (order.status === "ready_for_pickup" ? 2 : ["completed", "delivered"].includes(order.status) ? 3 : getStepIndex(order.status))
+    : getStepIndex(order.status);
   const isCancelled = order.status === "cancelled";
   const isReturned = order.status === "returned";
   const isShippedViaCarrier = order.status === "shipped" && order.shippingProvider;
