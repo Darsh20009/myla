@@ -643,6 +643,29 @@ export default function OrderDetail() {
             </div>
           </motion.div>
 
+          {order.returnRequest && order.returnRequest.status && order.returnRequest.status !== "none" && (
+            <div className="bg-amber-50 rounded-3xl border border-amber-200 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="h-5 w-5 text-amber-600" />
+                  <div>
+                    <p className="font-black text-sm text-amber-800">طلب الإرجاع</p>
+                    <p className="text-xs font-bold text-amber-700 mt-1">
+                      {order.returnRequest.status === "pending" ? "قيد المراجعة" :
+                       order.returnRequest.status === "approved" ? "تمت الموافقة" :
+                       order.returnRequest.status === "rejected" ? "مرفوض" : "تم إكمال الإرجاع"}
+                    </p>
+                  </div>
+                </div>
+                {Number(order.returnRequest.refundAmount || 0) > 0 && (
+                  <p className="text-sm font-black text-amber-800">
+                    استرداد {Number(order.returnRequest.refundAmount).toLocaleString()} <RiyalSign />
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Delivery address */}
           {order.shippingAddress && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-3xl border border-black/5 p-6 shadow-sm">
