@@ -38,6 +38,7 @@ const statusConfig: Record<string, {
   completed:        { icon: CheckCircle,   color: "text-green-600",  bg: "bg-green-50",   border: "border-green-100",  step: 4, label: "تم التوصيل" },
   delivered:        { icon: CheckCircle,   color: "text-green-600",  bg: "bg-green-50",   border: "border-green-100",  step: 4, label: "تم التوصيل" },
   cancelled:        { icon: AlertCircle,   color: "text-red-600",    bg: "bg-red-50",     border: "border-red-100",    step: -1, label: "ملغي" },
+  returned:         { icon: RotateCcw,     color: "text-slate-600",  bg: "bg-slate-50",   border: "border-slate-200",   step: -1, label: "تم الإرجاع" },
 };
 
 // ─── Tracking Steps Definition ──────────────────────────────────────────────
@@ -50,30 +51,43 @@ const trackingSteps = [
 
 const getStepIndex = (status: string) => {
   if (status === "cancelled") return -1;
+  if (status === "returned") return -1;
   if (status === "pending_payment") return 0;
   const s = statusConfig[status];
-  return s ? s.step : 0;
+  return s ? s.step : -2;
 };
 
 // ─── Order Tracking Stepper ──────────────────────────────────────────────────
 const TrackingStepper = ({ order }: { order: any }) => {
   const currentStep = getStepIndex(order.status);
   const isCancelled = order.status === "cancelled";
+  const isReturned = order.status === "returned";
   const isShippedViaCarrier = order.status === "shipped" && order.shippingProvider;
 
-  if (isCancelled) {
+  if (isCancelled || isReturned) {
     return (
-      <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl">
-        <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+      <div className={`flex items-center gap-3 p-4 rounded-2xl ${isReturned ? "bg-slate-50 border border-slate-200" : "bg-red-50 border border-red-100"}`}>
+        {isReturned ? <RotateCcw className="h-5 w-5 text-slate-500 shrink-0" /> : <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />}
         <div>
-          <p className="font-black text-sm text-red-700">تم إلغاء هذا الطلب</p>
-          <p className="text-xs text-red-400 font-bold">إذا دفعت مسبقاً سيتم استرداد مبلغك</p>
+          <p className={`font-black text-sm ${isReturned ? "text-slate-700" : "text-red-700"}`}>{isReturned ? "تم إرجاع هذا الطلب" : "تم إلغاء هذا الطلب"}</p>
+          <p className={`text-xs font-bold ${isReturned ? "text-slate-500" : "text-red-400"}`}>راجع تفاصيل الاسترداد في صفحة الطلب</p>
         </div>
       </div>
     );
   }
+  if (currentStep === -2) {
+    return <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl"><AlertCircle className="h-5 w-5 text-amber-600 shrink-0" /><p className="text-sm font-bold text-amber-800">تعذر معرفة حالة الطلب حالياً. افتح التفاصيل أو تواصل مع الدعم.</p></div>;
+  }
 
-  const steps = isShippedViaCarrier
+  const isPickup = order.shippingMethod === "pickup";
+  const steps = isPickup
+    ? [
+        { key: "new", icon: ShoppingBag, label: "تم الاستلام", sublabel: "طلبك وصلنا" },
+        { key: "processing", icon: Package, label: "قيد التجهيز", sublabel: "نجهّز طلبك" },
+        { key: "ready_for_pickup", icon: Package, label: "جاهز للاستلام", sublabel: "يمكنك زيارة الفرع" },
+        { key: "completed", icon: CheckCircle, label: "تم الاستلام", sublabel: "استلمت طلبك" },
+      ]
+    : isShippedViaCarrier
     ? [
         { key: "new", icon: ShoppingBag, label: "تم الاستلام", sublabel: "طلبك وصلنا" },
         { key: "processing", icon: Package, label: "قيد التجهيز", sublabel: "نجهّز طلبك" },
@@ -195,7 +209,7 @@ const OrderCard = ({ order }: { order: any }) => {
   const [returnMethod, setReturnMethod] = useState<"wallet" | "original">("wallet");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const status = statusConfig[order.status] || statusConfig.new;
+  const status = statusConfig[order.status] || { icon: AlertCircle, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", step: -2, label: "حالة غير معروفة" };
   const StatusIcon = status.icon;
 
   const returnMutation = useMutation({
@@ -227,7 +241,7 @@ const OrderCard = ({ order }: { order: any }) => {
     });
   };
 
-  const canRequestReturn = ["completed", "shipped", "delivered"].includes(order.status);
+  const canRequestReturn = ["completed", "delivered"].includes(order.status) && order.returnRequest?.status !== "pending";
   const canCancel = ["new", "pending", "pending_payment", "processing", "out_for_delivery"].includes(order.status);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -314,6 +328,15 @@ const OrderCard = ({ order }: { order: any }) => {
                   </div>
                 </div>
               </div>
+
+              {(order.trackingNumber || order.shippingProvider) && (
+                <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-black/50">
+                  <Truck className="h-4 w-4 text-primary" />
+                  <span>{order.shippingProvider || "شركة الشحن"}</span>
+                  {order.trackingNumber && <span dir="ltr">#{order.trackingNumber}</span>}
+                  {order.mapitTrackingUrl && <a className="text-primary underline" href={order.mapitTrackingUrl} target="_blank" rel="noreferrer">تتبع الشحنة</a>}
+                </div>
+              )}
 
               {/* ── LIVE TRACKING STEPPER ── */}
               <TrackingStepper order={order} />

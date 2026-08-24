@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertProductSchema, insertOrderSchema, insertCouponSchema, insertCashShiftSchema, insertCategorySchema, insertBundleOfferSchema, insertBranchSchema, insertUserSchema } from "@shared/schema";
+import { insertProductSchema, insertOrderSchema, insertCouponSchema, insertCashShiftSchema, insertCategorySchema, insertBundleOfferSchema, insertBranchSchema, insertUserSchema, orderStatuses } from "@shared/schema";
 import { seed } from "./seed";
 import multer from "multer";
 import path from "path";
@@ -118,6 +118,10 @@ import {
 
 function mapitStatusToLocalStatus(status: string): string | null {
   switch (status) {
+    case "ORDER_PENDING":
+    case "ORDER_ASSIGNED_TO_SHIPPING_COMPANY":
+    case "ORDER_ASSIGNED_TO_DRIVER_FOR_PICK_UP":
+      return "processing";
     case "ORDER_PICKED_UP_FROM_MERCHANT":
     case "ORDER_IN_SHIPPING_COMPANY":
       return "shipped";
@@ -127,11 +131,22 @@ function mapitStatusToLocalStatus(status: string): string | null {
       return "out_for_delivery";
     case "ORDER_COMPLETED":
       return "completed";
+    case "ORDER_ON_HOLD":
+    case "ORDER_FAILED_TO_PICK_UP":
+    case "ORDER_FAILED_TO_DROP_OFF":
+      return "out_for_delivery";
     case "ORDER_RETURN":
       return "returned";
     default:
       return null;
   }
+}
+
+function normalizeOrderStatus(value: unknown): string | null {
+  const status = String(value || "").trim().toLowerCase();
+  if (status === "ready") return "ready_for_pickup";
+  if (status === "delivered") return "completed";
+  return (orderStatuses as readonly string[]).includes(status) ? status : null;
 }
 
 // ─── Auth helpers ────────────────────────────────────────────────────────────
@@ -1393,7 +1408,17 @@ ${allUrls.map(u => `  <url>
       const userId = (user.id || user._id)?.toString();
       const isAdmin = user.role === "admin" || user.isAdmin;
       if (!isAdmin && ownerId !== userId) return res.status(403).json({ message: "غير مصرح" });
-      res.json(order);
+      const orderAny: any = order;
+      res.json({
+        ...orderAny,
+        tracking: {
+          provider: orderAny.shippingProvider || orderAny.shippingCompany || null,
+          number: orderAny.trackingNumber || null,
+          url: orderAny.mapitTrackingUrl || null,
+          status: orderAny.mapitStatus || orderAny.shipoxStatus || null,
+          history: Array.isArray(orderAny.statusHistory) ? orderAny.statusHistory : [],
+        },
+      });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -1647,7 +1672,23 @@ ${allUrls.map(u => `  <url>
     try {
       const user = req.user as any;
       if (user.role !== "admin") return res.sendStatus(403);
-      const { status, shippingProvider, trackingNumber, deliveryDriverName, deliveryDriverPhone, note } = req.body;
+      const { status: requestedStatus, shippingProvider, trackingNumber, deliveryDriverName, deliveryDriverPhone, note } = req.body;
+      const status = normalizeOrderStatus(requestedStatus);
+      if (!status) {
+        return res.status(400).json({ message: "حالة الطلب غير معروفة أو غير مدعومة" });
+      }
+      const existingOrder: any = await storage.getOrder(req.params.id);
+      if (!existingOrder) return res.status(404).json({ message: "الطلب غير موجود" });
+      const currentStatus = normalizeOrderStatus(existingOrder.status);
+      if (!currentStatus) {
+        return res.status(409).json({ message: "لا يمكن تحديث طلب بحالة قديمة أو غير معروفة" });
+      }
+      if (["cancelled", "returned"].includes(currentStatus)) {
+        return res.status(409).json({ message: "الطلب في حالة نهائية ولا يمكن تغييرها" });
+      }
+      if (status === "returned" && currentStatus !== "completed") {
+        return res.status(409).json({ message: "لا يمكن تسجيل الإرجاع قبل اكتمال الطلب" });
+      }
 
       const order = await storage.updateOrderStatus(req.params.id, status, {
         provider: shippingProvider,

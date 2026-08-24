@@ -519,7 +519,12 @@ export class MongoDBStorage implements IStorage {
       pickupCode,
       pickupVerified: false,
       status: insertOrder.status || "new",
-      paymentStatus: insertOrder.paymentStatus || "pending"
+      paymentStatus: insertOrder.paymentStatus || "pending",
+      statusHistory: [{
+        status: insertOrder.status || "new",
+        at: new Date(),
+        note: "تم إنشاء الطلب",
+      }],
     });
     const result = { ...order.toObject(), id: order._id.toString() } as any;
 
@@ -645,7 +650,15 @@ export class MongoDBStorage implements IStorage {
     if (paymentMethod) update.paymentMethod = paymentMethod;
     if (paymentStatus === "paid") update.status = "processing";
     
-    const order = await OrderModel.findByIdAndUpdate(id, update, { new: true }).lean();
+    const current: any = await OrderModel.findById(id).select("status").lean();
+    const history = update.status && current?.status !== update.status
+      ? { status: update.status, at: new Date(), note: "تم تأكيد الدفع وبدأ تجهيز الطلب" }
+      : null;
+    const order = await OrderModel.findByIdAndUpdate(
+      id,
+      history ? { $set: update, $push: { statusHistory: history } } : { $set: update },
+      { new: true }
+    ).lean();
     if (!order) throw new Error("Order not found");
     return { ...order, id: order._id.toString() } as any;
   }
@@ -653,7 +666,17 @@ export class MongoDBStorage implements IStorage {
   // Generic patch on the order document — used by gateway webhooks/return handlers
   // for fields like paymentTransactionId, paymentStatus, paidNotificationsSent.
   async updateOrder(id: string, update: Partial<Order> & Record<string, any>): Promise<Order> {
-    const order = await OrderModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
+    const current: any = update.status
+      ? await OrderModel.findById(id).select("status").lean()
+      : null;
+    const history = update.status && current?.status !== update.status
+      ? { status: update.status, at: new Date(), note: update.statusNote || "" }
+      : null;
+    const order = await OrderModel.findByIdAndUpdate(
+      id,
+      history ? { $set: update, $push: { statusHistory: history } } : { $set: update },
+      { new: true }
+    ).lean();
     if (!order) throw new Error("Order not found");
     return { ...order, id: order._id.toString() } as any;
   }
