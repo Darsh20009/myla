@@ -79,6 +79,21 @@ function mimeFor(name: string): string {
 export function getLocalUploadsDir() { return LOCAL_DIR; }
 export function isCloudMode() { return USE_CLOUDINARY || !!BUCKET; }
 
+export async function getStorageStatus() {
+  const cloudinaryConfigured = !!(await getCloudinary());
+  const objectStorageConfigured = !!(await getBucket());
+  const persistent = cloudinaryConfigured || objectStorageConfigured;
+  return {
+    persistent,
+    backend: cloudinaryConfigured ? "cloudinary" : objectStorageConfigured ? "object_storage" : "local",
+    cloudinaryConfigured,
+    objectStorageConfigured,
+    message: persistent
+      ? "التخزين الدائم جاهز"
+      : "أضف Cloudinary أو Replit Object Storage قبل رفع الصور في الإنتاج",
+  };
+}
+
 export interface UploadResult {
   filename: string;
   url: string;

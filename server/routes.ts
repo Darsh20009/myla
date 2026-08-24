@@ -760,7 +760,8 @@ ${allUrls.map(u => `  <url>
             mimeType: f.mimetype || "application/octet-stream",
             bytes: r.bytes || f.size || 0,
             source: "upload",
-            storage: r.storage,
+             storage: r.storage,
+             storageKey: r.filename,
             uploadedBy: user?.id || "unknown",
           }).catch((e: any) => console.warn("[media-lib] failed to index upload:", e?.message));
         } catch (e: any) {
@@ -795,6 +796,7 @@ ${allUrls.map(u => `  <url>
     const user = req.user as any;
     if (!["admin", "staff", "assistant_manager", "tech_support"].includes(user?.role)) return res.sendStatus(403);
     const { MediaLibraryItemModel } = await import("./models");
+    const { getStorageStatus } = await import("./uploads");
     const page   = Math.max(1, parseInt(String(req.query.page  || "1")));
     const limit  = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "48"))));
     const type   = String(req.query.type || ""); // "image" | "video" | "" (all)
@@ -807,7 +809,15 @@ ${allUrls.map(u => `  <url>
       MediaLibraryItemModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       MediaLibraryItemModel.countDocuments(filter),
     ]);
-    res.json({ items: items.map(i => ({ ...i, id: (i as any)._id.toString() })), total, page, limit });
+    res.json({ items: items.map(i => ({ ...i, id: (i as any)._id.toString() })), total, page, limit, storageStatus: await getStorageStatus() });
+  });
+
+  app.get("/api/admin/media-library/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (!["admin", "staff", "assistant_manager", "tech_support"].includes(user?.role)) return res.sendStatus(403);
+    const { getStorageStatus } = await import("./uploads");
+    res.json(await getStorageStatus());
   });
 
   // DELETE /api/admin/media-library/:id
@@ -818,11 +828,11 @@ ${allUrls.map(u => `  <url>
     const { MediaLibraryItemModel } = await import("./models");
     const item = await MediaLibraryItemModel.findById(req.params.id).lean() as any;
     if (!item) return res.status(404).json({ message: "Not found" });
-    // Delete from cloud storage too if possible
-    if (item.cloudinaryPublicId) {
-      const { deleteUpload } = await import("./uploads");
-      deleteUpload(item.cloudinaryPublicId).catch(() => {});
-    }
+    // Remove the stored object before removing its library record.
+    const { deleteUpload } = await import("./uploads");
+    const storageKey = item.storageKey || (item.url?.startsWith("/uploads/") ? path.basename(item.url) : "");
+    if (storageKey) await deleteUpload(storageKey);
+    else if (item.cloudinaryPublicId) await deleteUpload(item.cloudinaryPublicId);
     await MediaLibraryItemModel.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   });
@@ -835,17 +845,33 @@ ${allUrls.map(u => `  <url>
 
     let { url: sourceUrl } = req.body as { url?: string };
     if (!sourceUrl) return res.status(400).json({ message: "url مطلوب" });
+    try {
+      const parsed = new URL(sourceUrl);
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
+    } catch {
+      return res.status(400).json({ message: "أدخل رابط http أو https صالحاً" });
+    }
+    const originalSourceUrl = sourceUrl;
 
     // Convert Google Drive share link → direct download link
-    const gdMatch = sourceUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    const gdId    = gdMatch?.[1];
+    const gdMatch = sourceUrl.match(/drive\.google\.com\/file\/d\/([^/?#]+)/)
+      || sourceUrl.match(/[?&]id=([^&#]+)/);
+    const gdId = gdMatch?.[1];
     if (gdId) sourceUrl = `https://drive.google.com/uc?export=download&id=${gdId}`;
 
     try {
       const fetchRes = await fetch(sourceUrl, { redirect: "follow" });
       if (!fetchRes.ok) return res.status(400).json({ message: `فشل جلب الملف: ${fetchRes.status}` });
-      const contentType = fetchRes.headers.get("content-type") || "application/octet-stream";
+      const contentType = (fetchRes.headers.get("content-type") || "").split(";")[0].toLowerCase();
+      const contentLength = Number(fetchRes.headers.get("content-length") || 0);
+      if (contentLength > 15 * 1024 * 1024) return res.status(413).json({ message: "حجم الصورة أكبر من 15MB المسموح" });
+      if (!contentType.startsWith("image/")) {
+        return res.status(400).json({ message: gdId
+          ? "رابط Google Drive غير عام أو لا يشير إلى صورة. اجعل الملف متاحاً عبر الرابط أو اربط Google Drive."
+          : "الرابط لا يعيد صورة مباشرة. استخدم رابط صورة ينتهي بامتداد معروف." });
+      }
       const buf = Buffer.from(await fetchRes.arrayBuffer());
+      if (buf.length > 15 * 1024 * 1024) return res.status(413).json({ message: "حجم الصورة أكبر من 15MB المسموح" });
       const ext = contentType.startsWith("image/png") ? ".png"
         : contentType.startsWith("image/webp") ? ".webp"
         : contentType.startsWith("image/gif")  ? ".gif"
@@ -870,8 +896,9 @@ ${allUrls.map(u => `  <url>
         mimeType: contentType.split(";")[0],
         bytes: buf.length,
         source: gdId ? "google_drive" : "url",
-        sourceUrl,
+         sourceUrl: originalSourceUrl,
         storage: r.storage,
+         storageKey: r.filename,
         uploadedBy: user?.id || "unknown",
       });
       res.json({ ...item.toObject(), id: item._id.toString() });

@@ -23,6 +23,14 @@ interface MediaItem {
   createdAt: string;
 }
 
+interface StorageStatus {
+  persistent: boolean;
+  backend: string;
+  cloudinaryConfigured: boolean;
+  objectStorageConfigured: boolean;
+  message: string;
+}
+
 interface MediaLibraryProps {
   /** If provided, renders as a picker — clicking an item calls this instead of copying */
   onSelect?: (url: string) => void;
@@ -64,7 +72,7 @@ export default function AdminMediaLibrary({ onSelect, filterType = "" }: MediaLi
 
   // Query
   const qKey = ["/api/admin/media-library", { page, type: typeFilter, q: searchQ }];
-  const { data, isLoading, refetch } = useQuery<{ items: MediaItem[]; total: number; page: number; limit: number }>({
+  const { data, isLoading, refetch } = useQuery<{ items: MediaItem[]; total: number; page: number; limit: number; storageStatus?: StorageStatus }>({
     queryKey: qKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -82,6 +90,7 @@ export default function AdminMediaLibrary({ onSelect, filterType = "" }: MediaLi
   const items = data?.items || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / (data?.limit || 48));
+  const storageStatus = data?.storageStatus;
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -158,6 +167,15 @@ export default function AdminMediaLibrary({ onSelect, filterType = "" }: MediaLi
 
   return (
     <div className="flex flex-col h-full gap-4" dir="rtl">
+      {storageStatus && !storageStatus.persistent && (
+        <div className="flex items-start gap-3 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+          <HardDrive className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div className="text-xs leading-relaxed">
+            <p className="font-black">التخزين الدائم غير مُعد</p>
+            <p>{storageStatus.message}. لا ترفع صورًا في الإنتاج قبل إعداد أحد الخيارين.</p>
+          </div>
+        </div>
+      )}
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
@@ -377,9 +395,9 @@ export default function AdminMediaLibrary({ onSelect, filterType = "" }: MediaLi
             <DialogTitle className="text-base font-black">استيراد من رابط</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800 leading-relaxed">
-              <p className="font-bold mb-1">🔗 روابط Google Drive مدعومة</p>
-              <p>الصق رابط مشاركة من Drive (Share → Copy link) أو أي رابط صورة مباشر</p>
+             <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800 leading-relaxed">
+               <p className="font-bold mb-1">روابط الصور العامة وGoogle Drive</p>
+               <p>الصق رابط صورة مباشر أو رابط Drive لملف صورة متاح عبر الرابط. لاختيار صور Drive الخاصة، اربط Google Drive من إعدادات التكامل أولاً.</p>
             </div>
             <Input
               value={importUrl}

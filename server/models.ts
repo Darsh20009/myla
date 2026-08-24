@@ -1239,6 +1239,7 @@ const mediaLibraryItemSchema = new Schema({
   source:            { type: String, enum: ["upload", "url", "google_drive"], default: "upload" },
   sourceUrl:         { type: String, default: "" },
   storage:           { type: String, default: "cloudinary" },
+  storageKey:        { type: String, default: "" },
   cloudinaryPublicId:{ type: String, default: "" },
   tags:              [{ type: String }],
   uploadedBy:        { type: String, default: "" },
