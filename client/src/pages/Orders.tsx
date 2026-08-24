@@ -583,7 +583,7 @@ const OrderCard = ({ order }: { order: any }) => {
                           <div className="relative pr-4 space-y-3">
                             <div className="absolute right-[7px] top-2 bottom-2 w-[2px] bg-black/8" />
                             {[...order.statusHistory].reverse().map((entry: any, i: number) => {
-                              const s = statusConfig[entry.status] || statusConfig.new;
+                              const s = statusConfig[entry.status] || { icon: AlertCircle, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", step: -2, label: "حالة غير معروفة" };
                               return (
                                 <div key={i} className="flex items-start gap-3 relative">
                                   <div className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 mt-0.5 ${i === 0 ? "border-primary bg-primary" : "border-black/15 bg-white"}`} />

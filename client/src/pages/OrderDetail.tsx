@@ -26,6 +26,7 @@ const statusConfig: Record<string, { icon: any; color: string; label: string; bg
   completed:        { icon: CheckCircle,  color: "text-green-600",  bg: "bg-green-50",   border: "border-green-100",  step: 4, label: "تم التوصيل" },
   delivered:        { icon: CheckCircle,  color: "text-green-600",  bg: "bg-green-50",   border: "border-green-100",  step: 4, label: "تم التوصيل" },
   cancelled:        { icon: AlertCircle,  color: "text-red-600",    bg: "bg-red-50",     border: "border-red-100",    step: -1, label: "ملغي" },
+  returned:         { icon: RefreshCw,     color: "text-slate-600",  bg: "bg-slate-50",   border: "border-slate-200",   step: -1, label: "تم الإرجاع" },
 };
 
 const trackingSteps = [
@@ -237,11 +238,14 @@ function ImageCarousel({ images }: { images: string[] }) {
 
 // ─── Tracking Stepper ────────────────────────────────────────────────────────
 function TrackingStepper({ order }: { order: any }) {
-  const currentStep = statusConfig[order.status]?.step ?? 0;
+  const currentStep = order.shippingMethod === "pickup"
+    ? (order.status === "ready_for_pickup" ? 2 : ["completed", "delivered"].includes(order.status) ? 3 : (statusConfig[order.status]?.step ?? -2))
+    : (statusConfig[order.status]?.step ?? -2);
   const isCancelled = order.status === "cancelled";
+  const isReturned = order.status === "returned";
   const isShipped = order.status === "shipped" && order.shippingProvider;
 
-  if (isCancelled) {
+  if (isCancelled || isReturned) {
     return (
       <div className="flex items-center gap-3 p-5 bg-red-50 border border-red-100 rounded-2xl">
         <AlertCircle className="h-6 w-6 text-red-500 shrink-0" />
@@ -252,8 +256,18 @@ function TrackingStepper({ order }: { order: any }) {
       </div>
     );
   }
+  if (currentStep === -2) {
+    return <div className="flex items-center gap-3 p-5 bg-amber-50 border border-amber-200 rounded-2xl"><AlertCircle className="h-6 w-6 text-amber-600 shrink-0" /><p className="text-sm font-bold text-amber-800">تعذر معرفة حالة الطلب حالياً. تواصل مع الدعم إذا استمر الأمر.</p></div>;
+  }
 
-  const steps = isShipped
+  const steps = order.shippingMethod === "pickup"
+    ? [
+        { key: "new", icon: ShoppingBag, label: "تم الاستلام", sublabel: "طلبك وصلنا" },
+        { key: "processing", icon: Package, label: "قيد التجهيز", sublabel: "نجهّز طلبك" },
+        { key: "ready_for_pickup", icon: Package, label: "جاهز للاستلام", sublabel: "يمكنك زيارة الفرع" },
+        { key: "completed", icon: CheckCircle, label: "تم الاستلام", sublabel: "استلمت طلبك" },
+      ]
+    : isShipped
     ? [
         { key: "new",       icon: ShoppingBag, label: "تم الاستلام", sublabel: "طلبك وصلنا" },
         { key: "processing",icon: Package,     label: "قيد التجهيز", sublabel: "نجهّز طلبك" },
@@ -374,7 +388,7 @@ export default function OrderDetail() {
     if (item.image) productImages.push(item.image);
   });
 
-  const sc = statusConfig[order.status] || statusConfig.new;
+   const sc = statusConfig[order.status] || { icon: AlertCircle, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", step: -2, label: "حالة غير معروفة" };
   const StatusIcon = sc.icon;
   const canCancel = ["new", "processing"].includes(order.status);
   const isCompleted = order.status === "completed" || order.status === "delivered";
@@ -515,6 +529,22 @@ export default function OrderDetail() {
             </motion.div>
           )}
 
+          {(order.tracking?.number || order.trackingNumber || order.tracking?.provider || order.shippingProvider) && (
+            <div className="bg-white rounded-3xl border border-black/5 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <Truck className="h-5 w-5 text-primary" />
+                <h2 className="font-black text-base">بيانات التتبع</h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-bold text-black/60">
+                <span>{order.tracking?.provider || order.shippingProvider || order.shippingCompany || "شركة الشحن"}</span>
+                {(order.tracking?.number || order.trackingNumber) && <span dir="ltr">#{order.tracking?.number || order.trackingNumber}</span>}
+                {(order.tracking?.url || order.mapitTrackingUrl) && (
+                  <a href={order.tracking?.url || order.mapitTrackingUrl} target="_blank" rel="noreferrer" className="text-primary underline">تتبع الشحنة</a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Completed card */}
           {isCompleted && (
             <motion.div
@@ -646,7 +676,7 @@ export default function OrderDetail() {
               <div className="relative pr-4 space-y-4">
                 <div className="absolute right-[7px] top-2 bottom-2 w-[2px] bg-black/8" />
                 {[...order.statusHistory].reverse().map((entry: any, i: number) => {
-                  const s = statusConfig[entry.status] || statusConfig.new;
+                    const s = statusConfig[entry.status] || { icon: AlertCircle, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", step: -2, label: "حالة غير معروفة" };
                   const Ic = s.icon;
                   return (
                     <div key={i} className="flex items-start gap-4 relative">
@@ -676,7 +706,7 @@ export default function OrderDetail() {
             </button>
 
             <a
-              href={`/api/invoices/${orderId}`}
+              href={`/api/orders/${orderId}/invoice`}
               target="_blank"
               className="flex items-center justify-center gap-2 h-14 rounded-2xl border-2 border-black/8 bg-white font-black text-[11px] uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all active:scale-95"
             >

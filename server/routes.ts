@@ -6204,8 +6204,8 @@ ${allUrls.map(u => `  <url>
       // verify order belongs to user
       const order = await storage.getOrder(req.body.orderId);
       if (!order || order.userId !== user.id) return res.status(403).json({ message: "غير مسموح" });
-      if (!["completed", "shipped", "delivered"].includes(order.status) && order.status !== "completed") {
-        return res.status(400).json({ message: "لا يمكن طلب إرجاع لهذا الطلب" });
+       if (order.status !== "completed") {
+         return res.status(400).json({ message: "يمكن طلب الإرجاع بعد اكتمال وتسليم الطلب فقط" });
       }
       // check no existing return
       const existing = await storage.getReturnRequests({ userId: user.id });
