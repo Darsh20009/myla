@@ -17,7 +17,7 @@ npm run start     # Production server (runs dist/index.cjs)
 - `ADMIN_BOOTSTRAP_PASSWORD` — required Replit Secret (at least 12 characters), not yet provided; controls the seeded admin password on each start
 - `PORT` — set to `5000` in Replit env (shared)
 - Workflow `Start application` runs `npm run dev` on port 5000; currently paused until the admin secret is provided
-- Email verification reports missing SMTP credentials; email features require their provider credentials.
+- Email uses QIROX when `QIROX_EMAIL_API_KEY` is configured, otherwise SMTP; messages with attachments still require SMTP.
 - The seeded admin password is reset from `ADMIN_BOOTSTRAP_PASSWORD` on every start. To change it, update the secret; changing it only through the site will be overwritten by a restart.
 
 **Required secrets (set via Replit Secrets, not .env):**
@@ -34,6 +34,11 @@ npm run start     # Production server (runs dist/index.cjs)
 | `KIMI_API_KEY` | Moonshot/Kimi AI (sole AI provider) | For AI features |
 | `INBOX_ENC_KEY` | Employee inbox encryption (falls back to SESSION_SECRET) | Optional |
 | `SMTP2GO_API_KEY` | Transactional email | For email |
+| `QIROX_EMAIL_API_KEY` | QIROX project email bearer key | For email |
+| `QIROX_WHATSAPP_API_KEY` | QIROX project WhatsApp bearer key | For OTP delivery |
+| `QIROX_PROJECT_ID` | QIROX project ID (defaults to the configured project) | Optional |
+| `QIROX_API_BASE_URL` | QIROX API root (defaults to `https://qiroxstudio.online/api/v1`) | Optional |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Durable media storage outside Replit | For Render uploads |
 | `VAPID_PUBLIC_KEY` | Web push notifications | For push |
 | `VAPID_PRIVATE_KEY` | Web push notifications signing | For push |
 | `STORAGE_STATION_API_KEY` | WooCommerce consumer key (storagestation.app) | For 3PL |
@@ -95,6 +100,7 @@ npm run start     # Production server (runs dist/index.cjs)
 -   AI perfume advisor and support chatbot with voice input and dynamic quick replies.
 -   Storage Station (storagestation.app) 3PL fulfillment integration — orders auto-pushed after payment confirmation via WooCommerce REST API v3 using SKU mapping.
 -   Shipox / 3rd Mile direct courier integration (`server/shipox.ts`) — auto-creates shipments on payment, supports 4 service types (STANDARD, RETURN, EXPRESS_SMSA, EXPRESS_JT), AWB label printing, live tracking, cancel, and return creation. Admin order detail panel has full Shipox controls.
+-   QIROX delivery APIs: transactional email uses QIROX when configured; customer OTPs prefer Myla's connected Baileys session and use QIROX only when Baileys is disconnected. Opening QIROX endpoints in a browser sends `GET` and returns `Cannot GET`; it is not an endpoint health check. The supplied docs do not describe email attachments or inbound WhatsApp conversations.
 -   Dynamic shipping rates fetched from Storage Station's WooCommerce Shipping Zones API at checkout based on customer's city (`GET /api/shipping/rate?city=X&total=Y`). Zones cached 10 min. Falls back to 30 SAR if no zone configured. Supports free shipping threshold from store settings.
 
 ## User preferences

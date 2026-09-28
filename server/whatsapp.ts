@@ -15,6 +15,7 @@ import path from "path";
 import QRCode from "qrcode";
 import { aiChat } from "./ai-provider";
 import { SITE } from "./site-config";
+import { isQiroxConfigured, sendQiroxWhatsAppOtp } from "./qirox";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -879,7 +880,19 @@ export async function sendWaImage(
 
 /** Send OTP verification code via WhatsApp */
 export async function sendWhatsAppOTP(phone: string, otp: string): Promise<boolean> {
-  if (!sock || waState !== "connected") return false;
+  // Prefer Myla's paired local WhatsApp session. QIROX is only a fallback
+  // when Baileys is not connected; a Baileys send error does not switch providers.
+  if (!sock || waState !== "connected") {
+    if (!isQiroxConfigured("whatsapp")) return false;
+    try {
+      await sendQiroxWhatsAppOtp(phone, otp);
+      return true;
+    } catch (e: any) {
+      console.error("[WhatsApp OTP] QIROX fallback failed:", e?.message || "unknown error");
+      return false;
+    }
+  }
+
   try {
     let digits = phone.replace(/\D/g, "");
     // Strip leading zeros, then prepend 966 if not already international

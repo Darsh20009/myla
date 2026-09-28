@@ -235,8 +235,10 @@ export function setupAuth(app: Express) {
       }
 
       const { getWaStatus, sendWhatsAppOTP } = await import("./whatsapp");
+      const { isQiroxConfigured } = await import("./qirox");
       const waStatus = getWaStatus();
-      if (waStatus.state !== "connected") {
+      const hasWhatsAppSender = waStatus.state === "connected" || isQiroxConfigured("whatsapp");
+      if (!hasWhatsAppSender) {
         pendingRegOtps.set(cleanPhone, { otp: "", expires: new Date(Date.now() + 15 * 60 * 1000), waRequired: false });
         return res.json({ required: false });
       }
@@ -245,9 +247,10 @@ export function setupAuth(app: Express) {
       pendingRegOtps.set(cleanPhone, { otp, expires: new Date(Date.now() + 10 * 60 * 1000), waRequired: true });
       const sent = await sendWhatsAppOTP(cleanPhone, otp);
       if (!sent) {
-        // WhatsApp is connected but failed to send — do NOT fall back, return error
+        // A connected Baileys session is not silently rerouted to QIROX on a
+        // send error; QIROX is reserved for the disconnected-session case.
         pendingRegOtps.delete(cleanPhone);
-        console.warn("[RegOTP] sendWhatsAppOTP failed for", cleanPhone);
+        console.warn("[RegOTP] WhatsApp OTP delivery failed");
         return res.status(503).json({ message: "فشل إرسال رمز التحقق عبر واتساب، يرجى المحاولة مجدداً بعد لحظات" });
       }
       return res.json({ required: true, sent: true });
@@ -1123,14 +1126,15 @@ export function setupAuth(app: Express) {
 
       // Send via WhatsApp
       const { sendWhatsAppOTP, getWaStatus } = await import("./whatsapp");
+      const { isQiroxConfigured } = await import("./qirox");
       const waStatus = getWaStatus();
-      if (waStatus.state === "connected") {
+      if (isQiroxConfigured("whatsapp") || waStatus.state === "connected") {
         const sent = await sendWhatsAppOTP(phone, otp);
         if (sent) {
           return res.json({ sent: true, via: "whatsapp" });
         }
-        // WhatsApp connected but send failed — fall through to email/error
-        console.warn("[OTP Send] sendWhatsAppOTP failed for", phone);
+        // Fall through to email when the selected WhatsApp sender fails.
+        console.warn("[OTP Send] sendWhatsAppOTP failed");
       }
 
       // Fallback: if WhatsApp not connected or send failed, try email

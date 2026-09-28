@@ -42,6 +42,7 @@ import {
   sendWelcomeEmail, sendPaymentConfirmationEmail, sendAdminNewOrderEmail,
   sendEmail,
 } from "./email";
+import { isQiroxConfigured } from "./qirox";
 import {
   initiatePaymobPayment, verifyPaymobHmac, flattenPaymobCallback, isPaymobConfigured,
   paymobMode, initiatePaymobIntention
@@ -2169,11 +2170,15 @@ ${allUrls.map(u => `  <url>
 
   // ─── Admin Email Testing ────────────────────────────────────────────────
   app.get("/api/admin/email/status", checkPermission("settings.manage"), (_req, res) => {
+    const qiroxConfigured = isQiroxConfigured("email");
+    const smtpConfigured = !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS);
     res.json({
-      configured: !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS),
-      sender: process.env.CPANEL_SMTP_USER || process.env.INBOX_MAIL_EMAIL || "myla@qirox.online",
+      configured: qiroxConfigured || smtpConfigured,
+      sender: qiroxConfigured
+        ? "QIROX project sender"
+        : process.env.CPANEL_SMTP_USER || process.env.INBOX_MAIL_EMAIL || "myla@qirox.online",
       senderName: "Myla | ميلا",
-      provider: "cPanel SMTP",
+      provider: qiroxConfigured ? "QIROX" : smtpConfigured ? "cPanel SMTP" : "غير مهيأ",
     });
   });
 
@@ -2226,11 +2231,9 @@ ${allUrls.map(u => `  <url>
       if (!to || !/^\S+@\S+\.\S+$/.test(to)) {
         return res.status(400).json({ success: false, message: "البريد الإلكتروني غير صالح" });
       }
-      // Email service uses cPanel SMTP only (server/email.ts).
-      // The old check rejected valid cPanel configuration before attempting
-      // the actual send.
-      if (!process.env.INBOX_MAIL_PASSWORD && !process.env.CPANEL_SMTP_PASS && !process.env.SMTP_PASS) {
-        return res.status(503).json({ success: false, message: "كلمة مرور SMTP غير مُعدة في متغيّرات البيئة" });
+      const smtpConfigured = !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS);
+      if (!isQiroxConfigured("email") && !smtpConfigured) {
+        return res.status(503).json({ success: false, message: "لم يتم إعداد مزود البريد. أضف مفتاح QIROX أو بيانات SMTP." });
       }
 
       const customerName = name || "عميل تجريبي";
