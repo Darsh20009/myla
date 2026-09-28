@@ -103,7 +103,7 @@ import {
 } from "./cache";
 import {
   pushOrderToStorageStation, updateStorageStationOrder,
-  getStorageStationOrder, isStorageStationConfigured,
+  getStorageStationOrder, isStorageStationConfigured, testStorageStationConnection,
   getShippingRateForCity,
 } from "./storagestation";
 import {
@@ -415,6 +415,11 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
     if (order.shippingMethod === "delivery" && isStorageStationConfigured()) {
       enqueueJob("paid-storage-station-push", async () => {
         try {
+          const freshOrder: any = await storage.getOrder(String(order.id || orderId));
+          if (freshOrder?.storageStationOrderId) {
+            console.log(`[StorageStation] order ${orderId} already has WC#${freshOrder.storageStationOrderId} — skipping`);
+            return;
+          }
           const ssResult = await pushOrderToStorageStation(order);
           await storage.updateOrder(String(order.id || orderId), {
             storageStationOrderId: ssResult.wcOrderId,
@@ -3511,21 +3516,24 @@ ${allUrls.map(u => `  <url>
     }
   });
 
-  // ── Shipping rate (fixed cost from store settings) ───────────────────────────
+  // ── Shipping rate (Storage Station zones with store-settings fallback) ───────
   app.get("/api/shipping/rate", async (req, res) => {
     try {
       const orderTotal = parseFloat(String(req.query.total || "0")) || 0;
+      const city = String(req.query.city || "").trim();
 
       const settings = await storage.getStoreSettings();
-      const threshold   = (settings as any)?.freeShippingThreshold || 0;
+      const threshold   = Number((settings as any)?.freeShippingThreshold) || 0;
       const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
       const fixedCost   = Number((settings as any)?.fixedShippingCost ?? 30);
 
-      const isFree = freeEnabled && threshold > 0 && orderTotal >= threshold;
-      if (isFree) {
-        return res.json({ cost: 0, zoneName: "شحن مجاني", methodTitle: "شحن مجاني", isFree: true });
-      }
-      res.json({ cost: fixedCost, zoneName: "توصيل", methodTitle: "توصيل", isFree: false });
+      const rate = await getShippingRateForCity(
+        city,
+        orderTotal,
+        freeEnabled ? threshold : 0,
+        Number.isFinite(fixedCost) && fixedCost >= 0 ? fixedCost : 30,
+      );
+      res.json(rate);
     } catch (err: any) {
       console.error("[API] shipping/rate error:", err?.message);
       res.json({ cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false });
@@ -5519,6 +5527,12 @@ ${allUrls.map(u => `  <url>
       if ((order as any).shippingMethod !== "delivery") {
         return res.status(400).json({ message: "يُرسل الطلب فقط لطلبات التوصيل" });
       }
+      if ((order as any).paymentStatus !== "paid") {
+        return res.status(409).json({ message: "لا يمكن إرسال طلب غير مدفوع إلى Storage Station" });
+      }
+      if ((order as any).storageStationOrderId) {
+        return res.status(409).json({ message: "تم إرسال هذا الطلب إلى Storage Station مسبقاً" });
+      }
 
       const ssResult = await pushOrderToStorageStation(order);
       await storage.updateOrder(orderId, {
@@ -5551,6 +5565,12 @@ ${allUrls.map(u => `  <url>
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
       if ((order as any).shippingMethod !== "delivery") {
         return res.status(400).json({ message: "يُرسل الطلب فقط لطلبات التوصيل" });
+      }
+      if ((order as any).paymentStatus !== "paid") {
+        return res.status(409).json({ message: "لا يمكن إرسال طلب غير مدفوع إلى Storage Station" });
+      }
+      if ((order as any).storageStationOrderId) {
+        return res.status(409).json({ message: "تم إرسال هذا الطلب إلى Storage Station مسبقاً" });
       }
       if (!isStorageStationConfigured()) {
         return res.status(503).json({ message: "لم يتم تهيئة بيانات اعتماد Storage Station" });
@@ -5659,6 +5679,32 @@ ${allUrls.map(u => `  <url>
       baseUrl: "https://storagestation.app",
       store: "myla",
     });
+  });
+
+  app.get("/api/admin/storage-station/test-connection", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user.role !== "admin") return res.sendStatus(403);
+    if (!isStorageStationConfigured()) {
+      return res.status(503).json({
+        success: false,
+        message: "أضف مفتاح API وSecret في Replit Secrets أولاً",
+      });
+    }
+
+    try {
+      await testStorageStationConnection();
+      res.json({
+        success: true,
+        message: "تم الاتصال بنجاح وإمكانية قراءة كتالوج المنتجات متاحة",
+      });
+    } catch (err: any) {
+      console.error("[StorageStation] connection test failed:", err?.message);
+      res.status(502).json({
+        success: false,
+        message: err?.message || "تعذر الاتصال بـ Storage Station",
+      });
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

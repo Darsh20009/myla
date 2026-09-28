@@ -220,13 +220,35 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
   const total = integration.keys.length;
   const allOk = configured === total;
   const noneOk = configured === 0;
+  const [connectionState, setConnectionState] = useState<"idle" | "checking" | "connected" | "failed">("idle");
+  const [connectionMessage, setConnectionMessage] = useState("");
+  const isStorageStation = integration.id === "storageStation";
+  const ready = isStorageStation ? connectionState === "connected" : allOk;
+  const statusColor = ready ? "emerald" : noneOk ? "red" : "amber";
   const catColor = CATEGORY_COLORS[integration.category] || "bg-slate-50 text-slate-700 border-slate-200";
+
+  const testStorageStation = async () => {
+    setConnectionState("checking");
+    setConnectionMessage("");
+    try {
+      const response = await fetch("/api/admin/storage-station/test-connection");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "تعذر الاتصال بـ Storage Station");
+      }
+      setConnectionState("connected");
+      setConnectionMessage(result.message || "الاتصال يعمل");
+    } catch (error: any) {
+      setConnectionState("failed");
+      setConnectionMessage(error?.message || "تعذر الاتصال بـ Storage Station");
+    }
+  };
 
   return (
     <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${
-      allOk ? "border-emerald-100" : noneOk ? "border-red-100" : "border-amber-100"
+      statusColor === "emerald" ? "border-emerald-100" : statusColor === "red" ? "border-red-100" : "border-amber-100"
     }`}>
-      <div className={`h-1.5 ${allOk ? "bg-emerald-400" : noneOk ? "bg-red-400" : "bg-amber-400"}`} />
+      <div className={`h-1.5 ${statusColor === "emerald" ? "bg-emerald-400" : statusColor === "red" ? "bg-red-400" : "bg-amber-400"}`} />
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
@@ -268,11 +290,13 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
           ))}
         </div>
 
-        <div className={`mt-3 pt-3 border-t ${allOk ? "border-emerald-50" : noneOk ? "border-red-50" : "border-amber-50"}`}>
+        <div className={`mt-3 pt-3 border-t ${statusColor === "emerald" ? "border-emerald-50" : statusColor === "red" ? "border-red-50" : "border-amber-50"}`}>
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400">{configured}/{total} مفاتيح مُعدَّة</span>
-            {allOk
-              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> جاهز</span>
+            {ready
+              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {isStorageStation ? "متصل" : "جاهز"}</span>
+              : allOk && isStorageStation
+              ? <span className="flex items-center gap-1 text-[10px] font-black text-amber-600"><AlertTriangle className="h-3 w-3" /> لم يُختبر الاتصال</span>
               : noneOk
               ? <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="h-3 w-3" /> غير مُفعَّل</span>
               : <span className="flex items-center gap-1 text-[10px] font-black text-amber-600"><AlertTriangle className="h-3 w-3" /> جزئي</span>
@@ -280,11 +304,33 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
           </div>
           <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full ${allOk ? "bg-emerald-400" : noneOk ? "bg-red-400" : "bg-amber-400"}`}
+              className={`h-full rounded-full ${statusColor === "emerald" ? "bg-emerald-400" : statusColor === "red" ? "bg-red-400" : "bg-amber-400"}`}
               style={{ width: `${(configured / total) * 100}%`, transition: "width 1s ease" }}
             />
           </div>
         </div>
+        {isStorageStation && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={testStorageStation}
+              disabled={!allOk || connectionState === "checking"}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-black text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {connectionState === "checking"
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : connectionState === "connected"
+                ? <CheckCircle2 className="h-3.5 w-3.5" />
+                : <RefreshCw className="h-3.5 w-3.5" />}
+              اختبار الاتصال
+            </button>
+            {connectionMessage && (
+              <p className={`mt-2 text-[10px] font-bold ${connectionState === "connected" ? "text-emerald-600" : "text-red-500"}`}>
+                {connectionMessage}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

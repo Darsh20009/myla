@@ -54,20 +54,31 @@ const CITY_TO_STATE: Record<string, string> = {
 
 // ─── Shipping zones cache (10 min TTL) ───────────────────────────────────────
 interface ZoneCache {
-  zones: Array<{ id: number; name: string; locations: string[]; methods: Array<{ title: string; cost: number; enabled: boolean }> }>;
+  zones: Array<{
+    id: number;
+    name: string;
+    locations: string[];
+    methods: Array<{
+      title: string;
+      cost: number;
+      enabled: boolean;
+      methodId: string;
+      requires?: string;
+      minAmount?: number;
+    }>;
+  }>;
   expires: number;
 }
 let zoneCache: ZoneCache | null = null;
+const productSkuCache = new Map<string, { productId: number; variationId?: number; expires: number }>();
 
 async function fetchZoneData(): Promise<ZoneCache["zones"]> {
   if (zoneCache && Date.now() < zoneCache.expires) return zoneCache.zones;
 
   const rawZones: any[] = await ssRequest("GET", "/shipping/zones");
-  const zones: ZoneCache["zones"] = [];
-
-  await Promise.all(
-    rawZones.map(async (zone: any) => {
-      if (zone.id === 0) return; // skip "Locations not covered"
+  const zones = (await Promise.all(
+    rawZones.map(async (zone: any): Promise<ZoneCache["zones"][number] | null> => {
+      if (zone.id === 0) return null; // skip "Locations not covered"
       try {
         const [locs, methods]: [any[], any[]] = await Promise.all([
           ssRequest("GET", `/shipping/zones/${zone.id}/locations`),
@@ -75,18 +86,44 @@ async function fetchZoneData(): Promise<ZoneCache["zones"]> {
         ]);
 
         const locationCodes = (locs || []).map((l: any) => l.code as string).filter(Boolean);
-        const parsedMethods = (methods || [])
+        const parsedMethods: ZoneCache["zones"][number]["methods"] = (methods || [])
           .filter((m: any) => m.enabled !== false)
-          .map((m: any) => ({
-            title: m.method_title || m.title || "توصيل",
-            cost: parseFloat(m.settings?.cost?.value || m.settings?.min_amount?.value || "0") || 0,
-            enabled: true,
-          }));
+          .flatMap((m: any) => {
+            const methodId = String(m.method_id || "");
+            const settings = m.settings || {};
+            const rawCost = String(settings.cost?.value ?? "").trim();
+            const parsedCost = /^-?\d+(?:\.\d+)?$/.test(rawCost) ? Number(rawCost) : null;
+            const requires = String(settings.requires?.value || "");
+            const minAmount = Number(settings.min_amount?.value || 0);
 
-        zones.push({ id: zone.id, name: zone.name || "", locations: locationCodes, methods: parsedMethods });
-      } catch { /* skip zones that fail */ }
+            // A free-shipping method is not necessarily available until its
+            // minimum-order requirement is met. Do not confuse that minimum
+            // with the shipping price.
+            if (methodId === "free_shipping") {
+              return [{
+                title: m.method_title || m.title || "شحن مجاني",
+                cost: 0,
+                enabled: true,
+                methodId,
+                requires,
+                minAmount: Number.isFinite(minAmount) ? minAmount : 0,
+              }];
+            }
+            if (parsedCost === null || !Number.isFinite(parsedCost) || parsedCost < 0) return [];
+            return [{
+              title: m.method_title || m.title || "توصيل",
+              cost: parsedCost,
+              enabled: true,
+              methodId,
+            }];
+          });
+
+        return { id: zone.id, name: zone.name || "", locations: locationCodes, methods: parsedMethods };
+      } catch {
+        return null;
+      }
     }),
-  );
+  )).filter((zone): zone is ZoneCache["zones"][number] => zone !== null);
 
   zoneCache = { zones, expires: Date.now() + 10 * 60 * 1000 };
   return zones;
@@ -108,6 +145,7 @@ export async function getShippingRateForCity(
   city: string,
   orderTotal = 0,
   freeShippingThreshold = 0,
+  fallbackCost = 30,
 ): Promise<ShippingRateResult> {
   // Free shipping threshold
   if (freeShippingThreshold > 0 && orderTotal >= freeShippingThreshold) {
@@ -115,7 +153,7 @@ export async function getShippingRateForCity(
   }
 
   if (!isStorageStationConfigured()) {
-    return { cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
+    return { cost: fallbackCost, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
   }
 
   try {
@@ -140,8 +178,19 @@ export async function getShippingRateForCity(
       );
     }
 
-    if (matched && matched.methods.length > 0) {
-      const method = matched.methods[0];
+    const availableMethods = (matched?.methods || []).filter((method) => {
+      if (!method.enabled) return false;
+      if (method.methodId !== "free_shipping") return true;
+      if (!method.requires || method.requires === "min_amount") {
+        return !method.minAmount || orderTotal >= method.minAmount;
+      }
+      // Coupon-dependent free shipping cannot be selected without a coupon
+      // context, so let the next configured method provide the rate.
+      return false;
+    });
+
+    if (matched && availableMethods.length > 0) {
+      const method = availableMethods[0];
       return {
         cost: method.cost,
         zoneName: matched.name,
@@ -154,7 +203,7 @@ export async function getShippingRateForCity(
   }
 
   // Default fallback
-  return { cost: 30, zoneName: "سعر افتراضي", methodTitle: "توصيل", isFree: false };
+  return { cost: fallbackCost, zoneName: "سعر افتراضي", methodTitle: "توصيل", isFree: false };
 }
 
 /** Invalidate the zones cache (call after admin updates shipping settings) */
@@ -180,6 +229,7 @@ async function ssRequest(
     method,
     headers: authHeaders(),
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(20_000),
   });
 
   const text = await res.text();
@@ -191,6 +241,113 @@ async function ssRequest(
     throw new Error(`[StorageStation] HTTP ${res.status}: ${msg}`);
   }
   return data;
+}
+
+/** Confirm that the configured WooCommerce credentials can read the catalog. */
+export async function testStorageStationConnection(): Promise<void> {
+  if (!isStorageStationConfigured()) {
+    throw new Error("[StorageStation] API credentials not configured");
+  }
+  const products = await ssRequest("GET", "/products?per_page=1");
+  if (!Array.isArray(products)) {
+    throw new Error("[StorageStation] Product catalog returned an unexpected response");
+  }
+}
+
+interface WooCommerceProductReference {
+  productId: number;
+  variationId?: number;
+}
+
+function normalizedSku(value: unknown): string {
+  return String(value || "").trim().toLocaleLowerCase();
+}
+
+function parentIdFromStoreApiVariation(variation: any): number | null {
+  const directParentId = Number(variation.parent ?? variation.parent_id);
+  if (Number.isInteger(directParentId) && directParentId > 0) return directParentId;
+
+  const href = variation?._links?.up?.[0]?.href;
+  if (typeof href !== "string") return null;
+  const match = href.match(/\/products\/(\d+)\/?$/);
+  return match ? Number(match[1]) : null;
+}
+
+async function findStoreApiVariation(sku: string): Promise<WooCommerceProductReference | null> {
+  const url = `https://storagestation.app/wp-json/wc/store/v1/products?type=variation&sku=${encodeURIComponent(sku)}&per_page=100`;
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!response.ok) return null;
+
+  const results = await response.json() as any[];
+  if (!Array.isArray(results)) return null;
+  const variation = results.find((product) => normalizedSku(product.sku) === normalizedSku(sku));
+  if (!variation) return null;
+
+  const productId = parentIdFromStoreApiVariation(variation);
+  const variationId = Number(variation.id);
+  if (!productId || !Number.isInteger(variationId) || variationId <= 0) return null;
+  return { productId, variationId };
+}
+
+async function findVariationUnderProduct(parentId: number, sku: string): Promise<number | null> {
+  for (let page = 1; page <= 20; page++) {
+    const variations: any[] = await ssRequest(
+      "GET",
+      `/products/${parentId}/variations?per_page=100&page=${page}`,
+    );
+    if (!Array.isArray(variations)) return null;
+    const match = variations.find((variation) => normalizedSku(variation.sku) === normalizedSku(sku));
+    if (match && Number.isInteger(Number(match.id)) && Number(match.id) > 0) return Number(match.id);
+    if (variations.length < 100) return null;
+  }
+  return null;
+}
+
+async function resolveWooCommerceProduct(skuValue: unknown, itemTitle: string): Promise<WooCommerceProductReference> {
+  const sku = String(skuValue || "").trim();
+  if (!sku) {
+    throw new Error(`[StorageStation] Missing variant SKU for order item "${itemTitle}"`);
+  }
+
+  const normalized = normalizedSku(sku);
+  const cached = productSkuCache.get(normalized);
+  if (cached && Date.now() < cached.expires) {
+    return { productId: cached.productId, variationId: cached.variationId };
+  }
+
+  const products: any[] = await ssRequest(
+    "GET",
+    `/products?sku=${encodeURIComponent(sku)}&per_page=100`,
+  );
+  const product = Array.isArray(products)
+    ? products.find((candidate) => normalizedSku(candidate.sku) === normalized)
+    : undefined;
+
+  if (product && Number.isInteger(Number(product.id)) && Number(product.id) > 0) {
+    if (product.type === "variable") {
+      const variationId = await findVariationUnderProduct(Number(product.id), sku);
+      if (variationId) {
+        const result = { productId: Number(product.id), variationId };
+        productSkuCache.set(normalized, { ...result, expires: Date.now() + 10 * 60 * 1000 });
+        return result;
+      }
+    } else {
+      const result = { productId: Number(product.id) };
+      productSkuCache.set(normalized, { ...result, expires: Date.now() + 10 * 60 * 1000 });
+      return result;
+    }
+  }
+
+  const variation = await findStoreApiVariation(sku);
+  if (variation) {
+    productSkuCache.set(normalized, { ...variation, expires: Date.now() + 10 * 60 * 1000 });
+    return variation;
+  }
+
+  throw new Error(`[StorageStation] SKU "${sku}" was not found as a purchasable product or variation`);
 }
 
 export interface StorageStationOrderResult {
@@ -223,17 +380,28 @@ export async function pushOrderToStorageStation(order: any): Promise<StorageStat
 
   const phone = (order.customerPhone || "").replace(/\D/g, "");
 
-  // Build line items using SKU
-  const lineItems = (order.items || []).map((item: any) => ({
-    name: item.title || "منتج",
-    quantity: item.quantity || 1,
-    price: String(item.price || "0"),
-    total: String(((item.price || 0) * (item.quantity || 1)).toFixed(2)),
-    sku: item.variantSku || "",
-    meta_data: [
-      { key: "sku", value: item.variantSku || "" },
-      { key: "rf_order_id", value: orderRef },
-    ],
+  // WooCommerce requires product IDs (and a variation ID for variable items);
+  // SKU is read-only on order line items.
+  const lineItems = await Promise.all((order.items || []).map(async (item: any) => {
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.price);
+    if (!Number.isInteger(quantity) || quantity < 1 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+      throw new Error(`[StorageStation] Invalid quantity or price for order item "${item.title || "منتج"}"`);
+    }
+
+    const product = await resolveWooCommerceProduct(item.variantSku, item.title || "منتج");
+    const lineTotal = (unitPrice * quantity).toFixed(2);
+    return {
+      product_id: product.productId,
+      ...(product.variationId ? { variation_id: product.variationId } : {}),
+      quantity,
+      subtotal: lineTotal,
+      total: lineTotal,
+      meta_data: [
+        { key: "sku", value: String(item.variantSku || "") },
+        { key: "rf_order_id", value: orderRef },
+      ],
+    };
   }));
 
   const wcOrder = {

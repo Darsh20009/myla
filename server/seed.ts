@@ -20,49 +20,61 @@ export async function seed() {
   // Remove legacy phone numbers (one-time cleanup only)
   await UserModel.deleteMany({ phone: "0552469643", role: "admin" });
 
-  // The bootstrap credential is supplied securely and stays authoritative on restart.
-  console.log("Seeding Myla admin user...");
+  // Only bootstrap or rotate the admin password when the secret is explicitly
+  // configured. Existing admin accounts remain usable if the secret is absent.
   const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-  if (!adminPassword || adminPassword.length < 12) {
+  if (adminPassword && adminPassword.length < 12) {
     throw new Error("ADMIN_BOOTSTRAP_PASSWORD must be at least 12 characters.");
   }
-  const passwordHash = await hashPassword(adminPassword);
-  const adminResult = await UserModel.findOneAndUpdate(
-    { phone: "0507378047", role: "admin" },
-    {
-      $set: {
-        name: "Myla",
-        username: "0507378047",
-        email: "info@myla.sa",
-        role: "admin",
-        loginType: "both",
-        isActive: true,
-        mustChangePassword: false,
-        password: passwordHash,
-        permissions: [
-          "orders.view", "orders.edit", "orders.refund",
-          "products.view", "products.edit",
-          "customers.view", "wallet.adjust",
-          "reports.view", "staff.manage",
-          "pos.access", "settings.manage"
-        ],
+  const bootstrapAdminFilter: { phone: string; role: "admin" } = { phone: "0507378047", role: "admin" };
+  const existingAdmin = await UserModel.exists(bootstrapAdminFilter);
+
+  if (!adminPassword && !existingAdmin) {
+    throw new Error("Set ADMIN_BOOTSTRAP_PASSWORD (at least 12 characters) to create the initial admin account.");
+  }
+
+  if (adminPassword) {
+    console.log("Seeding Myla admin user from ADMIN_BOOTSTRAP_PASSWORD...");
+    const passwordHash = await hashPassword(adminPassword);
+    const adminResult = await UserModel.findOneAndUpdate(
+      bootstrapAdminFilter,
+      {
+        $set: {
+          name: "Myla",
+          username: "0507378047",
+          email: "info@myla.sa",
+          role: "admin",
+          loginType: "both",
+          isActive: true,
+          mustChangePassword: false,
+          password: passwordHash,
+          permissions: [
+            "orders.view", "orders.edit", "orders.refund",
+            "products.view", "products.edit",
+            "customers.view", "wallet.adjust",
+            "reports.view", "staff.manage",
+            "pos.access", "settings.manage"
+          ],
+        },
+        $setOnInsert: {
+          phone: "0507378047",
+          walletBalance: "0",
+          addresses: [],
+          loyaltyPoints: 0,
+          loyaltyTier: "bronze",
+          totalSpent: 0,
+          phoneDiscountEligible: false,
+        },
       },
-      $setOnInsert: {
-        phone: "0507378047",
-        walletBalance: "0",
-        addresses: [],
-        loyaltyPoints: 0,
-        loyaltyTier: "bronze",
-        totalSpent: 0,
-        phoneDiscountEligible: false,
-      },
-    },
-    { upsert: true, new: false }
-  );
-  if (!adminResult) {
-    console.log("Admin user created with password from ADMIN_BOOTSTRAP_PASSWORD");
+      { upsert: true, new: false }
+    );
+    if (!adminResult) {
+      console.log("Admin user created with password from ADMIN_BOOTSTRAP_PASSWORD");
+    } else {
+      console.log("Admin user updated with password from ADMIN_BOOTSTRAP_PASSWORD");
+    }
   } else {
-    console.log("Admin user updated with password from ADMIN_BOOTSTRAP_PASSWORD");
+    console.log("ADMIN_BOOTSTRAP_PASSWORD not set; preserving existing admin credentials.");
   }
 
   const defaultCategoryData: Record<string, { nameAr: string; image: string }> = {
