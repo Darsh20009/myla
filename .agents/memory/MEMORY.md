@@ -6,3 +6,4 @@
 - [TypeScript config gotchas](ts-config-gotchas.md) — tsconfig had no target (defaulted to ES3), breaking iterators, regex /u, top-level await; Mongoose Schema<T> body needs whole-object `as any` cast (not per-field value cast) to suppress TS2353; groqChatFor arg order is (audience, messages, maxTokens).
 - [Mapit integration](mapit-integration.md) — Mapit shipping API wired into Myla; coordinates are mandatory for order creation; Mongoose $in with string[] needs `as any[]` cast; idempotency guard in dispatchOrderPaidSideEffects re-fetches order before creating.
 - [Production storage and email](production-storage-email.md) — Render needs persistent media storage; diagnostics must validate the SMTP provider actually used for sending.
+- [Vite cold-start preview](vite-cold-start-preview.md) — A first-load React hook error disappeared after Vite finished optimizing dependencies; verify a fresh load before changing app code.

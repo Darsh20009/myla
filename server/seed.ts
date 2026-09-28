@@ -20,11 +20,13 @@ export async function seed() {
   // Remove legacy phone numbers (one-time cleanup only)
   await UserModel.deleteMany({ phone: "0552469643", role: "admin" });
 
-  // Atomic upsert for Myla admin — preserves _id (and thus sessions) across restarts.
-  // $setOnInsert: password (only written on first creation, never overwritten by seed).
-  // $set: canonical fields that should stay correct on every boot.
+  // The bootstrap credential is supplied securely and stays authoritative on restart.
   console.log("Seeding Myla admin user...");
-  const defaultPassword = await hashPassword("1234567890");
+  const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+  if (!adminPassword || adminPassword.length < 12) {
+    throw new Error("ADMIN_BOOTSTRAP_PASSWORD must be at least 12 characters.");
+  }
+  const passwordHash = await hashPassword(adminPassword);
   const adminResult = await UserModel.findOneAndUpdate(
     { phone: "0507378047", role: "admin" },
     {
@@ -36,6 +38,7 @@ export async function seed() {
         loginType: "both",
         isActive: true,
         mustChangePassword: false,
+        password: passwordHash,
         permissions: [
           "orders.view", "orders.edit", "orders.refund",
           "products.view", "products.edit",
@@ -46,7 +49,6 @@ export async function seed() {
       },
       $setOnInsert: {
         phone: "0507378047",
-        password: defaultPassword,
         walletBalance: "0",
         addresses: [],
         loyaltyPoints: 0,
@@ -58,9 +60,9 @@ export async function seed() {
     { upsert: true, new: false }
   );
   if (!adminResult) {
-    console.log("Admin user created with phone 0507378047 and password 1234567890");
+    console.log("Admin user created with password from ADMIN_BOOTSTRAP_PASSWORD");
   } else {
-    console.log("Admin user updated (canonical fields refreshed, password preserved)");
+    console.log("Admin user updated with password from ADMIN_BOOTSTRAP_PASSWORD");
   }
 
   const defaultCategoryData: Record<string, { nameAr: string; image: string }> = {

@@ -8,14 +8,17 @@ An Arabic luxury perfume e-commerce platform offering a seamless shopping experi
 npm install       # Install dependencies (required after cloning/importing)
 npm run dev       # Development server on port 5000
 npm run build     # Production build → dist/
-npm run start     # Production server (runs dist/index.js)
+npm run start     # Production server (runs dist/index.cjs)
 ```
 
-**Replit setup (already done):**
-- `MONGODB_URI` — set in Replit env (shared), points to MongoDB Atlas
+**Replit setup:**
+- `MONGODB_URI` — set as a Replit Secret, points to the existing MongoDB database
 - `SESSION_SECRET` — set as a Replit Secret
+- `ADMIN_BOOTSTRAP_PASSWORD` — required Replit Secret (at least 12 characters); controls the seeded admin password on each start
 - `PORT` — set to `5000` in Replit env (shared)
 - Workflow `Start application` runs `npm run dev` on port 5000
+- Email verification reports missing SMTP credentials; email features require their provider credentials.
+- The seeded admin password is reset from `ADMIN_BOOTSTRAP_PASSWORD` on every start. To change it, update the secret; changing it only through the site will be overwritten by a restart.
 
 **Required secrets (set via Replit Secrets, not .env):**
 
@@ -23,6 +26,7 @@ npm run start     # Production server (runs dist/index.js)
 |---|---|---|
 | `MONGODB_URI` | MongoDB Atlas connection | ✅ Core |
 | `SESSION_SECRET` | Session signing | ✅ Core |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Seeded admin password, reset on every start (minimum 12 characters) | ✅ Core |
 | `GOOGLE_CLIENT_ID` | Google OAuth login | For Google auth |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth token exchange | For Google auth |
 | `APPLE_CLIENT_ID` | Apple Sign-In | For Apple auth |
@@ -102,7 +106,7 @@ npm run start     # Production server (runs dist/index.js)
 -   **AI Quota Management:** Be mindful of API quotas for Gemini and Groq. The system has built-in fallbacks and key rotation, but excessive usage might still lead to temporary limitations. Groq API keys may expire and need refreshing.
 -   **Paymob Integration:** The in-app Paymob checkout relies on polling the backend for order status. Ensure backend stability for a smooth user experience during payment.
 -   **Invoice Generation:** The ZATCA invoice generation is critical. Any issues here will affect customer records and compliance.
--   **Deployment run command:** Production build outputs to `dist/index.js` (ESM format). Run with `node ./dist/index.js`.
+-   **Deployment run command:** Production build outputs to `dist/index.cjs`. Run with `npm run start`.
 -   **Session cookies:** The auth layer auto-detects Replit environment (`REPL_ID`/`REPLIT_DEV_DOMAIN`) and sets `SameSite=None; Secure` cookies for proper cross-origin iframe behavior in the Replit preview.
 
 ## Pointers

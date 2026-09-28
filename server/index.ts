@@ -177,6 +177,9 @@ process.on('uncaughtException', (err: any) => {
 });
 
 (async () => {
+  if (!process.env.ADMIN_BOOTSTRAP_PASSWORD || process.env.ADMIN_BOOTSTRAP_PASSWORD.length < 12) {
+    throw new Error("ADMIN_BOOTSTRAP_PASSWORD must be set to at least 12 characters before starting the app.");
+  }
   await connectDB();
 
   // ─── One-time migration: set correct legal / VAT data ─────────────────────
