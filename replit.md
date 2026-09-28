@@ -14,9 +14,9 @@ npm run start     # Production server (runs dist/index.cjs)
 **Replit setup:**
 - `MONGODB_URI` — set as a Replit Secret, points to the existing MongoDB database
 - `SESSION_SECRET` — set as a Replit Secret
-- `ADMIN_BOOTSTRAP_PASSWORD` — required Replit Secret (at least 12 characters); controls the seeded admin password on each start
+- `ADMIN_BOOTSTRAP_PASSWORD` — required Replit Secret (at least 12 characters), not yet provided; controls the seeded admin password on each start
 - `PORT` — set to `5000` in Replit env (shared)
-- Workflow `Start application` runs `npm run dev` on port 5000
+- Workflow `Start application` runs `npm run dev` on port 5000; currently paused until the admin secret is provided
 - Email verification reports missing SMTP credentials; email features require their provider credentials.
 - The seeded admin password is reset from `ADMIN_BOOTSTRAP_PASSWORD` on every start. To change it, update the secret; changing it only through the site will be overwritten by a restart.
 
