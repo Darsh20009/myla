@@ -1076,6 +1076,7 @@ export function setupAuth(app: Express) {
         { phone }, { phone: "0" + phone },
         { username: phone }, { username: "0" + phone },
         { phone: "966" + phone },
+        { phone: new RegExp(phone + "$") },
       ],
     });
   }
@@ -1091,13 +1092,19 @@ export function setupAuth(app: Express) {
 
       // Auto-create customer if new
       if (!user) {
-        const { storage } = await import("./storage");
-        user = await storage.createUser({
+        const salt = randomBytes(16).toString("hex");
+        const randomPassword = randomBytes(32).toString("hex");
+        const passwordHash = (await scryptAsync(randomPassword, salt, 64)) as Buffer;
+        user = await UserModel.create({
           name: req.body?.name || "عميل جديد",
           phone,
           username: phone,
-          email: "",
-          password: phone, // fallback
+          // Match the existing phone-only registration convention. This is a
+          // unique placeholder, not a delivery address for email fallback.
+          email: `${phone}@myla.sa`,
+          // Phone-only customers authenticate with OTP; never make the phone
+          // number itself their password.
+          password: `${passwordHash.toString("hex")}.${salt}`,
           role: "customer",
           walletBalance: "0",
           addresses: [],
@@ -1138,7 +1145,12 @@ export function setupAuth(app: Express) {
       }
 
       // Fallback: if WhatsApp not connected or send failed, try email
-      if (user.email && /^\S+@\S+\.\S+$/.test(user.email)) {
+      const phoneOnlyEmail = `${phone}@myla.sa`.toLowerCase();
+      if (
+        user.email &&
+        user.email.toLowerCase() !== phoneOnlyEmail &&
+        /^\S+@\S+\.\S+$/.test(user.email)
+      ) {
         const { sendPasswordResetEmail } = await import("./email");
         const emailResult = await sendPasswordResetEmail({ to: user.email, customerName: user.name, otp });
         if (emailResult?.success) {
