@@ -1,0 +1,363 @@
+Storage X Ship
+Partner API · v1
+Ship through Storage X, from your platform
+Create a shipment, track it, edit or cancel it while it's still yours to change, print its label, and check ahead of time which cities are reachable — everything a partner integration needs.
+
+Base URL
+https://shipping.3rdmile.net/api/public/partner/v1
+Overview
+Authentication
+National address
+Money fields
+GET
+List / search coverage
+GET
+One city's coverage
+POST
+Get a price quote
+POST
+Create a shipment
+GET
+Track a shipment
+GET
+List tracking statuses
+PATCH
+Update a shipment
+POST
+Cancel a shipment
+GET
+Print a label
+Errors
+Overview
+Every request is authenticated with an API key we issue you, sent as a bearer token — there is no session or cookie involved. Every response is JSON, including errors, except the raw-PDF label endpoint.
+
+Authentication
+Every request
+Authorization: Bearer sxs_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Content-Type: application/json
+Copy
+Anyone holding the key can create, edit and cancel shipments on your account. Keep it server-side only, and ask us to rotate it if it's ever exposed.
+
+The national address short code
+Saudi Arabia's National Address short code — four Latin letters and four digits, e.g. RRRD6636 — is required on both the pickup and recipient side of every shipment you create.
+
+Accepted as
+Case-insensitive — rrrd6636 and RRRD6636 both work, we upper-case it. Whitespace is stripped.
+
+Rejected
+Missing or malformed returns 400 invalid_national_address (recipient) or 400 invalid_pickup_national_address (pickup) on create. On update it's only checked if you send it.
+
+Money fields
+Every amount you send us can be given in riyals or halalas — riyals is the default; sending halalas is optional, for whichever is easier on your side.
+
+What you send
+Use the plain field — cod.amount, codAmount — with a riyal value, e.g. 150 for 150.00 SAR. Prefer an integer on your end instead? Send cod.amountMinor / codAmountMinor — halalas, SAR's minor unit (1 SAR = 100 halalas) — and we use that instead. Sending both is fine; the halala value wins.
+
+What we send back
+Always halalas, and always as a string — "totalMinor": "3120" means 31.20 SAR. Divide by 100 for riyals. It's a string because these are large integers under the hood; floating-point riyals and rounding money don't mix safely, so every *Minor field you get back stays an exact integer instead of a float.
+
+Coverage
+Check which cities you can ship to or from before committing to an order. Pickup and delivery are answered separately — they're genuinely different questions on our side, so treat pickupAvailable as a strong signal, not an absolute guarantee. We don't say which carrier a lane runs through — that's between us and them.
+
+GET
+/coverage
+Every serviceable city, optionally filtered and paginated. Called with no query parameters, pagination is opt-in — it returns everything at once with pagination: null.
+
+Field		Notes
+q	optional	Matches city name, English or Arabic script. Substring, case-insensitive.
+page	optional	1-based. Requires pageSize to also be set.
+pageSize	optional	Rows per page. Setting this switches on pagination. Capped at 200.
+city	optional	Exact-city detail mode instead — see below. Takes priority if both are sent.
+Request — searched and paged
+GET https://shipping.3rdmile.net/api/public/partner/v1/coverage?q=jed&page=1&pageSize=25
+Authorization: Bearer sxs_live_...
+Copy
+Response — 200
+{
+  "cities": [
+    { "city": "Jeddah", "cityAr": "جدة", "pickupAvailable": true, "deliveryAvailable": true, "viaOwnFleet": false }
+  ],
+  "pagination": { "page": 1, "pageSize": 25, "total": 1, "totalPages": 1 }
+}
+Copy
+GET
+/coverage?city=Riyadh
+One city's detail, plus any district breakdown we have on file for it. city matches loosely, so this doubles as a way to validate a name a customer typed in.
+
+Response — 200
+{
+  "city": "Riyadh",
+  "cityAr": "الرياض",
+  "pickupAvailable": true,
+  "deliveryAvailable": true,
+  "viaOwnFleet": true,
+  "districts": []
+}
+Copy
+districts is empty for most cities today — it fills in as district-level data is added, with no change needed on your side. 404 city_not_found if the name doesn't resolve to any city we recognise.
+
+Get a price quote
+What would this cost? Same nested shape as Create, minus the fields pricing has no use for — and the exact same pricing engine Create itself uses, so a quote here is never a separate estimate that could drift from what you're actually charged.
+
+POST
+/quote
+serviceable: false is a normal answer (no rate configured for that combination) — not an error, and not a reason to retry.
+
+Field		Notes
+recipient.city	required	
+pickup.city	optional	Affects the price on some rate cards.
+package.weightGrams	required	Must be greater than zero.
+cod.amount	optional	Riyals, e.g. 150. Zero or omitted is prepaid. A negative amount is a 400. cod.amountMinor (halalas) also accepted — see Money fields above.
+cod.method	optional	cash or pos. Anything else is a 400. Omitted means cash when there is an amount.
+serviceType	optional	
+Request
+{
+  "recipient": { "city": "Riyadh" },
+  "pickup": { "city": "Jeddah" },
+  "package": { "weightGrams": 900 },
+  "cod": { "amount": 150, "method": "cash" }
+}
+Copy
+Response — 200, serviceable
+{
+  "serviceable": true,
+  "baseMinor": "2500",
+  "additionalUnits": 0,
+  "weightMinor": "0",
+  "fuelBp": 250,
+  "fuelMinor": "63",
+  "codFeeMinor": "150",
+  "netMinor": "2713",
+  "vatMinor": "407",
+  "totalMinor": "3120",
+  "returnFeeMinor": "500",
+  "notes": []
+}
+Copy
+Response — 200, not serviceable
+{ "serviceable": false }
+Copy
+totalMinor is what Create will actually charge for the same inputs — netMinor plus VAT. returnFeeMinor is quoted here but only ever charged if the parcel comes back. notes explains anything non-obvious about how the price was reached (a waived fee, an overridden rate) — empty most of the time.
+
+Create a shipment
+Creates a shipment and immediately raises a pickup request — there's no separate step. Safe to retry: a second call with the same externalOrderId returns the existing shipment instead of a duplicate. externalOrderId only has to be unique to you — a different partner can use the exact same order id independently.
+
+POST
+/shipments
+Field		Notes
+externalOrderId	required	Your own order id — the idempotency key for retries.
+recipient.name / .phone	required	
+recipient.addressLine	required	
+recipient.nationalAddress	required	See National address above.
+recipient.city	required	
+recipient.district	optional	
+pickup.phone	required	
+pickup.addressLine	required	
+pickup.nationalAddress	required	See National address above.
+pickup.city	required	
+pickup.name / .district	optional	Name defaults to your store name.
+package.weightGrams	required	Must be greater than zero.
+package.pieces	optional	Whole number from 1 to 50. Omitted means 1. Any other value is a 400 and no shipment is created.
+package.description	optional	
+package.lengthCm / widthCm / heightCm	optional	
+cod.amount	optional	Riyals, e.g. 150. Omit or 0 for a prepaid order. A negative amount is a 400 and no shipment is created. cod.amountMinor (halalas) also accepted — see Money fields above.
+cod.method	optional	cash or pos. Anything else is a 400 and no shipment is created. Ignored with no COD amount. Omitted means cash.
+serviceType	optional	
+Request
+{
+  "externalOrderId": "ORD-48213",
+  "recipient": {
+    "name": "Sara Al-Otaibi",
+    "phone": "0551234567",
+    "addressLine": "Prince Sultan Rd, Bldg 12",
+    "nationalAddress": "RRRD6636",
+    "city": "Riyadh",
+    "district": "Al Olaya"
+  },
+  "pickup": {
+    "phone": "0559876543",
+    "addressLine": "King Fahd Rd, Warehouse 3",
+    "nationalAddress": "ABCD1234",
+    "city": "Riyadh"
+  },
+  "package": {
+    "weightGrams": 900,
+    "pieces": 1,
+    "description": "Shoes"
+  },
+  "cod": { "amount": 150, "method": "cash" }
+}
+Copy
+Response — 201 Created
+{
+  "shipmentId": "b6e2...",
+  "trackingNumber": "SXS10394822",
+  "status": "awaiting_pickup",
+  "externalOrderId": "ORD-48213",
+  "duplicate": false
+}
+Copy
+A retried create returns the same body with duplicate: true and 200 instead of 201. If that externalOrderId's shipment was since cancelled, it's not treated as a duplicate — Create makes a genuinely new shipment instead, so a cancelled order's id is free to reuse.
+
+Track a shipment
+Every event's code, label and labelAr are the exact same values List tracking statuses gives for that code — never a different phrase for the same status. Match an event's code straight back to that list rather than parsing label text.
+
+GET
+/shipments/{trackingNumber}
+Response — 200
+{
+  "trackingNumber": "SXS10394822",
+  "status": "awaiting_pickup",
+  "custody": "with_merchant",
+  "events": [
+    {
+      "occurredAt": "2026-09-24T09:12:00Z",
+      "code": "awaiting_pickup",
+      "label": "Awaiting pickup",
+      "labelAr": "بانتظار الاستلام",
+      "location": "Riyadh"
+    }
+  ]
+}
+Copy
+List tracking statuses
+Every value you can ever see in status or custody, with a description — the full reference for whatever state machine you build around Track. status answers what's happening; custody answers who is physically holding the parcel right now. They always move together, but they're genuinely different questions.
+
+GET
+/statuses
+Static reference data — no tracking number, nothing tenant-specific. Safe to cache on your side; call it once and keep the list.
+
+Response — 200 (truncated — the real response lists all 19 statuses and 10 custody states)
+{
+  "statuses": [
+    { "code": "awaiting_pickup", "label": "Awaiting pickup", "labelAr": "بانتظار الاستلام", "description": "Waiting for a driver to collect it from the merchant or pickup address.", "terminal": false },
+    { "code": "delivered", "label": "Delivered", "labelAr": "تم التسليم", "description": "Delivered to the recipient.", "terminal": true }
+  ],
+  "custodyStates": [
+    { "code": "with_driver", "label": "With driver", "labelAr": "لدى السائق", "description": "Physically with a driver, on a pickup or delivery run.", "terminal": false }
+  ]
+}
+Copy
+terminal: true marks an end state — nothing else will ever follow it for that shipment (or that leg, for a return). Everything else can still change.
+
+Every status
+Code	Label	Description	
+draft	Draft	Created but not yet submitted into the fulfilment flow.	
+created	Created	Submitted and accepted. Not yet packed or picked up.	
+awaiting_pickup	Awaiting pickup	Waiting for a driver to collect it from the merchant or pickup address.	
+awaiting_pack	Awaiting pack	At a fulfilment centre, waiting to be packed.	
+packed	Packed	Packed at the fulfilment centre and ready to leave.	
+picked_up	Picked up	Collected by a driver and on its way to a hub.	
+at_hub	At hub	Received and sorted at one of our hubs.	
+in_transfer	In transfer	Moving between two hubs — not yet at its final one.	
+out_for_delivery	Out for delivery	With a driver, on its way to the recipient.	
+failed_attempt	Failed attempt	A delivery attempt was made and did not succeed. It will be retried or returned.	
+delivered	Delivered	Delivered to the recipient.	terminal
+return_initiated	Return initiated	Flagged to be returned to the merchant. Not yet moving.	
+return_in_transfer	Return in transfer	The return is moving between hubs.	
+out_for_return	Out for return	With a driver, on its way back to the merchant.	
+return_in_progress	Return in progress	The return is being processed, generally at a hub.	
+returned	Returned	Returned to the merchant.	terminal
+cancelled	Cancelled	Cancelled before delivery.	terminal
+lost	Lost	Lost in the network.	terminal
+damaged	Damaged	Damaged beyond delivery.	terminal
+Every custody state
+Code	Label	Description	
+with_merchant	With merchant	Physically still with the sender/merchant.	
+at_fc	At fulfilment centre	Physically at a fulfilment centre.	
+with_driver	With driver	Physically with a driver, on a pickup or delivery run.	
+at_hub	At hub	Physically at a sorting or hand-off hub.	
+in_transfer	In transfer	Physically moving between two hubs.	
+with_partner	With carrier partner	Physically handed off to a carrier partner for this leg.	
+with_customer	With customer	Physically with the end customer — an exchange or return pickup that starts at the customer's address rather than the merchant's.	
+delivered	Delivered	Physically with the recipient.	terminal
+returned	Returned	Physically back with the merchant, as a return.	terminal
+unknown	Unknown	Physical location isn't currently known — a data gap, not a state to plan around.	
+Update a shipment
+Edits a shipment while it's still yours to change — before it reaches a hub. Send only the fields you're changing. If weight, city or COD change on a shipment already charged for, it's repriced and the difference posted — never a silent second charge.
+
+PATCH
+/shipments/{trackingNumber}
+Field		Notes
+recipientName / recipientPhone	optional	
+addressLine / nationalAddress	optional	nationalAddress validated if present.
+city / district	optional	Triggers repricing and re-routing.
+description	optional	
+weightGrams	optional	Triggers repricing. Must stay positive.
+codAmount / codMethod	optional	codAmount in riyals, e.g. 200. Triggers repricing. codAmountMinor (halalas) also accepted — see Money fields above.
+reason	optional	Free text, recorded against the shipment's history.
+Request
+{
+  "weightGrams": 1200,
+  "codAmount": 200,
+  "reason": "Customer added a second item"
+}
+Copy
+Response — 200
+{
+  "trackingNumber": "SXS10394822",
+  "changed": ["weight_grams", "cod_amount_minor"],
+  "repriced": true,
+  "oldTotalMinor": "1800",
+  "newTotalMinor": "2300",
+  "adjustmentMinor": "500"
+}
+Copy
+409 once the shipment has already reached a hub — it's no longer ours to edit by API past that point.
+
+Cancel a shipment
+Cancels outright if not yet picked up. One already on its way is flagged instead — it keeps moving to a hub as normal, and returns automatically the moment it arrives. One call either way.
+
+POST
+/shipments/{trackingNumber}/cancel
+Request body (optional)
+{ "reason": "Customer changed their mind" }
+Copy
+Response — 200, not yet picked up
+{ "trackingNumber": "SXS10394822", "outcome": "cancelled", "status": "cancelled", "custody": "with_merchant" }
+Copy
+Response — 200, already moving
+{ "trackingNumber": "SXS10394822", "outcome": "return_requested", "status": "picked_up", "custody": "with_driver" }
+Copy
+Print a label
+The same bilingual, barcoded label our own operations team prints. Sort and route codes are frozen on first print, so printing twice always shows the same codes.
+
+GET
+/shipments/{trackingNumber}/label
+Raw PDF bytes (Content-Type: application/pdf). Refused with 409 shipment_closed once a shipment is cancelled, lost, damaged or returned.
+
+GET
+/shipments/{trackingNumber}/label?format=url
+A permanent link instead of bytes — safe to store once against your own order, since it never changes even if the label is regenerated later.
+
+Response — 200
+{
+  "trackingNumber": "SXS10394822",
+  "url": "https://.../partner-labels/b6e2....pdf?token=..."
+}
+Copy
+Errors
+Every error is JSON in the same shape, with an HTTP status that matches the code.
+
+{ "error": "invalid_national_address", "message": "recipient.nationalAddress is required and must be a Saudi National Address short address, e.g. RRRD6636" }
+Copy
+Status	Code	Meaning
+401	missing_api_key	No Authorization header.
+401	invalid_api_key	Unknown, revoked, or the client behind it is suspended.
+404	shipment_not_found	No such tracking number, or it belongs to someone else — the two look identical on purpose.
+404	city_not_found	Coverage lookup for a city we don't recognise.
+400	missing_external_order_id	
+400	missing_recipient	Name or phone missing.
+400	missing_address	Recipient address line or city missing.
+400	missing_pickup	Pickup address, city or phone missing.
+400	invalid_national_address	Recipient (or update) short address missing or malformed.
+400	invalid_pickup_national_address	Pickup short address missing or malformed.
+400	missing_weight	
+400	missing_dest_city	recipient.city is required for a quote.
+400	empty_patch	An update with no recognised fields.
+400	invalid_page / invalid_page_size / missing_page_size	Coverage pagination params don't make sense together.
+409	shipment_closed	Label requested for a cancelled/lost/damaged/returned shipment.
+409	(update refused)	Shipment already reached a hub — no longer editable by API.
+422	create_failed / cancel_failed / update_failed	Rejected for a business reason — message says which.
+500 / 502	*_failed	Something broke on our side. Safe to retry; contact us if it persists.
+Questions or a key rotation request go to your Storage X Ship contact.
