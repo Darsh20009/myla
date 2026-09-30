@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, XCircle, Key, RefreshCw, ExternalLink, AlertTriangle, MapPin, Save, Truck } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -141,6 +141,16 @@ const INTEGRATIONS: Integration[] = [
     ],
   },
   {
+    id: "storageXShip",
+    name: "Storage X Ship",
+    nameEn: "Storage X Ship",
+    category: "الشحن والخدمات اللوجستية",
+    logo: "🚛",
+    url: "https://shipping.3rdmile.net",
+    description: "شحن Storage X المباشر — إنشاء وتتبع الشحنات",
+    keys: [{ label: "STORAGE_X_API_KEY", key: "apiKey" }],
+  },
+  {
     id: "shipox",
     name: "Shipox — 3rd Mile",
     nameEn: "Shipox Courier",
@@ -223,7 +233,8 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
   const [connectionState, setConnectionState] = useState<"idle" | "checking" | "connected" | "failed">("idle");
   const [connectionMessage, setConnectionMessage] = useState("");
   const isStorageStation = integration.id === "storageStation";
-  const ready = isStorageStation ? connectionState === "connected" : allOk;
+  const isStorageXShip = integration.id === "storageXShip";
+  const ready = isStorageStation || isStorageXShip ? connectionState === "connected" : allOk;
   const statusColor = ready ? "emerald" : noneOk ? "red" : "amber";
   const catColor = CATEGORY_COLORS[integration.category] || "bg-slate-50 text-slate-700 border-slate-200";
 
@@ -241,6 +252,52 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
     } catch (error: any) {
       setConnectionState("failed");
       setConnectionMessage(error?.message || "تعذر الاتصال بـ Storage Station");
+    }
+  };
+
+  const [pickupForm, setPickupForm] = useState({
+    pickupName: "", pickupPhone: "", pickupCity: "", pickupAddressLine: "",
+    pickupNationalAddress: "", defaultWeightGrams: "0",
+  });
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupMessage, setSetupMessage] = useState("");
+
+  useEffect(() => {
+    if (!isStorageXShip) return;
+    fetch("/api/admin/storage-x-ship/settings")
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("تعذر تحميل إعدادات Storage X")))
+      .then(s => setPickupForm({
+        pickupName: s.pickupName || "", pickupPhone: s.pickupPhone || "",
+        pickupCity: s.pickupCity || "", pickupAddressLine: s.pickupAddressLine || "",
+        pickupNationalAddress: s.pickupNationalAddress || "",
+        defaultWeightGrams: String(s.defaultWeightGrams || 0),
+      }))
+      .catch(() => {});
+  }, [isStorageXShip]);
+
+  const saveStorageXSettings = async () => {
+    setSetupLoading(true); setSetupMessage("");
+    try {
+      const response = await fetch("/api/admin/storage-x-ship/settings", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...pickupForm, defaultWeightGrams: Number(pickupForm.defaultWeightGrams) || 0 }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "تعذر حفظ إعدادات Storage X");
+      setSetupMessage("تم حفظ إعدادات الاستلام");
+    } catch (error: any) { setSetupMessage(error.message); }
+    finally { setSetupLoading(false); }
+  };
+
+  const testStorageXShip = async () => {
+    setConnectionState("checking"); setConnectionMessage("");
+    try {
+      const response = await fetch("/api/admin/storage-x-ship/test");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.message || "تعذر الاتصال بـ Storage X Ship");
+      setConnectionState("connected"); setConnectionMessage(result.message || "الاتصال يعمل");
+    } catch (error: any) {
+      setConnectionState("failed"); setConnectionMessage(error.message || "تعذر الاتصال بـ Storage X Ship");
     }
   };
 
@@ -294,8 +351,8 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400">{configured}/{total} مفاتيح مُعدَّة</span>
             {ready
-              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {isStorageStation ? "متصل" : "جاهز"}</span>
-              : allOk && isStorageStation
+              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {(isStorageStation || isStorageXShip) ? "متصل" : "جاهز"}</span>
+              : allOk && (isStorageStation || isStorageXShip)
               ? <span className="flex items-center gap-1 text-[10px] font-black text-amber-600"><AlertTriangle className="h-3 w-3" /> لم يُختبر الاتصال</span>
               : noneOk
               ? <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="h-3 w-3" /> غير مُفعَّل</span>
@@ -309,26 +366,49 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
             />
           </div>
         </div>
-        {isStorageStation && (
+        {(isStorageStation || isStorageXShip) && (
           <div className="mt-3">
             <button
               type="button"
-              onClick={testStorageStation}
+              onClick={isStorageXShip ? testStorageXShip : testStorageStation}
               disabled={!allOk || connectionState === "checking"}
               className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-black text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {connectionState === "checking"
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : connectionState === "connected"
+                 : connectionState === "connected"
                 ? <CheckCircle2 className="h-3.5 w-3.5" />
-                : <RefreshCw className="h-3.5 w-3.5" />}
+                 : <RefreshCw className="h-3.5 w-3.5" />}
               اختبار الاتصال
             </button>
             {connectionMessage && (
               <p className={`mt-2 text-[10px] font-bold ${connectionState === "connected" ? "text-emerald-600" : "text-red-500"}`}>
-                {connectionMessage}
+                 {connectionMessage}
               </p>
             )}
+          </div>
+        )}
+        {isStorageXShip && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+            <p className="text-[10px] font-black text-slate-500">إعدادات عنوان الاستلام (لا تُخزّن مفاتيح API هنا)</p>
+            {([
+              ["pickupName", "اسم المرسل"], ["pickupPhone", "هاتف المرسل"],
+              ["pickupCity", "مدينة الاستلام"], ["pickupAddressLine", "عنوان الاستلام"],
+              ["pickupNationalAddress", "العنوان الوطني المختصر"],
+            ] as const).map(([key, label]) => (
+              <Input key={key} value={pickupForm[key]} placeholder={label}
+                onChange={e => setPickupForm(v => ({ ...v, [key]: e.target.value }))}
+                className="h-9 text-xs" />
+            ))}
+            <Input type="number" min={1} value={pickupForm.defaultWeightGrams}
+              placeholder="الوزن الافتراضي بالجرام"
+              onChange={e => setPickupForm(v => ({ ...v, defaultWeightGrams: e.target.value }))}
+              className="h-9 text-xs" />
+            <button type="button" onClick={saveStorageXSettings} disabled={setupLoading}
+              className="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50">
+              {setupLoading ? "جاري الحفظ..." : "حفظ إعدادات الاستلام"}
+            </button>
+            {setupMessage && <p className="text-[10px] font-bold text-slate-500">{setupMessage}</p>}
           </div>
         )}
       </div>

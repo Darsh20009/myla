@@ -66,6 +66,7 @@ export default function Checkout() {
   const [deliveryDistrict, setDeliveryDistrict] = useState("");
   const [deliveryName, setDeliveryName] = useState("");
   const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [nationalAddress, setNationalAddress] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [cityDropOpen, setCityDropOpen] = useState(false);
   const [geoLocating, setGeoLocating] = useState(false);
@@ -240,6 +241,16 @@ export default function Checkout() {
     staleTime: 10 * 60 * 1000,
   });
 
+  const { data: storageXShipStatus } = useQuery<{ configured: boolean; checkoutReady: boolean }>({
+    queryKey: ["/api/storage-x-ship/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/storage-x-ship/status");
+      if (!res.ok) return { configured: false, checkoutReady: false };
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
   // Build merged shipping options: Mapit first (if configured), then DB companies
   const MAPIT_OPTION = {
     id: "__mapit__",
@@ -269,6 +280,20 @@ export default function Checkout() {
     // Add remaining DB companies (excluding the one already shown as Mapit)
     const rest = dbOptions.filter((c: any) => c.id !== (dbMapit?.id));
     list = [...list, ...rest];
+    // Add Storage X last so enabling the integration doesn't change the
+    // customer's existing default carrier.
+    if (storageXShipStatus?.checkoutReady) {
+      list.push({
+        id: "__storage_x_ship__",
+        name: "Storage X Ship",
+        logo: "",
+        price: 0,
+        estimatedDays: 1,
+        freeShippingThreshold: 0,
+        isActive: true,
+        isStorageXShip: true,
+      });
+    }
     return list;
   })();
 
@@ -278,6 +303,7 @@ export default function Checkout() {
   const firstOptionId = shippingOptions[0]?.id ?? "";
   const effectiveSelectedId = selectedShippingId || firstOptionId;
   const selectedShipping = shippingOptions.find(o => o.id === effectiveSelectedId) ?? shippingOptions[0];
+  const isStorageXShipSelected = selectedShipping?.isStorageXShip === true;
 
   // ── Fallback shipping rate (when no companies configured) ────────────────────
   const { data: shippingRateData, isFetching: isLoadingRate } = useQuery<{
@@ -293,16 +319,6 @@ export default function Checkout() {
     enabled: shippingMode === "delivery" && !!deliveryCity && shippingOptions.length === 0,
     staleTime: 5 * 60 * 1000,
   });
-
-  const shippingCostValue = (() => {
-    if (shippingMode !== "delivery" || !deliveryCity) return 0;
-    if (shippingOptions.length > 0 && selectedShipping) {
-      const threshold = Number(selectedShipping.freeShippingThreshold || 0);
-      const price = Number(selectedShipping.price || 0);
-      return threshold > 0 && subtotal >= threshold ? 0 : price;
-    }
-    return shippingRateData?.cost ?? 0;
-  })();
 
   // ── Bundle offer savings ─────────────────────────────────────────────────────
   const bundleCalcKey = items.map(i => `${i.productId}:${i.quantity}:${i.price}`).join("|");
@@ -355,6 +371,48 @@ export default function Checkout() {
   const discountAmount = calculateDiscount();
   const cashbackAmount = calculateCashback();
   const vatIncluded = Math.round(subtotal * 15 / 115 * 100) / 100;
+
+  const merchandiseDueBeforeShipping = Math.max(0, subtotal - discountAmount - loyaltyDiscount - (bundleResult?.savings || 0));
+  const storageXShipCodAmount = paymentMethod === "cod" ? merchandiseDueBeforeShipping : 0;
+  const {
+    data: storageXShipQuote,
+    isFetching: isLoadingStorageXShipQuote,
+    isError: isStorageXShipQuoteError,
+  } = useQuery<{ serviceable: boolean; cost: number; totalMinor: string; weightGrams: number }>({
+    queryKey: ["/api/storage-x-ship/quote", deliveryCity, storageXShipCodAmount],
+    queryFn: async () => {
+      const res = await fetch("/api/storage-x-ship/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          city: deliveryCity,
+          codAmount: storageXShipCodAmount,
+          ...(paymentMethod === "cod" ? { codMethod: "cash" } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "تعذّر حساب سعر Storage X Ship");
+      return data;
+    },
+    enabled: shippingMode === "delivery" && isStorageXShipSelected && !!deliveryCity,
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+
+  const shippingCostValue = (() => {
+    if (shippingMode !== "delivery" || !deliveryCity) return 0;
+    if (isStorageXShipSelected) {
+      return storageXShipQuote?.serviceable ? Number(storageXShipQuote.cost) || 0 : 0;
+    }
+    if (shippingOptions.length > 0 && selectedShipping) {
+      const threshold = Number(selectedShipping.freeShippingThreshold || 0);
+      const price = Number(selectedShipping.price || 0);
+      return threshold > 0 && subtotal >= threshold ? 0 : price;
+    }
+    return shippingRateData?.cost ?? 0;
+  })();
+
   const finalTotal = Math.max(0, subtotal - discountAmount - loyaltyDiscount - bundleSavings + shippingCostValue);
 
   // Branch stock check — only flag items where the branch has a dedicated row
@@ -378,6 +436,9 @@ export default function Checkout() {
     return issues;
   })();
 
+  const normalizedNationalAddress = nationalAddress.replace(/\s+/g, "").toUpperCase();
+  const validNationalAddress = /^[A-Z]{4}\d{4}$/.test(normalizedNationalAddress);
+
   const handleCheckout = async () => {
     if (!user) { setAuthOpen(true); return; }
     if (userMissingPhone) { setPhoneDialogOpen(true); return; }
@@ -398,6 +459,16 @@ export default function Checkout() {
       if (!deliveryStreet.trim()) {
         toast({ title: "أدخل العنوان", description: "يرجى إدخال اسم الشارع", variant: "destructive" });
         return;
+      }
+      if (isStorageXShipSelected) {
+        if (!validNationalAddress) {
+          toast({ title: "العنوان الوطني غير صالح", description: "أدخل أربعة أحرف لاتينية وأربعة أرقام", variant: "destructive" });
+          return;
+        }
+        if (isLoadingStorageXShipQuote || !storageXShipQuote?.serviceable) {
+          toast({ title: "سعر التوصيل غير متاح", description: "انتظر اكتمال حساب السعر أو اختر شركة توصيل أخرى", variant: "destructive" });
+          return;
+        }
       }
     }
     if (paymentMethod === "wallet" && Number(user?.walletBalance || 0) < finalTotal) {
@@ -438,10 +509,13 @@ export default function Checkout() {
         vatAmount: vatIncluded.toFixed(2),
         shippingCost: shippingCostValue.toFixed(2),
         shippingCompany: isDelivery
-          ? (shippingOptions.length > 0 && selectedShipping
+          ? isStorageXShipSelected
+            ? "Storage X Ship"
+            : (shippingOptions.length > 0 && selectedShipping
               ? selectedShipping.name
               : (shippingRateData?.methodTitle || "توصيل"))
           : "",
+        shippingProvider: isStorageXShipSelected ? "storage-x-ship" : undefined,
         deliveryAddress: deliveryAddrStr,
         customerName: user?.name || "",
         customerPhone: (user as any)?.phone || "",
@@ -469,6 +543,7 @@ export default function Checkout() {
           city: deliveryCity,
           street: deliveryStreet,
           district: deliveryDistrict,
+          ...(isStorageXShipSelected ? { nationalAddress: normalizedNationalAddress } : {}),
           country: "SA",
         } : undefined,
         paymentMethod,
@@ -478,6 +553,8 @@ export default function Checkout() {
 
       const res = await apiRequest("POST", "/api/orders", orderData);
       const order = await res.json();
+      const confirmedTotal = Number(order?.total);
+      const amountDue = Number.isFinite(confirmedTotal) ? confirmedTotal : finalTotal;
 
       const cancelPendingOrder = async (reason: string) => {
         try {
@@ -495,7 +572,7 @@ export default function Checkout() {
             credentials: "include",
             body: JSON.stringify({
               orderId: order.id || order._id,
-              amount: finalTotal,
+              amount: amountDue,
               items: items.map(i => ({ title: i.title, price: i.price, quantity: i.quantity })),
               address: isDelivery ? deliveryAddrStr : `استلام من فرع: ${selectedBranch?.name || ""}`,
               city: isDelivery ? deliveryCity : (selectedBranch?.city || "الرياض"),
@@ -1014,6 +1091,26 @@ export default function Checkout() {
                     />
                   </div>
 
+                  {isStorageXShipSelected && (
+                    <div>
+                      <label className="text-[11px] font-black text-gray-500 mb-1.5 block">
+                        العنوان الوطني المختصر *
+                      </label>
+                      <Input
+                        placeholder="مثال: RRRD6636"
+                        value={nationalAddress}
+                        onChange={(e) => setNationalAddress(e.target.value)}
+                        className="h-12 border-2 border-gray-200 rounded-xl focus-visible:ring-primary/30 focus-visible:border-primary/40 shadow-sm uppercase"
+                        dir="ltr"
+                        maxLength={12}
+                        data-testid="input-national-address"
+                      />
+                      <p className="text-[10px] text-gray-400 font-bold mt-1">
+                        أربعة أحرف لاتينية وأربعة أرقام
+                      </p>
+                    </div>
+                  )}
+
                   {/* ── Shipping company selector ──────────────────────────── */}
                   {deliveryCity && shippingOptions.length > 0 && (
                     <div className="space-y-2">
@@ -1055,7 +1152,19 @@ export default function Checkout() {
                                 )}
                                 <div className="text-right">
                                   <p className="text-xs font-black text-gray-800">{company.name}</p>
-                                  {company.estimatedDays > 0 && (
+                                  {company.isStorageXShip ? (
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      {isLoadingStorageXShipQuote && isSelected
+                                        ? "جاري حساب السعر..."
+                                        : isSelected && isStorageXShipQuoteError
+                                          ? "تعذّر حساب السعر"
+                                        : isSelected && storageXShipQuote && !storageXShipQuote.serviceable
+                                          ? "غير متاح لهذه المدينة"
+                                          : isSelected && storageXShipQuote?.serviceable
+                                            ? `${Number(storageXShipQuote.cost).toLocaleString()} ر.س`
+                                            : "يُحسب حسب المدينة"}
+                                    </p>
+                                  ) : company.estimatedDays > 0 && (
                                     <p className="text-[10px] text-gray-400 font-medium">
                                       {company.estimatedDays === 1 ? "يوم واحد" : `${company.estimatedDays} أيام`}
                                     </p>
@@ -1064,7 +1173,17 @@ export default function Checkout() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`font-black text-sm ${isFree ? "text-emerald-600" : "text-primary"}`}>
-                                  {displayPrice}
+                                  {company.isStorageXShip
+                                    ? isSelected && isLoadingStorageXShipQuote
+                                      ? "جاري الحساب..."
+                                      : isSelected && isStorageXShipQuoteError
+                                        ? "تعذّر الحساب"
+                                      : isSelected && storageXShipQuote && !storageXShipQuote.serviceable
+                                        ? "غير متاح"
+                                        : isSelected && storageXShipQuote?.serviceable
+                                          ? `${Number(storageXShipQuote.cost).toLocaleString()} ر.س`
+                                          : "يُحسب حسب المدينة"
+                                    : displayPrice}
                                 </span>
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                                   isSelected ? "border-primary bg-primary" : "border-gray-300"
@@ -1248,6 +1367,10 @@ export default function Checkout() {
                 <div className="flex justify-between text-gray-500">
                   {shippingMode === "pickup" ? (
                     <span className="text-emerald-600 font-black">مجاني</span>
+                  ) : isStorageXShipSelected && isLoadingStorageXShipQuote ? (
+                    <span className="flex items-center gap-1 text-gray-400"><Loader2 className="h-3 w-3 animate-spin" /> جاري الحساب...</span>
+                  ) : isStorageXShipSelected && (isStorageXShipQuoteError || !storageXShipQuote?.serviceable) ? (
+                    <span className="text-red-500 font-black">غير متاح</span>
                   ) : isLoadingRate && deliveryCity ? (
                     <span className="flex items-center gap-1 text-gray-400"><Loader2 className="h-3 w-3 animate-spin" /> جاري الحساب...</span>
                   ) : shippingCostValue === 0 && deliveryCity ? (

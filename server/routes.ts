@@ -116,6 +116,115 @@ import {
   isMapitConfigured, createMapitOrder, getMapitOrder, listMapitOrders,
   updateMapitOrder, deleteMapitOrder, mapitTrackingUrl,
 } from "./mapit";
+import {
+  cancelStorageXShipment, createStorageXShipment, getStorageXCoverage,
+  getStorageXLabelUrl, getStorageXStatuses, isStorageXShipConfigured,
+  isValidStorageXNationalAddress, normalizeStorageXNationalAddress,
+  quoteStorageX, StorageXShipApiError, trackStorageXShipment,
+  updateStorageXShipment,
+} from "./storageXShip";
+
+const storageXQuoteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+function storageXSettingsReadiness(settings: any) {
+  const pickupNationalAddress = normalizeStorageXNationalAddress(settings?.storageXPickupNationalAddress);
+  const pickupConfigured = Boolean(
+    (settings?.storageXPickupPhone || settings?.storePhone)?.toString().trim() &&
+    settings?.storageXPickupCity?.toString().trim() &&
+    settings?.storageXPickupAddressLine?.toString().trim() &&
+    isValidStorageXNationalAddress(pickupNationalAddress),
+  );
+  const weightGrams = Number(settings?.storageXDefaultWeightGrams);
+  const weightConfigured = Number.isInteger(weightGrams) && weightGrams > 0;
+  return {
+    pickupConfigured,
+    weightConfigured,
+    checkoutReady: isStorageXShipConfigured() && pickupConfigured && weightConfigured,
+  };
+}
+
+function storageXCreateInput(order: any, settings: any) {
+  const address = order.shippingAddress || {};
+  const amountDue = Math.max(0, Number(order.total || 0) - Number(order.shippingCost || 0));
+  const isCod = ["cod", "cash"].includes(String(order.paymentMethod || "").toLowerCase());
+  const addressLine = [address.street, address.district].filter(Boolean).join("، ");
+  return {
+    externalOrderId: String(order.id || order._id || ""),
+    recipient: {
+      name: String(address.name || order.customerName || "عميل").trim(),
+      phone: String(address.phone || order.customerPhone || "").trim(),
+      addressLine: addressLine || String(order.deliveryAddress || "").trim(),
+      nationalAddress: String(address.nationalAddress || "").trim(),
+      city: String(address.city || "").trim(),
+      district: String(address.district || "").trim() || undefined,
+    },
+    pickup: {
+      name: String(settings?.storageXPickupName || settings?.storeName || "").trim() || undefined,
+      phone: String(settings?.storageXPickupPhone || settings?.storePhone || "").trim(),
+      addressLine: String(settings?.storageXPickupAddressLine || "").trim(),
+      nationalAddress: String(settings?.storageXPickupNationalAddress || "").trim(),
+      city: String(settings?.storageXPickupCity || "").trim(),
+    },
+    weightGrams: Number(settings?.storageXDefaultWeightGrams),
+    description: (order.items || [])
+      .map((item: any) => `${item.title || "منتج"} × ${Number(item.quantity) || 1}`)
+      .join("، ")
+      .slice(0, 500),
+    ...(isCod && amountDue > 0 ? { codAmount: amountDue, codMethod: "cash" as const } : {}),
+  };
+}
+
+function safeStorageXError(error: any): string {
+  if (error instanceof StorageXShipApiError) return `${error.code} (HTTP ${error.status})`;
+  return String(error?.message || "تعذر إنشاء شحنة Storage X Ship").slice(0, 240);
+}
+
+function enqueueStorageXShipment(order: any) {
+  const orderId = String(order?.id || order?._id || "");
+  if (!orderId) return;
+
+  enqueueJob("storage-x-ship-create", async () => {
+    const freshOrder: any = await storage.getOrder(orderId);
+    if (!freshOrder) throw new Error(`[StorageX] Order ${orderId} no longer exists`);
+    if (freshOrder.storageXShipTrackingNumber &&
+        !["failed", "cancelled"].includes(String(freshOrder.storageXShipStatus || ""))) return;
+    try {
+      const settings = await storage.getStoreSettings();
+      const readiness = storageXSettingsReadiness(settings);
+      if (!readiness.checkoutReady) throw new Error("[StorageX] API, sender location, or package weight is not configured");
+
+      const shipment = await createStorageXShipment(storageXCreateInput(freshOrder, settings));
+      await storage.updateOrder(orderId, {
+        storageXShipShipmentId: shipment.shipmentId || null,
+        storageXShipTrackingNumber: shipment.trackingNumber,
+        storageXShipStatus: shipment.status,
+        storageXShipCustody: null,
+        storageXShipCreatedAt: new Date(),
+        storageXShipError: null,
+        storageXShipLabelUrl: null,
+        shippingProvider: "Storage X Ship",
+        trackingNumber: shipment.trackingNumber,
+      } as any);
+      console.log(`[StorageX] order ${orderId} → ${shipment.trackingNumber}${shipment.duplicate ? " (idempotent retry)" : ""}`);
+    } catch (error: any) {
+      const safeError = safeStorageXError(error);
+      await storage.updateOrder(orderId, {
+        storageXShipStatus: "failed",
+        storageXShipError: safeError,
+      } as any);
+      console.error(`[StorageX] shipment creation failed for ${orderId}: ${safeError}`);
+      const retryable = error instanceof StorageXShipApiError
+        ? error.status === 429 || error.status >= 500
+        : /timeout|network error/i.test(String(error?.message || ""));
+      if (retryable) throw error;
+    }
+  }, { critical: false, maxAttempts: 3 });
+}
 
 function mapitStatusToLocalStatus(status: string): string | null {
   switch (status) {
@@ -440,8 +549,14 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
       }, { critical: true, maxAttempts: 5 });
     }
 
+    // ── Storage X Ship: only dispatch the carrier chosen at checkout ──────────
+    const usesStorageXShip =
+      order.shippingMethod === "delivery" &&
+      (order.shippingProvider === "storage-x-ship" || order.shippingCompany === "Storage X Ship");
+    if (usesStorageXShip) {
+      enqueueStorageXShipment(order);
     // ── Mapit: create courier shipment first when configured ──────────────────
-    if (order.shippingMethod === "delivery" && isMapitConfigured()) {
+    } else if (order.shippingMethod === "delivery" && isMapitConfigured()) {
       enqueueJob("paid-mapit-create", async () => {
         try {
           // Idempotency: skip if shipment was already successfully created
@@ -1472,9 +1587,9 @@ ${allUrls.map(u => `  <url>
         ...orderAny,
         tracking: {
           provider: orderAny.shippingProvider || orderAny.shippingCompany || null,
-          number: orderAny.trackingNumber || null,
+          number: orderAny.storageXShipTrackingNumber || orderAny.trackingNumber || null,
           url: orderAny.mapitTrackingUrl || null,
-          status: orderAny.mapitStatus || orderAny.shipoxStatus || null,
+          status: orderAny.storageXShipStatus || orderAny.mapitStatus || orderAny.shipoxStatus || null,
           history: Array.isArray(orderAny.statusHistory) ? orderAny.statusHistory : [],
         },
       });
@@ -1539,6 +1654,48 @@ ${allUrls.map(u => `  <url>
         console.error("[API] bundle calc on order failed:", e?.message);
       }
 
+      // Re-price Storage X at the server boundary. The browser quote is only a
+      // preview; the stored shipping amount and COD amount come from this quote.
+      if (parsed.data.shippingProvider === "storage-x-ship") {
+        if (parsed.data.shippingMethod !== "delivery") {
+          return res.status(400).json({ message: "Storage X Ship متاح لطلبات التوصيل فقط" });
+        }
+        const deliveryAddress: any = parsed.data.shippingAddress || {};
+        if (!isValidStorageXNationalAddress(deliveryAddress.nationalAddress)) {
+          return res.status(400).json({ message: "أدخل العنوان الوطني المختصر الصحيح لاستكمال الشحن" });
+        }
+        const settings = await storage.getStoreSettings();
+        const readiness = storageXSettingsReadiness(settings);
+        if (!readiness.checkoutReady) {
+          return res.status(503).json({ message: "خيار Storage X Ship غير مهيأ حالياً" });
+        }
+        const oldShippingCost = Number(parsed.data.shippingCost) || 0;
+        const merchandiseDue = Math.max(0, Number(parsed.data.total) - oldShippingCost);
+        let quote: any;
+        try {
+          quote = await quoteStorageX({
+            recipientCity: String(deliveryAddress.city || ""),
+            pickupCity: settings.storageXPickupCity,
+            weightGrams: Number(settings.storageXDefaultWeightGrams),
+            codAmount: parsed.data.paymentMethod === "cod" ? merchandiseDue : 0,
+            codMethod: "cash",
+          });
+        } catch (error: any) {
+          console.warn("[StorageX] order quote rejected:", safeStorageXError(error));
+          return res.status(502).json({ message: "تعذر تأكيد سعر Storage X Ship. حاول مرة أخرى." });
+        }
+        if (quote?.serviceable !== true) {
+          return res.status(422).json({ message: "Storage X Ship لا يخدم مدينة التوصيل المحددة" });
+        }
+        const authoritativeShippingCost = Number(quote.totalMinor) / 100;
+        if (!Number.isFinite(authoritativeShippingCost) || authoritativeShippingCost < 0) {
+          return res.status(502).json({ message: "تعذر تأكيد سعر الشحن" });
+        }
+        parsed.data.shippingCost = authoritativeShippingCost.toFixed(2);
+        parsed.data.total = (merchandiseDue + authoritativeShippingCost).toFixed(2);
+        parsed.data.shippingCompany = "Storage X Ship";
+      }
+
       if (parsed.data.paymentMethod === "wallet" && parsed.data.userId) {
         const user = await storage.getUser(parsed.data.userId);
         if (user) {
@@ -1593,6 +1750,13 @@ ${allUrls.map(u => `  <url>
       // ── Defer slow side-effects to the background queue so the response
       //    returns immediately. Critical for handling 100k orders/hour.
       const orderRef = order.id.slice(-8).toUpperCase();
+      if (
+        order.shippingMethod === "delivery" &&
+        (order.shippingProvider === "storage-x-ship" || order.shippingCompany === "Storage X Ship") &&
+        (order.paymentStatus === "paid" || order.paymentMethod === "cod")
+      ) {
+        enqueueStorageXShipment(order);
+      }
 
       // CRITICAL: For orders that go through an external gateway (tabby/tamara/paymob/apple_pay),
       // we must NOT send "تم استلام طلبك" / "طلب جديد" / invoices / confirmation emails until
@@ -5471,11 +5635,160 @@ ${allUrls.map(u => `  <url>
 
   // ─── Store Settings ──────────────────────────────────────────
 
+  // Publicly safe Storage X status for checkout (never returns the API key or pickup details).
+  app.get("/api/storage-x-ship/status", async (_req, res) => {
+    try {
+      const settings = await storage.getStoreSettings();
+      res.json({
+        configured: isStorageXShipConfigured(),
+        ...storageXSettingsReadiness(settings),
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message || "تعذر قراءة حالة الشحن" });
+    }
+  });
+
+  app.post("/api/storage-x-ship/quote", storageXQuoteLimiter, async (req, res) => {
+    try {
+      if (!isStorageXShipConfigured()) {
+        return res.status(503).json({ serviceable: false, code: "not_configured" });
+      }
+      const settings = await storage.getStoreSettings();
+      const readiness = storageXSettingsReadiness(settings);
+      if (!readiness.checkoutReady) {
+        return res.status(503).json({ serviceable: false, code: "sender_not_configured" });
+      }
+      const city = String(req.body?.city || "").trim();
+      if (!city) return res.status(400).json({ serviceable: false, code: "city_required" });
+      const rawCodAmount = Number(req.body?.codAmount || 0);
+      if (!Number.isFinite(rawCodAmount) || rawCodAmount < 0 || rawCodAmount > 1_000_000) {
+        return res.status(400).json({ serviceable: false, code: "invalid_cod_amount" });
+      }
+
+      const result = await quoteStorageX({
+        recipientCity: city,
+        pickupCity: settings.storageXPickupCity,
+        weightGrams: Number(settings.storageXDefaultWeightGrams),
+        codAmount: rawCodAmount,
+        codMethod: req.body?.codMethod === "pos" ? "pos" : "cash",
+      });
+      const cost = result?.serviceable === true ? Number(result.totalMinor) / 100 : null;
+      res.json({
+        ...result,
+        cost,
+        weightGrams: Number(settings.storageXDefaultWeightGrams),
+      });
+    } catch (err: any) {
+      const status = err instanceof StorageXShipApiError && err.status >= 400 && err.status < 500 ? 422 : 502;
+      res.status(status).json({
+        serviceable: false,
+        code: err instanceof StorageXShipApiError ? err.code : "quote_failed",
+        message: err instanceof StorageXShipApiError ? err.message : "تعذر حساب تكلفة الشحن حالياً",
+      });
+    }
+  });
+
+  app.get("/api/storage-x-ship/coverage", storageXQuoteLimiter, async (req, res) => {
+    try {
+      if (!isStorageXShipConfigured()) return res.status(503).json({ message: "الشحن غير مهيأ" });
+      res.json(await getStorageXCoverage(typeof req.query.city === "string" ? req.query.city : undefined));
+    } catch (err: any) {
+      res.status(502).json({ message: err instanceof StorageXShipApiError ? err.message : "تعذر جلب المدن المدعومة" });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    const settings: any = await storage.getStoreSettings();
+    res.json({
+      pickupName: settings?.storageXPickupName || "",
+      pickupPhone: settings?.storageXPickupPhone || "",
+      pickupCity: settings?.storageXPickupCity || "",
+      pickupAddressLine: settings?.storageXPickupAddressLine || "",
+      pickupNationalAddress: settings?.storageXPickupNationalAddress || "",
+      defaultWeightGrams: Number(settings?.storageXDefaultWeightGrams) || 0,
+    });
+  });
+
+  app.patch("/api/admin/storage-x-ship/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    try {
+      const body = req.body || {};
+      const stringFields: Record<string, string> = {
+        pickupName: "storageXPickupName",
+        pickupPhone: "storageXPickupPhone",
+        pickupCity: "storageXPickupCity",
+        pickupAddressLine: "storageXPickupAddressLine",
+        pickupNationalAddress: "storageXPickupNationalAddress",
+      };
+      const update: Record<string, any> = {};
+      for (const [inputKey, settingKey] of Object.entries(stringFields)) {
+        if (body[inputKey] !== undefined) {
+          if (typeof body[inputKey] !== "string" || body[inputKey].length > 300) {
+            return res.status(400).json({ message: `حقل ${inputKey} غير صالح` });
+          }
+          update[settingKey] = body[inputKey].trim();
+        }
+      }
+      if (update.storageXPickupNationalAddress &&
+          !isValidStorageXNationalAddress(update.storageXPickupNationalAddress)) {
+        return res.status(400).json({ message: "العنوان الوطني للمرسل يجب أن يتكون من 4 أحرف و4 أرقام" });
+      }
+      if (body.defaultWeightGrams !== undefined) {
+        const weight = Number(body.defaultWeightGrams);
+        if (!Number.isInteger(weight) || weight < 0 || weight > 50_000) {
+          return res.status(400).json({ message: "وزن الطرد يجب أن يكون رقماً صحيحاً بين 1 و50000 غرام، أو صفراً لتركه غير مضبوط" });
+        }
+        update.storageXDefaultWeightGrams = weight;
+      }
+      if (!Object.keys(update).length) return res.status(400).json({ message: "لا توجد إعدادات للتحديث" });
+      await storage.updateStoreSettings(update);
+      res.json({
+        pickupName: update.storageXPickupName ?? body.pickupName,
+        pickupPhone: update.storageXPickupPhone ?? body.pickupPhone,
+        pickupCity: update.storageXPickupCity ?? body.pickupCity,
+        pickupAddressLine: update.storageXPickupAddressLine ?? body.pickupAddressLine,
+        pickupNationalAddress: update.storageXPickupNationalAddress ?? body.pickupNationalAddress,
+        defaultWeightGrams: update.storageXDefaultWeightGrams ?? body.defaultWeightGrams,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message || "تعذر حفظ إعدادات الشحن" });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    if (!isStorageXShipConfigured()) {
+      return res.status(503).json({ success: false, message: "مفتاح Storage X Ship غير مضاف" });
+    }
+    try {
+      await getStorageXStatuses();
+      res.json({ success: true, message: "الاتصال بـ Storage X Ship يعمل" });
+    } catch (err: any) {
+      res.status(502).json({
+        success: false,
+        message: err instanceof StorageXShipApiError ? `${err.code} (HTTP ${err.status})` : "تعذر الاتصال بـ Storage X Ship",
+      });
+    }
+  });
+
   app.get("/api/store/settings", async (_req, res) => {
     try {
       const settings = await storage.getStoreSettings();
       res.set("Cache-Control", "public, max-age=600, stale-while-revalidate=1200");
-      res.json(settings);
+      const {
+        storageXPickupName: _pickupName,
+        storageXPickupPhone: _pickupPhone,
+        storageXPickupCity: _pickupCity,
+        storageXPickupAddressLine: _pickupAddressLine,
+        storageXPickupNationalAddress: _pickupNationalAddress,
+        storageXDefaultWeightGrams: _defaultWeightGrams,
+        ...publicSettings
+      } = settings as any;
+      res.json(publicSettings);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -5511,6 +5824,127 @@ ${allUrls.map(u => `  <url>
   });
 
   // ─────────────────────────────────────────────────────────────
+
+  // ─── Storage X Ship: shipment operations (admin) ─────────────────────────
+  app.post("/api/admin/storage-x-ship/create/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      if (!isStorageXShipConfigured()) return res.status(503).json({ message: "مفتاح Storage X Ship غير مضاف" });
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      if (order.shippingMethod !== "delivery") return res.status(400).json({ message: "يُنشأ شحن Storage X للطلبات المخصصة للتوصيل فقط" });
+      if (order.paymentStatus !== "paid" && order.paymentMethod !== "cod") {
+        return res.status(409).json({ message: "لا يمكن إنشاء شحنة لطلب غير مدفوع" });
+      }
+      if (order.storageXShipTrackingNumber &&
+          !["failed", "cancelled"].includes(String(order.storageXShipStatus || ""))) {
+        return res.status(409).json({ message: "توجد شحنة Storage X لهذا الطلب مسبقاً" });
+      }
+      const selectedProvider = String(order.shippingProvider || order.shippingCompany || "");
+      if (!["storage-x-ship", "Storage X Ship"].includes(selectedProvider)) {
+        return res.status(409).json({ message: "الطلب مخصص لمزود شحن آخر" });
+      }
+      const settings = await storage.getStoreSettings();
+      if (!storageXSettingsReadiness(settings).checkoutReady) {
+        return res.status(503).json({ message: "أكمل إعداد عنوان الاستلام والوزن الافتراضي أولاً" });
+      }
+      const shipment = await createStorageXShipment(storageXCreateInput(order, settings));
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipShipmentId: shipment.shipmentId || null,
+        storageXShipTrackingNumber: shipment.trackingNumber,
+        storageXShipStatus: shipment.status,
+        storageXShipCustody: null,
+        storageXShipCreatedAt: new Date(),
+        storageXShipError: null,
+        storageXShipLabelUrl: null,
+        shippingProvider: "Storage X Ship",
+        trackingNumber: shipment.trackingNumber,
+      } as any);
+      res.json({ success: true, ...shipment });
+    } catch (error: any) {
+      const message = safeStorageXError(error);
+      console.error("[StorageX] manual shipment creation failed:", message);
+      res.status(error instanceof StorageXShipApiError && error.status < 500 ? 422 : 502)
+        .json({ success: false, message });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/track/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const remote = await trackStorageXShipment(trackingNumber);
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipStatus: remote?.status || order.storageXShipStatus,
+        storageXShipCustody: remote?.custody || order.storageXShipCustody,
+        storageXShipError: null,
+      } as any);
+      res.json(remote);
+    } catch (error: any) {
+      res.status(502).json({ message: safeStorageXError(error) });
+    }
+  });
+
+  app.post("/api/admin/storage-x-ship/cancel/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const result = await cancelStorageXShipment(trackingNumber, String(req.body?.reason || ""));
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipStatus: result?.status || order.storageXShipStatus,
+        storageXShipCustody: result?.custody || order.storageXShipCustody,
+        storageXShipError: null,
+      } as any);
+      res.json(result);
+    } catch (error: any) {
+      res.status(502).json({ message: safeStorageXError(error) });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/label/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const url = await getStorageXLabelUrl(trackingNumber);
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipLabelUrl: url,
+        storageXShipError: null,
+      } as any);
+      res.json({ url });
+    } catch (error: any) {
+      res.status(502).json({ message: safeStorageXError(error) });
+    }
+  });
+
+  app.patch("/api/admin/storage-x-ship/update/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const allowed = [
+        "recipientName", "recipientPhone", "addressLine", "nationalAddress", "city",
+        "district", "description", "weightGrams", "codAmount", "codMethod", "reason",
+      ];
+      const changes: Record<string, unknown> = {};
+      for (const key of allowed) if (req.body?.[key] !== undefined) changes[key] = req.body[key];
+      const remote = await updateStorageXShipment(trackingNumber, changes);
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        ...(changes.nationalAddress ? { "shippingAddress.nationalAddress": normalizeStorageXNationalAddress(changes.nationalAddress) } : {}),
+        storageXShipStatus: remote?.status || order.storageXShipStatus,
+        storageXShipError: null,
+      } as any);
+      res.json(remote);
+    } catch (error: any) {
+      const status = error instanceof StorageXShipApiError && error.status < 500 ? 422 : 502;
+      res.status(status).json({ message: safeStorageXError(error) });
+    }
+  });
 
   // ─── Storage Station: manual push (admin) ───────────────────────────────
   app.post("/api/shipping/storage-station/create-order", checkPermission("orders.edit"), async (req, res) => {
@@ -7719,6 +8153,7 @@ ${allUrls.map(u => `  <url>
         google: { clientId: !!process.env.GOOGLE_CLIENT_ID, clientSecret: !!process.env.GOOGLE_CLIENT_SECRET },
         apple: { clientId: !!process.env.APPLE_CLIENT_ID, redirectUri: !!process.env.APPLE_REDIRECT_URI },
         storageStation: { apiKey: !!process.env.STORAGE_STATION_API_KEY, apiSecret: !!process.env.STORAGE_STATION_API_SECRET },
+        storageXShip: { apiKey: isStorageXShipConfigured() },
         shipox: { username: !!process.env.SHIPOX_USERNAME, password: !!process.env.SHIPOX_PASSWORD },
         mapit: { apiToken: !!process.env.MAPIT_API_TOKEN },
         mongo: { uri: !!process.env.MONGODB_URI },

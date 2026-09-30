@@ -1743,6 +1743,45 @@ const OrdersTable = memo(() => {
     onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
   });
 
+  const storageXShipCreateMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("POST", `/api/admin/storage-x-ship/create/${orderId}`, {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل إنشاء شحنة Storage X"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: `✅ تم إنشاء شحنة Storage X — ${data.trackingNumber || ""}` });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
+  const storageXShipTrackMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("GET", `/api/admin/storage-x-ship/track/${orderId}`);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل تتبع شحنة Storage X"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "تم تحديث حالة شحنة Storage X" });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
+  const storageXShipCancelMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("POST", `/api/admin/storage-x-ship/cancel/${orderId}`, {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل إلغاء شحنة Storage X"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "تم إلغاء شحنة Storage X" });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
   const mapitCreateMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const res = await apiRequest("POST", `/api/admin/mapit/create/${orderId}`, {});
@@ -2080,6 +2119,71 @@ const OrdersTable = memo(() => {
                               )}
                             </div>
                           </div>
+
+                          {/* ── Storage X Ship Panel ── */}
+                          {(order.shippingProvider === "storage-x-ship" ||
+                            order.shippingProvider === "Storage X Ship" ||
+                            order.shippingCompany === "Storage X Ship" ||
+                            order.storageXShipTrackingNumber) && (
+                          <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-blue-800">Storage X Ship</Label>
+                              {order.storageXShipStatus
+                                ? <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">{order.storageXShipStatus}</span>
+                                : <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-50 text-amber-600 border border-amber-200">لم تُنشأ بعد</span>}
+                            </div>
+                            {order.storageXShipTrackingNumber && (
+                              <div className="bg-white border border-blue-100 rounded-xl p-3 space-y-1">
+                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">رقم التتبع</p>
+                                <p className="text-sm font-black text-blue-800 font-mono tracking-wide" dir="ltr">{order.storageXShipTrackingNumber}</p>
+                                {order.storageXShipCustody && <p className="text-[10px] text-slate-500 font-bold">الحيازة: {order.storageXShipCustody}</p>}
+                              </div>
+                            )}
+                            {order.storageXShipError && (
+                              <div className="bg-red-50 border border-red-100 rounded-xl p-2">
+                                <p className="text-[9px] text-red-600 font-bold">{order.storageXShipError}</p>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-2">
+                              {(!order.storageXShipTrackingNumber || order.storageXShipStatus === "failed" || order.storageXShipStatus === "cancelled") && (
+                                <Button size="sm" className="rounded-xl text-[10px] font-black bg-blue-700 hover:bg-blue-800 text-white col-span-2"
+                                  disabled={storageXShipCreateMutation.isPending || order.status === "pending_payment"}
+                                  onClick={() => storageXShipCreateMutation.mutate(order.id)}>
+                                  {storageXShipCreateMutation.isPending ? "جاري الإنشاء..." : "🚚 إنشاء شحنة Storage X"}
+                                </Button>
+                              )}
+                              {order.storageXShipTrackingNumber && order.storageXShipStatus !== "cancelled" && (
+                                <>
+                                  <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-blue-300 text-blue-700"
+                                    disabled={storageXShipTrackMutation.isPending} onClick={() => storageXShipTrackMutation.mutate(order.id)}>
+                                    {storageXShipTrackMutation.isPending ? "جاري التحديث..." : "🔄 تحديث التتبع"}
+                                  </Button>
+                                  {order.storageXShipLabelUrl && (
+                                    <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-blue-300 text-blue-700"
+                                      onClick={() => window.open(order.storageXShipLabelUrl, "_blank")}>🖨 البوليصة</Button>
+                                  )}
+                                  {!order.storageXShipLabelUrl && (
+                                    <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-blue-300 text-blue-700"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await fetch(`/api/admin/storage-x-ship/label/${order.id}`);
+                                          const data = await res.json();
+                                          if (!res.ok || !data.url) throw new Error(data.message || "لا يوجد رابط بوليصة");
+                                          window.open(data.url, "_blank");
+                                          queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+                                        } catch (e: any) { toast({ title: e.message || "خطأ في جلب البوليصة", variant: "destructive" }); }
+                                      }}>🖨 البوليصة</Button>
+                                  )}
+                                  <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-red-300 text-red-600 col-span-2"
+                                    disabled={storageXShipCancelMutation.isPending}
+                                    onClick={() => { if (confirm("تأكيد إلغاء شحنة Storage X؟")) storageXShipCancelMutation.mutate(order.id); }}>
+                                    ✕ إلغاء الشحنة
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          )}
 
                           <div className="flex items-center justify-between">
                             <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Shipox — 3rd Mile</Label>
