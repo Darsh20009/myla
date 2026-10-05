@@ -78,7 +78,6 @@ INBOX_MAIL_EMAIL = "myla@qirox.online"
 INBOX_SMTP_HOST = "qirox.online"
 INBOX_SMTP_PORT = "465"
 ADMIN_BOOTSTRAP_PHONE = "0553844578"
-ADMIN_BOOTSTRAP_PROMOTE_EXISTING = "true"
 
 [postMerge]
 path = "scripts/post-merge.sh"
