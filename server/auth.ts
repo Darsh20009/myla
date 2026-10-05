@@ -1070,6 +1070,11 @@ export function setupAuth(app: Express) {
     return p;
   }
 
+  const phoneOtpStaffRoles = new Set([
+    "admin", "assistant_manager", "tech_support", "accountant",
+    "legal_consultant", "employee", "support", "cashier",
+  ]);
+
   async function findLoginUser(phone: string) {
     return UserModel.findOne({
       $or: [
@@ -1119,9 +1124,12 @@ export function setupAuth(app: Express) {
         } as any);
       }
 
+      if (user.isActive === false) {
+        return res.status(403).json({ message: "هذا الحساب معطل حالياً" });
+      }
+
       // Staff always use password — no WhatsApp OTP for them
-      const staffRoles = ["admin", "assistant_manager", "tech_support", "accountant", "legal_consultant", "employee", "support", "cashier"];
-      if (staffRoles.includes(user.role)) {
+      if (phoneOtpStaffRoles.has(user.role)) {
         return res.status(400).json({ message: "الموظفون يسجلون الدخول بكلمة المرور" });
       }
 
@@ -1174,6 +1182,12 @@ export function setupAuth(app: Express) {
 
       const user: any = await findLoginUser(phone);
       if (!user) return res.status(404).json({ message: "الحساب غير موجود" });
+      if (user.isActive === false) {
+        return res.status(403).json({ message: "هذا الحساب معطل حالياً" });
+      }
+      if (phoneOtpStaffRoles.has(user.role)) {
+        return res.status(400).json({ message: "الموظفون يسجلون الدخول بكلمة المرور" });
+      }
 
       if (!user.passwordResetCode || user.passwordResetCode !== String(otp).trim()) {
         return res.status(400).json({ message: "الرمز غير صحيح" });

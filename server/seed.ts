@@ -36,6 +36,7 @@ export async function seed() {
   const bootstrapPhone = configuredBootstrapPhone
     ? normalizeBootstrapPhone(configuredBootstrapPhone)
     : defaultBootstrapAdminPhone;
+  const promoteExistingTarget = process.env.ADMIN_BOOTSTRAP_PROMOTE_EXISTING === "true";
   const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   const usableAdminPassword = adminPassword && adminPassword.length >= 12
     ? adminPassword
@@ -54,38 +55,47 @@ export async function seed() {
       { phone: new RegExp(`${bootstrapPhone.slice(1)}$`) },
       { username: new RegExp(`${bootstrapPhone.slice(1)}$`) },
     ],
-  }).select("_id phone role username").lean();
-  const targetAdmin = targetAccounts.length === 1 && targetAccounts[0].role === "admin"
-    ? targetAccounts[0]
-    : null;
-  const bootstrapAdmin = legacyAdmin || targetAdmin;
-  const targetIsDifferentAccount = targetAccounts.some(
-    (account) => !bootstrapAdmin || String(account._id) !== String(bootstrapAdmin._id),
+  }).select("_id phone role username isActive").lean();
+  const targetAccount = targetAccounts.length === 1 ? targetAccounts[0] : null;
+  const canUseTargetAccount = Boolean(
+    targetAccount &&
+    (targetAccount.role === "admin" ||
+      (promoteExistingTarget && targetAccount.role === "customer" && targetAccount.isActive !== false)),
   );
-  const existingAdmin = Boolean(bootstrapAdmin);
+  const targetBootstrapAccount = canUseTargetAccount ? targetAccount : null;
+  const bootstrapAccount = targetBootstrapAccount || legacyAdmin;
+  const targetIsDifferentAccount = targetAccounts.length > 1 || targetAccounts.some(
+    (account) => !bootstrapAccount || String(account._id) !== String(bootstrapAccount._id),
+  );
+  const targetIsInactiveCustomer = Boolean(
+    targetAccount?.role === "customer" &&
+    promoteExistingTarget &&
+    targetAccount.isActive === false,
+  );
+  const existingAdmin = Boolean(legacyAdmin || targetBootstrapAccount?.role === "admin");
 
   if (!usableAdminPassword && !existingAdmin) {
     throw new Error("Set ADMIN_BOOTSTRAP_PASSWORD (at least 12 characters) to create the initial admin account.");
   }
 
   if (usableAdminPassword) {
-    if (targetIsDifferentAccount) {
+    if (targetIsInactiveCustomer) {
+      console.error("[AdminBootstrap] target customer account is inactive; promotion skipped.");
+    } else if (targetIsDifferentAccount) {
       console.error("[AdminBootstrap] target phone belongs to another account; credential rotation skipped.");
     } else {
       console.log("Seeding Myla admin user from configured bootstrap credentials...");
       const passwordHash = await hashPassword(usableAdminPassword);
-      const filter = bootstrapAdmin
-        ? { _id: bootstrapAdmin._id, role: "admin" as const }
+      const filter = bootstrapAccount
+        ? { _id: bootstrapAccount._id, role: bootstrapAccount.role }
         : { phone: bootstrapPhone, role: "admin" as const };
       try {
         const adminResult = await UserModel.findOneAndUpdate(
           filter,
           {
             $set: {
-              name: "Myla",
               phone: bootstrapPhone,
               username: bootstrapPhone,
-              email: "info@myla.sa",
               role: "admin",
               loginType: "both",
               isActive: true,
@@ -99,7 +109,14 @@ export async function seed() {
                 "pos.access", "settings.manage"
               ],
             },
+            $unset: {
+              passwordResetCode: 1,
+              passwordResetCodeExpires: 1,
+              passwordResetAttempts: 1,
+            },
             $setOnInsert: {
+              name: "Myla",
+              email: "info@myla.sa",
               walletBalance: "0",
               addresses: [],
               loyaltyPoints: 0,
@@ -112,6 +129,8 @@ export async function seed() {
         );
         if (!adminResult) {
           console.log("Admin user created with configured bootstrap credentials.");
+        } else if (promoteExistingTarget && targetAccount?.role === "customer") {
+          console.log("Existing customer account promoted to admin with configured bootstrap credentials.");
         } else {
           console.log("Admin user updated with configured bootstrap credentials.");
         }
