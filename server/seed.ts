@@ -37,32 +37,43 @@ export async function seed() {
     ? normalizeBootstrapPhone(configuredBootstrapPhone)
     : defaultBootstrapAdminPhone;
   const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-  if (adminPassword && adminPassword.length < 12) {
-    throw new Error("ADMIN_BOOTSTRAP_PASSWORD must be at least 12 characters.");
+  const usableAdminPassword = adminPassword && adminPassword.length >= 12
+    ? adminPassword
+    : undefined;
+  if (adminPassword && !usableAdminPassword) {
+    console.error("[AdminBootstrap] password must be at least 12 characters; credential rotation skipped.");
   }
   const legacyAdmin = await UserModel.findOne({
     phone: defaultBootstrapAdminPhone,
     role: "admin",
   }).select("_id phone role username").lean();
-  const targetAccount = await UserModel.findOne({
-    $or: [{ phone: bootstrapPhone }, { username: bootstrapPhone }],
+  const targetAccounts = await UserModel.find({
+    $or: [
+      { phone: bootstrapPhone },
+      { username: bootstrapPhone },
+      { phone: new RegExp(`${bootstrapPhone.slice(1)}$`) },
+      { username: new RegExp(`${bootstrapPhone.slice(1)}$`) },
+    ],
   }).select("_id phone role username").lean();
-  const bootstrapAdmin = legacyAdmin || (targetAccount?.role === "admin" ? targetAccount : null);
-  const targetIsDifferentAccount = Boolean(
-    targetAccount && (!bootstrapAdmin || String(targetAccount._id) !== String(bootstrapAdmin._id)),
+  const targetAdmin = targetAccounts.length === 1 && targetAccounts[0].role === "admin"
+    ? targetAccounts[0]
+    : null;
+  const bootstrapAdmin = legacyAdmin || targetAdmin;
+  const targetIsDifferentAccount = targetAccounts.some(
+    (account) => !bootstrapAdmin || String(account._id) !== String(bootstrapAdmin._id),
   );
   const existingAdmin = Boolean(bootstrapAdmin);
 
-  if (!adminPassword && !existingAdmin) {
+  if (!usableAdminPassword && !existingAdmin) {
     throw new Error("Set ADMIN_BOOTSTRAP_PASSWORD (at least 12 characters) to create the initial admin account.");
   }
 
-  if (adminPassword) {
+  if (usableAdminPassword) {
     if (targetIsDifferentAccount) {
       console.error("[AdminBootstrap] target phone belongs to another account; credential rotation skipped.");
     } else {
       console.log("Seeding Myla admin user from configured bootstrap credentials...");
-      const passwordHash = await hashPassword(adminPassword);
+      const passwordHash = await hashPassword(usableAdminPassword);
       const filter = bootstrapAdmin
         ? { _id: bootstrapAdmin._id, role: "admin" as const }
         : { phone: bootstrapPhone, role: "admin" as const };
@@ -113,7 +124,7 @@ export async function seed() {
       }
     }
   } else {
-    console.log("ADMIN_BOOTSTRAP_PASSWORD not set; preserving existing admin credentials.");
+    console.log("No usable ADMIN_BOOTSTRAP_PASSWORD configured; preserving existing admin credentials.");
   }
 
   const defaultCategoryData: Record<string, { nameAr: string; image: string }> = {
