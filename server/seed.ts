@@ -20,58 +20,97 @@ export async function seed() {
   // Remove legacy phone numbers (one-time cleanup only)
   await UserModel.deleteMany({ phone: "0552469643", role: "admin" });
 
-  // Only bootstrap or rotate the admin password when the secret is explicitly
-  // configured. Existing admin accounts remain usable if the secret is absent.
+  // Only bootstrap or rotate admin credentials when the password secret is
+  // explicitly configured. Existing admin accounts remain unchanged otherwise.
+  const defaultBootstrapAdminPhone = "0507378047";
+  const normalizeBootstrapPhone = (value: string) => {
+    let digits = value.replace(/\D/g, "");
+    if (digits.startsWith("966")) digits = digits.substring(3);
+    if (digits.startsWith("0")) digits = digits.substring(1);
+    if (!/^5\d{8}$/.test(digits)) {
+      throw new Error("ADMIN_BOOTSTRAP_PHONE must be a valid Saudi mobile number.");
+    }
+    return `0${digits}`;
+  };
+  const configuredBootstrapPhone = process.env.ADMIN_BOOTSTRAP_PHONE?.trim();
+  const bootstrapPhone = configuredBootstrapPhone
+    ? normalizeBootstrapPhone(configuredBootstrapPhone)
+    : defaultBootstrapAdminPhone;
   const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (adminPassword && adminPassword.length < 12) {
     throw new Error("ADMIN_BOOTSTRAP_PASSWORD must be at least 12 characters.");
   }
-  const bootstrapAdminFilter: { phone: string; role: "admin" } = { phone: "0507378047", role: "admin" };
-  const existingAdmin = await UserModel.exists(bootstrapAdminFilter);
+  const legacyAdmin = await UserModel.findOne({
+    phone: defaultBootstrapAdminPhone,
+    role: "admin",
+  }).select("_id phone role username").lean();
+  const targetAccount = await UserModel.findOne({
+    $or: [{ phone: bootstrapPhone }, { username: bootstrapPhone }],
+  }).select("_id phone role username").lean();
+  const bootstrapAdmin = legacyAdmin || (targetAccount?.role === "admin" ? targetAccount : null);
+  const targetIsDifferentAccount = Boolean(
+    targetAccount && (!bootstrapAdmin || String(targetAccount._id) !== String(bootstrapAdmin._id)),
+  );
+  const existingAdmin = Boolean(bootstrapAdmin);
 
   if (!adminPassword && !existingAdmin) {
     throw new Error("Set ADMIN_BOOTSTRAP_PASSWORD (at least 12 characters) to create the initial admin account.");
   }
 
   if (adminPassword) {
-    console.log("Seeding Myla admin user from ADMIN_BOOTSTRAP_PASSWORD...");
-    const passwordHash = await hashPassword(adminPassword);
-    const adminResult = await UserModel.findOneAndUpdate(
-      bootstrapAdminFilter,
-      {
-        $set: {
-          name: "Myla",
-          username: "0507378047",
-          email: "info@myla.sa",
-          role: "admin",
-          loginType: "both",
-          isActive: true,
-          mustChangePassword: false,
-          password: passwordHash,
-          permissions: [
-            "orders.view", "orders.edit", "orders.refund",
-            "products.view", "products.edit",
-            "customers.view", "wallet.adjust",
-            "reports.view", "staff.manage",
-            "pos.access", "settings.manage"
-          ],
-        },
-        $setOnInsert: {
-          phone: "0507378047",
-          walletBalance: "0",
-          addresses: [],
-          loyaltyPoints: 0,
-          loyaltyTier: "bronze",
-          totalSpent: 0,
-          phoneDiscountEligible: false,
-        },
-      },
-      { upsert: true, new: false }
-    );
-    if (!adminResult) {
-      console.log("Admin user created with password from ADMIN_BOOTSTRAP_PASSWORD");
+    if (targetIsDifferentAccount) {
+      console.error("[AdminBootstrap] target phone belongs to another account; credential rotation skipped.");
     } else {
-      console.log("Admin user updated with password from ADMIN_BOOTSTRAP_PASSWORD");
+      console.log("Seeding Myla admin user from configured bootstrap credentials...");
+      const passwordHash = await hashPassword(adminPassword);
+      const filter = bootstrapAdmin
+        ? { _id: bootstrapAdmin._id, role: "admin" as const }
+        : { phone: bootstrapPhone, role: "admin" as const };
+      try {
+        const adminResult = await UserModel.findOneAndUpdate(
+          filter,
+          {
+            $set: {
+              name: "Myla",
+              phone: bootstrapPhone,
+              username: bootstrapPhone,
+              email: "info@myla.sa",
+              role: "admin",
+              loginType: "both",
+              isActive: true,
+              mustChangePassword: false,
+              password: passwordHash,
+              permissions: [
+                "orders.view", "orders.edit", "orders.refund",
+                "products.view", "products.edit",
+                "customers.view", "wallet.adjust",
+                "reports.view", "staff.manage",
+                "pos.access", "settings.manage"
+              ],
+            },
+            $setOnInsert: {
+              walletBalance: "0",
+              addresses: [],
+              loyaltyPoints: 0,
+              loyaltyTier: "bronze",
+              totalSpent: 0,
+              phoneDiscountEligible: false,
+            },
+          },
+          { upsert: true, new: false }
+        );
+        if (!adminResult) {
+          console.log("Admin user created with configured bootstrap credentials.");
+        } else {
+          console.log("Admin user updated with configured bootstrap credentials.");
+        }
+      } catch (error: any) {
+        if (error?.code === 11000) {
+          console.error("[AdminBootstrap] target phone is already assigned; credential rotation skipped.");
+        } else {
+          throw error;
+        }
+      }
     }
   } else {
     console.log("ADMIN_BOOTSTRAP_PASSWORD not set; preserving existing admin credentials.");
