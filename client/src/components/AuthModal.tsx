@@ -35,6 +35,8 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"password" | "otp">("password");
   const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(null);
 
   const lastCheckedPhone = useRef<string | null>(null);
@@ -284,21 +286,39 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
   };
 
   useEffect(() => {
+    if (!open) {
+      lastCheckedPhone.current = null;
+      return;
+    }
     if (phone.length === 9 && phone !== lastCheckedPhone.current) {
       lastCheckedPhone.current = phone;
-      fetch(`/api/auth/check-role/${phone}`).then(r => r.ok ? r.json() : null).then(d => {
-        setIsStaff(!!d?.isStaff);
-      }).catch(() => setIsStaff(false));
-    } else if (phone.length < 9) {
       setIsStaff(false);
+      setIsAdmin(false);
+      setLoginMethod("password");
+      const checkedPhone = phone;
+      fetch(`/api/auth/check-role/${phone}`).then(r => r.ok ? r.json() : null).then(d => {
+        if (lastCheckedPhone.current !== checkedPhone) return;
+        setIsStaff(!!d?.isStaff);
+        setIsAdmin(d?.role === "admin");
+      }).catch(() => {
+        if (lastCheckedPhone.current === checkedPhone) {
+          setIsStaff(false);
+          setIsAdmin(false);
+        }
+      });
+    } else if (phone.length < 9) {
+      lastCheckedPhone.current = null;
+      setIsStaff(false);
+      setIsAdmin(false);
+      setLoginMethod("password");
     }
-  }, [phone]);
+  }, [phone, open]);
 
   const handlePhoneLogin = async () => {
     if (phone.length < 9) return;
 
-    if (isStaff) {
-      // Staff always use password login
+    if (isStaff && !(isAdmin && loginMethod === "otp")) {
+      // Non-admin staff and admins who choose it use password login.
       login({ username: phone, password }, {
         onSuccess: (userData: any) => {
           onOpenChange(false);
@@ -584,6 +604,20 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                 ? <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 : tx("إعادة إرسال الرمز", "Resend code")}
             </button>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  resetLoginOtpState();
+                  setLoginMethod("password");
+                }}
+                className="w-full text-center text-[11px] font-bold text-[#6B3F2A] hover:underline"
+                data-testid="button-login-use-password"
+              >
+                {tx("العودة للدخول بكلمة المرور", "Use password instead")}
+              </button>
+            )}
           </div>
         )}
 
@@ -686,6 +720,32 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
             </div>
           </div>
 
+          {tab === "login" && isAdmin && (
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-[#6B3F2A]">{tx("طريقة الدخول", "Sign-in method")}</p>
+              <div role="group" aria-label={tx("طريقة دخول الأدمن", "Admin sign-in method")} className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  aria-pressed={loginMethod === "password"}
+                  onClick={() => setLoginMethod("password")}
+                  className={`h-10 rounded-lg border text-xs font-bold transition-colors ${loginMethod === "password" ? "border-[#6B3F2A] bg-[#6B3F2A] text-white" : "border-gray-200 bg-white text-[#6B3F2A]"}`}
+                  data-testid="button-admin-login-password"
+                >
+                  {tx("كلمة المرور", "Password")}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={loginMethod === "otp"}
+                  onClick={() => setLoginMethod("otp")}
+                  className={`h-10 rounded-lg border text-xs font-bold transition-colors ${loginMethod === "otp" ? "border-[#6B3F2A] bg-[#6B3F2A] text-white" : "border-gray-200 bg-white text-[#6B3F2A]"}`}
+                  data-testid="button-admin-login-otp"
+                >
+                  {tx("رمز واتساب", "WhatsApp code")}
+                </button>
+              </div>
+            </div>
+          )}
+
           {tab === "register" && (
             <div>
               <label className="text-[10px] font-bold text-[#6B3F2A] uppercase tracking-widest mb-1 block">{t("email")} <span className="text-gray-700">({t("optional")})</span></label>
@@ -700,7 +760,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
             </div>
           )}
 
-          {(isStaff || tab === "register") && (
+          {((isStaff && (!isAdmin || loginMethod === "password")) || tab === "register") && (
             <div>
               <label className="text-[10px] font-bold text-[#6B3F2A] uppercase tracking-widest mb-1 block">{t("password")}</label>
               <div className="relative">
@@ -730,12 +790,14 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
 
           <button
             onClick={tab === "login" ? handlePhoneLogin : handlePhoneRegister}
-            disabled={isLoggingIn || isRegistering || phone.length < 9 || (tab === "register" && (!name.trim() || password.length < 6))}
+            disabled={isLoggingIn || isRegistering || isSendingLoginOtp || phone.length < 9 || (tab === "register" && (!name.trim() || password.length < 6)) || (tab === "login" && isStaff && !(isAdmin && loginMethod === "otp") && !password)}
             className="w-full h-12 bg-[#2C1810] text-white rounded-xl font-bold text-sm hover:bg-[#3D2517] transition-colors disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-[#2C1810]/20"
           >
-            {(isLoggingIn || isRegistering) ? (
+            {(isLoggingIn || isRegistering || isSendingLoginOtp) ? (
               <Loader2 className="h-5 w-5 animate-spin" />
-            ) : tab === "login" ? t("signIn") : t("createAccount")}
+            ) : tab === "login"
+              ? (isAdmin && loginMethod === "otp" ? tx("إرسال رمز واتساب", "Send WhatsApp code") : t("signIn"))
+              : t("createAccount")}
           </button>
 
           {tab === "login" && (
