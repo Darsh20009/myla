@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { NotificationModel, PushSubscriptionModel, UserModel } from "./models";
 import type { WebSocket } from "ws";
+import { sendWhatsAppNotification } from "./whatsapp";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BMuRKYfA848bkr9LPDIi0BiXwbgcisqOp2NPzDDDsbc2aVpx1FtvUWxQj8YsP7stW5sdIRgh45NWvLNzu7gqRnE";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "IoOFkWsX7Ga7_EQjA_cA0cxE7ChrFHENkNKpE6eyR10";
@@ -149,5 +150,51 @@ export async function fireNotifyAdmins(
     );
   } catch (err: any) {
     console.error("[Notify] fireNotifyAdmins error:", err?.message);
+  }
+}
+
+/** Send a minimal new-order alert to active administrator phone numbers. */
+export async function sendWhatsAppOrderAlert(
+  order: { id?: string; _id?: unknown; total?: unknown; paymentMethod?: string },
+  paid = false,
+) {
+  const admins = await UserModel.find({
+    role: "admin",
+    isActive: true,
+  }).select("phone").lean();
+
+  const recipients = new Set<string>();
+  for (const admin of admins) {
+    const phone = String(admin.phone || "").trim();
+    if (phone) recipients.add(phone);
+  }
+
+  if (recipients.size === 0) {
+    console.warn("[WhatsApp Orders] No active admin phone numbers are configured");
+    return;
+  }
+
+  const orderId = String(order.id || order._id || "").slice(-8).toUpperCase() || "—";
+  const total = Number(order.total);
+  const amount = Number.isFinite(total) ? `${total.toFixed(2)} ر.س` : "—";
+  const title = paid ? "💳 تم تأكيد طلب جديد" : "🛍️ طلب جديد";
+  const message = [
+    `*${title}*`,
+    `رقم الطلب: #${orderId}`,
+    `الإجمالي: ${amount}`,
+    `طريقة الدفع: ${String(order.paymentMethod || "—").slice(0, 30)}`,
+    "راجع لوحة الإدارة للتفاصيل.",
+  ].join("\n");
+
+  const results = await Promise.allSettled(
+    [...recipients].map((phone) => sendWhatsAppNotification(phone, message)),
+  );
+  const sent = results.filter((result) => result.status === "fulfilled").length;
+  const failed = results.length - sent;
+  if (failed > 0) {
+    console.warn(`[WhatsApp Orders] Sent to ${sent}/${results.length} active admins`);
+  }
+  if (sent === 0) {
+    throw new Error("WhatsApp order alerts could not be sent");
   }
 }

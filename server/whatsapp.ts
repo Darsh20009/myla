@@ -852,6 +852,26 @@ export async function sendWaMessage(chatId: string, text: string): Promise<void>
   addMessage(chatId, msg);
 }
 
+function normalizeWhatsAppPhone(phone: string): string {
+  const value = String(phone || "").trim();
+  let digits = value.replace(/\D/g, "");
+  if (value.startsWith("00")) digits = digits.replace(/^00/, "");
+  else if (!value.startsWith("+") && !digits.startsWith("966")) {
+    digits = `966${digits.replace(/^0+/, "")}`;
+  }
+  if (!/^\d{8,15}$/.test(digits)) {
+    throw new Error("رقم واتساب للإدارة غير صالح");
+  }
+  return digits;
+}
+
+/** Send an operational notification through the paired WhatsApp session. */
+export async function sendWhatsAppNotification(phone: string, text: string): Promise<void> {
+  if (!sock || waState !== "connected") throw new Error("WhatsApp غير متصل");
+  const jid = `${normalizeWhatsAppPhone(phone)}@s.whatsapp.net`;
+  await sock.sendMessage(jid, { text });
+}
+
 export async function sendWaImage(
   chatId: string,
   imageBase64: string,

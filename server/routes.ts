@@ -14,7 +14,7 @@ import crypto from "crypto";
 import { UserModel, OrderModel, NotificationModel, PushSubscriptionModel, ActivityLogModel, StoreSettingsModel, MailAccountModel, MailMessageModel } from "./models";
 import { encryptSecret, PROVIDER_PRESETS, testConnection as testInboxConnection, syncAccount as syncInboxAccount, setMessageFlags as setInboxFlags, deleteMessage as deleteInboxMessage, sendFromAccount as sendInboxMessage } from "./inbox";
 import { paymentGateway } from "./payments";
-import { fireNotify, fireNotifyAdmins, VAPID_PUBLIC_KEY } from "./notifications";
+import { fireNotify, fireNotifyAdmins, sendWhatsAppOrderAlert, VAPID_PUBLIC_KEY } from "./notifications";
 import {
   initiateCardPayment, verify3DS, initiateSTPay, verifySTCPay,
   processApplePay,
@@ -409,6 +409,9 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
         { type: "success", link: "/admin", icon: "💳", webPush: true }
       );
     });
+    enqueueJob("paid-notify-admins-whatsapp", async () => {
+      await sendWhatsAppOrderAlert(order, true);
+    }, { critical: false, maxAttempts: 3 });
 
     enqueueJob("paid-admin-email-notification", async () => {
       const [customer, settings] = await Promise.all([
@@ -1790,6 +1793,9 @@ ${allUrls.map(u => `  <url>
             { type: "info", link: "/admin", icon: "🛒", webPush: true }
           );
         });
+        enqueueJob("notify-admins-new-order-whatsapp", async () => {
+          await sendWhatsAppOrderAlert(order);
+        }, { critical: false, maxAttempts: 3 });
 
         enqueueJob("admin-email-new-order", async () => {
           const [customer, settings] = await Promise.all([
