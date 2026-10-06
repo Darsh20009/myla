@@ -555,8 +555,12 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
       (order.shippingProvider === "storage-x-ship" || order.shippingCompany === "Storage X Ship");
     if (usesStorageXShip) {
       enqueueStorageXShipment(order);
-    // ── Mapit: create courier shipment first when configured ──────────────────
-    } else if (order.shippingMethod === "delivery" && isMapitConfigured()) {
+    // ── Mapit fallback when the selected Shipox carrier is not configured ────
+    } else if (
+      order.shippingMethod === "delivery" &&
+      isMapitConfigured() &&
+      !isShipoxConfigured()
+    ) {
       enqueueJob("paid-mapit-create", async () => {
         try {
           // Idempotency: skip if shipment was already successfully created
@@ -589,17 +593,28 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
           throw err;
         }
       }, { critical: false, maxAttempts: 3 });
-    // ── Shipox / 3rd Mile fallback (only when Mapit is not configured) ─────────
+    // ── Shipox / 3rd Mile is preferred when configured ───────────────────────
     } else if (order.shippingMethod === "delivery" && isShipoxConfigured()) {
       enqueueJob("paid-shipox-create", async () => {
         try {
+          const freshOrder = await storage.getOrder(String(order.id || orderId));
+          if (!freshOrder) throw new Error("الطلب غير موجود عند تجهيز شحنة Shipox");
+          const existingShipoxId = (freshOrder as any).shipoxOrderNumber
+            || (freshOrder as any).shipoxTrackingNumber
+            || (freshOrder as any).shipoxOrderId;
+          if (existingShipoxId && (freshOrder as any).shipoxStatus !== "failed") {
+            console.log(`[Shipox] order ${orderId} already has shipment ${existingShipoxId} — skipping`);
+            return;
+          }
+
           const settings = await storage.getStoreSettings().catch(() => null);
           const senderName    = (settings as any)?.storeName    || "Myla";
-          const senderPhone   = (settings as any)?.storePhone   || "0500000000";
-          const senderAddress = (settings as any)?.storeAddress || "الرياض";
+          const senderPhone   = (settings as any)?.storePhone   || "";
+          const senderAddress = (settings as any)?.storeAddress || "";
+          const senderCity    = (settings as any)?.storeCity    || "";
 
-          const shipoxResult = await createShipoxOrder(order, "STANDARD", {
-            senderName, senderPhone, senderAddress, senderCity: "Riyadh",
+          const shipoxResult = await createShipoxOrder(freshOrder, "STANDARD", {
+            senderName, senderPhone, senderAddress, senderCity,
           });
 
           await storage.updateOrder(String(order.id || orderId), {
@@ -6398,15 +6413,30 @@ ${allUrls.map(u => `  <url>
       }
       const order = await storage.getOrder(req.params.orderId);
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const existingShipoxId = (order as any).shipoxOrderNumber
+        || (order as any).shipoxTrackingNumber
+        || (order as any).shipoxOrderId;
+      if (
+        existingShipoxId &&
+        !["failed", "cancelled"].includes(String((order as any).shipoxStatus || "").toLowerCase())
+      ) {
+        return res.json({
+          success: true,
+          existing: true,
+          orderNumber: (order as any).shipoxOrderNumber,
+          trackingNumber: (order as any).shipoxTrackingNumber,
+          status: (order as any).shipoxStatus,
+        });
+      }
 
       const serviceType: ShipoxServiceType = (req.body.serviceType || "STANDARD") as ShipoxServiceType;
       const settings = await storage.getStoreSettings().catch(() => null);
 
       const result = await createShipoxOrder(order, serviceType, {
         senderName:    req.body.senderName    || (settings as any)?.storeName    || "Myla",
-        senderPhone:   req.body.senderPhone   || (settings as any)?.storePhone   || "0500000000",
-        senderAddress: req.body.senderAddress || (settings as any)?.storeAddress || "الرياض",
-        senderCity:    req.body.senderCity    || "Riyadh",
+        senderPhone:   req.body.senderPhone   || (settings as any)?.storePhone   || "",
+        senderAddress: req.body.senderAddress || (settings as any)?.storeAddress || "",
+        senderCity:    req.body.senderCity    || (settings as any)?.storeCity    || "",
       });
 
       await storage.updateOrder(req.params.orderId, {
@@ -6447,9 +6477,9 @@ ${allUrls.map(u => `  <url>
       const settings = await storage.getStoreSettings().catch(() => null);
       const result = await createShipoxReturn(order, {
         senderName:    (settings as any)?.storeName    || "Myla",
-        senderPhone:   (settings as any)?.storePhone   || "0500000000",
-        senderAddress: (settings as any)?.storeAddress || "الرياض",
-        senderCity:    "Riyadh",
+        senderPhone:   (settings as any)?.storePhone   || "",
+        senderAddress: (settings as any)?.storeAddress || "",
+        senderCity:    (settings as any)?.storeCity    || "",
       });
 
       res.json({ success: true, ...result });
@@ -6531,13 +6561,22 @@ ${allUrls.map(u => `  <url>
       }
       const order = await storage.getOrder(req.params.orderId);
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const existingShipoxId = (order as any).shipoxOrderNumber
+        || (order as any).shipoxTrackingNumber
+        || (order as any).shipoxOrderId;
+      if (
+        existingShipoxId &&
+        !["failed", "cancelled"].includes(String((order as any).shipoxStatus || "").toLowerCase())
+      ) {
+        return res.status(409).json({ message: "ألغِ شحنة Shipox الحالية قبل تغيير نوع الخدمة" });
+      }
 
       const settings = await storage.getStoreSettings().catch(() => null);
       const result = await createShipoxOrder(order, serviceType as ShipoxServiceType, {
         senderName:    (settings as any)?.storeName    || "Myla",
-        senderPhone:   (settings as any)?.storePhone   || "0500000000",
-        senderAddress: (settings as any)?.storeAddress || "الرياض",
-        senderCity:    "Riyadh",
+        senderPhone:   (settings as any)?.storePhone   || "",
+        senderAddress: (settings as any)?.storeAddress || "",
+        senderCity:    (settings as any)?.storeCity    || "",
       });
 
       await storage.updateOrder(req.params.orderId, {

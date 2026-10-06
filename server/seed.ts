@@ -1,7 +1,8 @@
 import { storage } from "./storage";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-import { CategoryModel, UserModel, BranchModel } from "./models";
+import { CategoryModel, ProductModel, StoreSettingsModel, UserModel, BranchModel } from "./models";
+import { defaultAbayaProducts } from "./seed-abaya-products";
 
 const scryptAsync = promisify(scrypt);
 
@@ -176,6 +177,43 @@ export async function seed() {
         });
       }
     }
+  }
+
+  const abayaCategory = await CategoryModel.findOne({ slug: "abayas" }).lean();
+  const storeSettings = await StoreSettingsModel.findOne({ key: "main" })
+    .select("mylaAbayaCatalogSeedVersion")
+    .lean() as any;
+  if (abayaCategory && Number(storeSettings?.mylaAbayaCatalogSeedVersion || 0) < 1) {
+    const existingProducts = await ProductModel.find({}, { name: 1 }).lean();
+    const existingNames = new Set(existingProducts.map((product: any) => String(product.name || "").trim()));
+    const missingProducts = defaultAbayaProducts.filter((product) => !existingNames.has(product.name.trim()));
+    if (missingProducts.length > 0) {
+      const categoryId = String(abayaCategory._id);
+      const products = missingProducts.map((product) => ({
+        ...product,
+        name: product.name.trim(),
+        categoryId,
+        categoryIds: [categoryId],
+        images: product.images.map((image) =>
+          image.startsWith("/") ? `https://myla-abayas.store${image}` : image
+        ),
+        variants: product.variants.map((variant) => ({
+          ...variant,
+          image: variant.image?.startsWith("/")
+            ? `https://myla-abayas.store${variant.image}`
+            : variant.image,
+        })),
+      }));
+      await ProductModel.insertMany(products as any[]);
+      console.log(`[CatalogSeed] Restored ${products.length} missing Myla abaya products.`);
+    } else {
+      console.log("[CatalogSeed] Existing Myla abaya catalog found; skipped import.");
+    }
+    await StoreSettingsModel.updateOne(
+      { key: "main" },
+      { $set: { mylaAbayaCatalogSeedVersion: 1 } },
+      { upsert: true },
+    );
   }
 
   // ─── Default branch ──────────────────────────────────────────────────────

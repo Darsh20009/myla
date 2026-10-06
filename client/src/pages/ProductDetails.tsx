@@ -595,7 +595,21 @@ export default function ProductDetails() {
                         data-testid={`button-color-${color}`}
                       >
                         {colorImages[color] ? (
-                          <img src={colorImages[color]} alt={color} className="w-full h-full object-cover" />
+                          <img
+                            src={colorImages[color]}
+                            alt={color}
+                            className="w-full h-full object-cover"
+                            onError={(event) => {
+                              const image = event.currentTarget;
+                              const fallbackImage = allImages[0];
+                              if (fallbackImage && image.dataset.fallbackUsed !== "true") {
+                                image.dataset.fallbackUsed = "true";
+                                image.src = fallbackImage;
+                              } else {
+                                image.style.display = "none";
+                              }
+                            }}
+                          />
                         ) : (
                           <div className="w-full h-full bg-black/5 flex items-center justify-center text-[9px] font-black uppercase text-center px-1 leading-none">
                             {color}

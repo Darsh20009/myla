@@ -21,7 +21,11 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **Idempotency:** `dispatchOrderPaidSideEffects` re-fetches the order before calling `createMapitOrder`. If `mapitOrderNumber` is already set and `mapitStatus !== "failed"`, it skips. Admin create route also returns early if shipment exists and is not failed.
 
-**Provider priority:** Mapit is primary. Shipox/3rd Mile is fallback — it only runs when `isMapitConfigured()` returns false. Both configured at once → Mapit wins, Shipox is skipped.
+**Provider priority:** Shipox/3rd Mile is the user's selected carrier and is preferred when configured. Mapit remains the fallback when Shipox is not configured; if neither is configured, no automatic shipment is created.
+
+**Why:** On 2026-10-06 the user explicitly selected Shipox/3rd Mile for shipping. Do not let an older Mapit-first rule override that choice.
+
+**How to apply:** Keep Shipox first for automatic delivery orders, with Mapit as a continuity fallback until Shipox is configured.
 
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 

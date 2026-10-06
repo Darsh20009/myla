@@ -715,6 +715,8 @@ const storeSettingsSchema = new Schema(
     storePhone: { type: String, default: "" },
     storeEmail: { type: String, default: "info@myla.sa" },
     storeAddress: { type: String, default: "" },
+    storeCity: { type: String, default: "" },
+    mylaAbayaCatalogSeedVersion: { type: Number, default: 0 },
     vatNumber: { type: String, default: "" },
     crNumber: { type: String, default: "" },
     nationalUnifiedNumber: { type: String, default: "" },

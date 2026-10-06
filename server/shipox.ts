@@ -135,12 +135,37 @@ export async function createShipoxOrder(
 
   const svc = SHIPOX_SERVICE_TYPES[serviceType];
   const addr = order.shippingAddress || {};
-  const city = addr.city || addr.cityName || "Riyadh";
-  const street = [addr.street, addr.district, addr.building].filter(Boolean).join("، ")
-    || order.deliveryAddress
-    || "غير محدد";
-  const fullName = (order.customerName || "عميل Myla").trim();
-  const phone    = (order.customerPhone || "0500000000").replace(/\D/g, "");
+  const city = String(addr.city || addr.cityName || "").trim();
+  const street = String(
+    [addr.street, addr.district, addr.building].filter(Boolean).join("، ")
+      || order.deliveryAddress
+      || "",
+  ).trim();
+  const fullName = String(addr.name || order.customerName || "").trim();
+  const phone = String(addr.phone || order.customerPhone || "").replace(/\D/g, "");
+  const senderName = String(sender.senderName || "").trim();
+  const senderPhone = String(sender.senderPhone || "").replace(/\D/g, "");
+  const senderAddress = String(sender.senderAddress || "").trim();
+  const senderCity = String(sender.senderCity || "").trim();
+  const missing: string[] = [];
+  if (!fullName) missing.push("اسم المستلم");
+  if (!/^\d{9,15}$/.test(phone)) missing.push("رقم جوال المستلم");
+  if (!city) missing.push("مدينة المستلم");
+  if (!street) missing.push("عنوان المستلم");
+  if (!senderName) missing.push("اسم المرسل");
+  if (!/^\d{9,15}$/.test(senderPhone)) missing.push("رقم جوال المرسل");
+  if (!senderAddress) missing.push("عنوان المرسل");
+  if (!senderCity) missing.push("مدينة المرسل");
+  const orderTotal = Number(order.total);
+  const shippingCost = Number(order.shippingCost) || 0;
+  const isCod = order.paymentMethod === "cod" && serviceType !== "RETURN";
+  if (isCod && (!Number.isFinite(orderTotal) || orderTotal < shippingCost)) {
+    missing.push("إجمالي طلب التحصيل");
+  }
+  if (missing.length) {
+    throw new Error(`لا يمكن إنشاء شحنة Shipox. أكمل بيانات: ${missing.join("، ")}`);
+  }
+  const codAmount = isCod ? Math.max(0, orderTotal - shippingCost) : 0;
   const orderRef = String(order.id || order._id).slice(-8).toUpperCase();
   const piecesCount = (order.items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
 
@@ -148,10 +173,10 @@ export async function createShipoxOrder(
     service_type_id:   svc.id,
     packages_price_id: svc.packagePriceId,
 
-    sender_name:    sender.senderName    || "Myla",
-    sender_phone:   sender.senderPhone   || "0507378047",
-    sender_address: sender.senderAddress || "الرياض",
-    sender_city_name: sender.senderCity  || "Riyadh",
+    sender_name:    senderName,
+    sender_phone:   senderPhone,
+    sender_address: senderAddress,
+    sender_city_name: senderCity,
 
     recipient_name:      fullName,
     recipient_phone:     phone,
@@ -161,7 +186,7 @@ export async function createShipoxOrder(
     description:     `طلب Myla #${orderRef}`,
     pieces_count:    piecesCount,
     weight:          0.5,
-    cod_amount:      0,
+    cod_amount:      codAmount,
     notes:           order.notes || "",
     reference_number: orderRef,
   };

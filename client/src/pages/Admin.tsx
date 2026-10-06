@@ -4916,6 +4916,7 @@ const StoreSettingsPanel = () => {
   const [storePhone, setStorePhone] = useState("");
   const [storeEmail, setStoreEmail] = useState("");
   const [storeAddress, setStoreAddress] = useState("");
+  const [storeCity, setStoreCity] = useState("");
   const [crNumber, setCrNumber] = useState("");
   const [nationalUnifiedNumber, setNationalUnifiedNumber] = useState("");
   const [crLink, setCrLink] = useState("");
@@ -4954,6 +4955,7 @@ const StoreSettingsPanel = () => {
       setStorePhone(settings.storePhone ?? "");
       setStoreEmail(settings.storeEmail ?? "");
       setStoreAddress(settings.storeAddress ?? "");
+      setStoreCity(settings.storeCity ?? "");
       setCrNumber(settings.crNumber ?? "");
       setNationalUnifiedNumber(settings.nationalUnifiedNumber ?? "");
       setCrLink(settings.crLink ?? "");
@@ -5050,7 +5052,7 @@ const StoreSettingsPanel = () => {
       socialAccounts: socials.map((s, i) => ({ ...s, sortOrder: s.sortOrder ?? i })),
       pickupEnabled, pickupInstructionsAr, pickupInstructionsEn,
       // identity / legal
-      storeName, storePhone, storeEmail, storeAddress, crNumber, nationalUnifiedNumber, crLink, vatNumber,
+      storeName, storePhone, storeEmail, storeAddress, storeCity, crNumber, nationalUnifiedNumber, crLink, vatNumber,
       vatRate: Number(vatRate) || 0, maroofUrl,
       // contact
       whatsappNumber, supportPhone, supportEmail, supportHours,
@@ -5107,6 +5109,10 @@ const StoreSettingsPanel = () => {
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase">عنوان المتجر</Label>
             <Input value={storeAddress} onChange={e => setStoreAddress(e.target.value)} className="font-bold" placeholder="الرياض، حي..." data-testid="input-store-address" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase">مدينة انطلاق الشحن</Label>
+            <Input value={storeCity} onChange={e => setStoreCity(e.target.value)} className="font-bold" placeholder="الرياض" data-testid="input-store-city" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase">السجل التجاري / الرقم الوطني الموحد (CR)</Label>
