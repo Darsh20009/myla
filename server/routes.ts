@@ -725,6 +725,91 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
   }
 }
 
+class CouponApplyError extends Error {
+  statusCode = 400;
+}
+
+async function evaluateCustomerCoupon(
+  rawCode: unknown,
+  userId: string,
+  subtotalInput: unknown,
+  itemsInput: unknown,
+) {
+  const code = String(rawCode || "").trim();
+  if (!code || code.length > 80) throw new CouponApplyError("أدخل كود خصم صحيحًا");
+
+  const coupon = await storage.getCouponByCode(code);
+  if (!coupon) throw new CouponApplyError("الكود غير صالح أو منتهي أو غير نشط");
+  if (coupon.type === "cashback") {
+    throw new CouponApplyError("هذا كود كاش باك، واستخدام الكاش باك في الدفع غير مفعّل حاليًا");
+  }
+
+  const subtotal = Number(subtotalInput);
+  if (!Number.isFinite(subtotal) || subtotal < 0) {
+    throw new CouponApplyError("إجمالي المنتجات غير صحيح");
+  }
+  if (coupon.minOrderAmount && subtotal < Number(coupon.minOrderAmount)) {
+    throw new CouponApplyError(`الحد الأدنى لاستخدام الكود هو ${coupon.minOrderAmount} ر.س`);
+  }
+
+  const priorOrders = await storage.getOrdersByUser(userId);
+  const priorUses = priorOrders.filter((order: any) =>
+    String(order.couponCode || "").trim().toUpperCase() === code.toUpperCase()
+  ).length;
+  const perUserLimit = Number(coupon.perUserLimit ?? 1);
+  if (perUserLimit > 0 && priorUses >= perUserLimit) {
+    throw new CouponApplyError("وصل هذا الحساب إلى الحد المسموح لاستخدام الكود");
+  }
+
+  const items = Array.isArray(itemsInput) ? itemsInput as any[] : [];
+  if (items.length === 0) throw new CouponApplyError("السلة فارغة");
+  const targetProductIds = (coupon.targetProductIds || []).map(String);
+  const targetCategoryIds = (coupon.targetCategoryIds || []).map(String);
+  let eligibleSubtotal = 0;
+
+  for (const item of items) {
+    const quantity = Number(item.quantity);
+    const price = Number(item.price);
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price < 0) {
+      throw new CouponApplyError("بيانات المنتجات في السلة غير صحيحة");
+    }
+
+    let eligible = targetProductIds.length === 0 && targetCategoryIds.length === 0;
+    const productId = String(item.productId || "");
+    if (targetProductIds.includes(productId)) eligible = true;
+    if (!eligible && targetCategoryIds.length > 0 && productId) {
+      const product: any = await storage.getProduct(productId).catch(() => undefined);
+      eligible = !!product && targetCategoryIds.includes(String(product.categoryId || ""));
+    }
+    if (eligible) eligibleSubtotal += price * quantity;
+  }
+
+  if (eligibleSubtotal <= 0) {
+    throw new CouponApplyError("هذا الكود لا ينطبق على المنتجات الموجودة في السلة");
+  }
+
+  const value = Number(coupon.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new CouponApplyError("قيمة كود الخصم غير صحيحة");
+  }
+  let discountAmount = 0;
+  if (coupon.type === "percentage") {
+    if (value > 100) throw new CouponApplyError("نسبة كود الخصم غير صحيحة");
+    discountAmount = eligibleSubtotal * value / 100;
+  } else if (coupon.type === "fixed") {
+    discountAmount = Math.min(eligibleSubtotal, value);
+  } else {
+    throw new CouponApplyError("نوع كود الخصم غير مدعوم");
+  }
+
+  return {
+    coupon,
+    eligibleSubtotal: Number(eligibleSubtotal.toFixed(2)),
+    discountAmount: Number(discountAmount.toFixed(2)),
+    cashbackAmount: 0,
+  };
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -1721,6 +1806,7 @@ ${allUrls.map(u => `  <url>
         "accountant", "legal_consultant", "employee", "branch_manager", "branch_assistant",
       ];
       const isCustomerCheckout = !staffRoles.includes(String(actor?.role || ""));
+      let couponEvaluation: any = null;
       if (isCustomerCheckout) {
         if (String(parsed.data.userId) !== String(actor?.id || "")) {
           return res.status(403).json({ message: "لا يمكن إنشاء طلب لحساب مستخدم آخر" });
@@ -1740,12 +1826,41 @@ ${allUrls.map(u => `  <url>
             return res.status(503).json({ message: "الدفع عند الاستلام غير مفعّل حاليًا" });
           }
         } else if (parsed.data.paymentMethod === "wallet") {
-          if (methods.wallet !== true) {
+          if (methods.wallet === false) {
             return res.status(503).json({ message: "الدفع بالمحفظة غير مفعّل حاليًا" });
           }
         } else {
           return res.status(400).json({ message: "طريقة الدفع غير مدعومة في إتمام الطلب" });
         }
+
+        const submittedDiscount = Math.max(0, Number(parsed.data.discountAmount) || 0);
+        const couponCode = String(parsed.data.couponCode || "").trim();
+        if (couponCode) {
+          try {
+            couponEvaluation = await evaluateCustomerCoupon(
+              couponCode,
+              String(actor.id),
+              parsed.data.subtotal,
+              parsed.data.items,
+            );
+          } catch (err: any) {
+            return res.status(err?.statusCode || 400).json({
+              message: err?.message || "تعذر التحقق من كود الخصم",
+            });
+          }
+          parsed.data.couponCode = couponEvaluation.coupon.code;
+          parsed.data.discountAmount = couponEvaluation.discountAmount.toFixed(2);
+          parsed.data.total = Math.max(
+            0,
+            Number(parsed.data.total) + submittedDiscount - couponEvaluation.discountAmount,
+          ).toFixed(2);
+        } else {
+          // Do not accept a discount amount supplied by the browser without a valid coupon.
+          parsed.data.discountAmount = "0";
+          parsed.data.couponCode = undefined;
+          parsed.data.total = Math.max(0, Number(parsed.data.total) + submittedDiscount).toFixed(2);
+        }
+        (parsed.data as any).cashbackAmount = "0";
       }
 
       // ── Server-trusted bundle pricing: recompute savings from cart items
@@ -1930,6 +2045,12 @@ ${allUrls.map(u => `  <url>
           return res.status(409).json({ message: msg, variantSku: e.variantSku, code: "OUT_OF_STOCK", branchStock: !!e.branchStock });
         }
         throw e;
+      }
+
+      if (couponEvaluation?.coupon?.id) {
+        await storage.incrementCouponUsage(String(couponEvaluation.coupon.id)).catch((err: any) => {
+          console.error("[API] coupon usage count update failed:", err?.message);
+        });
       }
 
       if (walletDebit) {
@@ -3369,6 +3490,32 @@ ${allUrls.map(u => `  <url>
     } catch (err: any) {
       console.error("[API] coupons.list error:", err?.message);
       res.json([]);
+    }
+  });
+
+  app.post("/api/coupons/validate", couponLimiter, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as any;
+      const result = await evaluateCustomerCoupon(
+        req.body?.code,
+        String(user.id),
+        req.body?.subtotal,
+        req.body?.items,
+      );
+      res.json({
+        coupon: {
+          code: result.coupon.code,
+          type: result.coupon.type,
+          value: result.coupon.value,
+          minOrderAmount: result.coupon.minOrderAmount,
+        },
+        eligibleSubtotal: result.eligibleSubtotal,
+        discountAmount: result.discountAmount,
+        cashbackAmount: result.cashbackAmount,
+      });
+    } catch (err: any) {
+      res.status(err?.statusCode || 400).json({ message: err?.message || "تعذر التحقق من الكود" });
     }
   });
 

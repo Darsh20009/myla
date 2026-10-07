@@ -11,3 +11,4 @@
 - [Admin login methods](admin-login-methods.md) — Admins can choose password or WhatsApp OTP; other staff roles remain password-only.
 - [Qirox WhatsApp OTP](qirox-whatsapp-otp.md) — Qirox is the chosen OTP sender; its credential is configured separately in Replit and Render, and its send route is POST-only.
 - [Check prior context first](check-prior-context.md) — Search the conversation, project assets, live catalog, and current configuration before asking again for details already supplied.
+- [Coupon cashback safety](coupon-cashback-safety.md) — Only enable cashback coupons after wallet credit and cancellation/refund reversals are idempotent.

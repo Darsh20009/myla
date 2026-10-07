@@ -41,10 +41,12 @@ const SAUDI_CITIES = [
 
 export default function Checkout() {
   const { items, total, clearCart, removeItem } = useCart();
-  const { appliedCoupon } = useCoupon();
+  const { appliedCoupon, setCoupon, clearCoupon } = useCoupon();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [couponInput, setCouponInput] = useState(appliedCoupon?.code || "");
+  const [couponLoading, setCouponLoading] = useState(false);
 
   type CheckoutPaymentMethod = "wallet" | "tap" | "cod";
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod | "">("");
@@ -218,6 +220,18 @@ export default function Checkout() {
     staleTime: 60 * 1000,
   });
 
+  const { data: walletData, isFetching: isFetchingWallet } = useQuery<{ balance?: string | number }>({
+    queryKey: ["/api/wallet"],
+    queryFn: async () => {
+      const res = await fetch("/api/wallet", { credentials: "include" });
+      if (!res.ok) throw new Error("تعذر تحميل رصيد المحفظة");
+      return res.json();
+    },
+    enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
   const { data: loyaltyData } = useQuery<any>({
     queryKey: ["/api/user/loyalty"],
     queryFn: async () => {
@@ -234,10 +248,10 @@ export default function Checkout() {
   const loyaltyDiscount = useLoyaltyPoints ? Math.min(availableLoyaltyPoints / 100, 50) : 0;
 
   const enabledMethods = storeSettings?.paymentMethods || {};
+  const walletBalance = Number(walletData?.balance ?? user?.walletBalance ?? 0);
   const canPayWithCard = enabledMethods.tap === true && paymobStatus?.configured === true;
   const canPayByCod = enabledMethods.cod === true;
-  const canPayWithWallet = enabledMethods.wallet === true &&
-    !!user && Number(user.walletBalance || 0) > 0;
+  const canPayWithWallet = enabledMethods.wallet !== false && !!user && walletBalance > 0;
   const availablePaymentMethods = useMemo<CheckoutPaymentMethod[]>(() => [
     ...(canPayWithCard ? ["tap" as const] : []),
     ...(canPayByCod ? ["cod" as const] : []),
@@ -422,25 +436,68 @@ export default function Checkout() {
     }
   }, [items.length, paymobSheetOpen, redirectingTo, setLocation]);
 
+  const appliedCouponMatchesCart = !!appliedCoupon &&
+    appliedCoupon.validatedSubtotal != null &&
+    Math.abs(appliedCoupon.validatedSubtotal - subtotal) < 0.01;
+
   const calculateDiscount = () => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.minOrderAmount && subtotal < appliedCoupon.minOrderAmount) return 0;
-    if (appliedCoupon.type === "percentage") return (subtotal * appliedCoupon.value) / 100;
-    if (appliedCoupon.type === "cashback") return 0;
-    return appliedCoupon.value;
+    if (!appliedCouponMatchesCart) return 0;
+    return Math.max(0, Number(appliedCoupon.discountAmount) || 0);
   };
 
   const calculateCashback = () => {
     if (!appliedCoupon || appliedCoupon.type !== "cashback") return 0;
-    const cashbackAmount = (subtotal * appliedCoupon.value) / 100;
-    if (appliedCoupon.maxCashback && cashbackAmount > appliedCoupon.maxCashback)
-      return appliedCoupon.maxCashback;
-    return cashbackAmount;
+    if (!appliedCouponMatchesCart) return 0;
+    return Math.max(0, Number(appliedCoupon.cashbackAmount) || 0);
   };
 
   const discountAmount = calculateDiscount();
   const cashbackAmount = calculateCashback();
   const vatIncluded = Math.round(subtotal * 15 / 115 * 100) / 100;
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      toast({ title: "أدخل كود الخصم أولاً", variant: "destructive" });
+      return;
+    }
+    if (!user) {
+      toast({ title: "سجّل الدخول لتطبيق كود الخصم", variant: "destructive" });
+      return;
+    }
+    setCouponLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/coupons/validate", {
+        code,
+        subtotal,
+        items: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      });
+      const result = await res.json();
+      setCoupon({
+        ...result.coupon,
+        discountAmount: Number(result.discountAmount) || 0,
+        cashbackAmount: Number(result.cashbackAmount) || 0,
+        eligibleSubtotal: Number(result.eligibleSubtotal) || 0,
+        validatedSubtotal: subtotal,
+      });
+      setCouponInput(result.coupon?.code || code);
+      toast({ title: "تم تطبيق كود الخصم" });
+    } catch (error: any) {
+      clearCoupon();
+      toast({
+        title: "لم يتم تطبيق الكود",
+        description: error?.message || "تحقق من الكود وشروطه",
+        variant: "destructive",
+      });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   const merchandiseDueBeforeShipping = Math.max(0, subtotal - discountAmount - loyaltyDiscount - (bundleResult?.savings || 0));
   const storageXShipCodAmount = paymentMethod === "cod" ? merchandiseDueBeforeShipping : 0;
@@ -575,10 +632,10 @@ export default function Checkout() {
       });
       return;
     }
-    if (paymentMethod === "wallet" && Number(user?.walletBalance || 0) < finalTotal) {
+    if (paymentMethod === "wallet" && walletBalance < finalTotal) {
       toast({
         title: "رصيد المحفظة غير كافٍ",
-        description: `رصيدك: ${user.walletBalance} ر.س، المطلوب: ${finalTotal.toFixed(2)} ر.س`,
+        description: `رصيدك: ${walletBalance.toFixed(2)} ر.س، المطلوب: ${finalTotal.toFixed(2)} ر.س`,
         variant: "destructive",
       });
       return;
@@ -631,7 +688,7 @@ export default function Checkout() {
         notes: orderNotes || undefined,
         discountAmount: discountAmount.toFixed(2),
         cashbackAmount: cashbackAmount.toFixed(2),
-        couponCode: appliedCoupon?.code || undefined,
+        couponCode: appliedCouponMatchesCart ? appliedCoupon?.code : undefined,
         tapCommission: "0",
         netProfit: (finalTotal - items.reduce((acc, i) => acc + (i.cost || 0) * i.quantity, 0)).toFixed(2),
         items: items.map((item) => ({
@@ -1382,6 +1439,59 @@ export default function Checkout() {
               />
             </div>
 
+            {/* Coupon code */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100">
+              <h2 className="font-black text-sm mb-3">كود الخصم</h2>
+              {appliedCoupon && discountAmount + cashbackAmount > 0 ? (
+                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-black text-sm text-emerald-800">{appliedCoupon.code}</p>
+                    <p className="text-xs text-emerald-700">
+                      {discountAmount > 0
+                        ? `تم خصم ${discountAmount.toFixed(2)} ر.س`
+                        : `كاش باك ${cashbackAmount.toFixed(2)} ر.س`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { clearCoupon(); setCouponInput(""); }}
+                    className="text-gray-500 hover:text-red-600"
+                  >
+                    إزالة
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={couponInput}
+                    onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
+                    placeholder="أدخل كود الخصم"
+                    aria-label="كود الخصم"
+                    className="h-11 rounded-xl"
+                    dir="ltr"
+                    data-testid="input-coupon-code"
+                  />
+                  <Button
+                    type="button"
+                    onClick={applyCoupon}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="h-11 shrink-0 rounded-xl px-5"
+                    data-testid="button-apply-coupon"
+                  >
+                    {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "تطبيق"}
+                  </Button>
+                </div>
+              )}
+              {appliedCoupon && discountAmount + cashbackAmount === 0 && (
+                <p className="mt-2 text-xs text-amber-700" role="status">
+                  تغيّر إجمالي السلة؛ أعد تطبيق الكود للتحقق منه.
+                </p>
+              )}
+            </div>
+
             {/* Payment method */}
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100">
               <h2 className="font-black text-sm mb-4">
@@ -1414,7 +1524,7 @@ export default function Checkout() {
                 )}
 
                 {/* ── Wallet ── */}
-                {enabledMethods.wallet !== false && user && Number(user.walletBalance || 0) > 0 && (
+                {canPayWithWallet && (
                   <label htmlFor="pay-wallet" data-testid="option-payment-wallet" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "wallet" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
                     <RadioGroupItem value="wallet" id="pay-wallet" className="shrink-0" />
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${paymentMethod === "wallet" ? "bg-primary/10" : "bg-gray-100"}`}>
@@ -1422,7 +1532,10 @@ export default function Checkout() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-sm">رصيد المحفظة</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">رصيدك: <span className="font-black text-gray-700">{user?.walletBalance || 0} <RiyalSign /></span></p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        رصيدك: <span className="font-black text-gray-700">{walletBalance.toFixed(2)} <RiyalSign /></span>
+                        {isFetchingWallet && <span className="mr-2 text-gray-400">جارٍ التحديث</span>}
+                      </p>
                     </div>
                   </label>
                 )}

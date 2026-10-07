@@ -29,6 +29,7 @@ export interface IStorage {
   getCouponByCode(code: string): Promise<Coupon | undefined>;
   createCoupon(coupon: InsertCoupon): Promise<Coupon>;
   updateCoupon(id: string, update: Partial<InsertCoupon>): Promise<Coupon>;
+  incrementCouponUsage(id: string): Promise<void>;
   deleteCoupon(id: string): Promise<void>;
   
   // Products
@@ -295,8 +296,9 @@ export class MongoDBStorage implements IStorage {
   }
 
   async getCouponByCode(code: string): Promise<Coupon | undefined> {
-    const coupon = await CouponModel.findOne({ 
-      code: { $regex: new RegExp(`^${code}$`, 'i') }, 
+    const escapedCode = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const coupon = await CouponModel.findOne({
+      code: { $regex: new RegExp(`^${escapedCode}$`, 'i') },
       isActive: true 
     }).lean();
     
@@ -316,6 +318,10 @@ export class MongoDBStorage implements IStorage {
     const coupon = await CouponModel.findByIdAndUpdate(id, update, { new: true }).lean();
     if (!coupon) throw new Error("Coupon not found");
     return { ...coupon, id: coupon._id.toString() };
+  }
+
+  async incrementCouponUsage(id: string): Promise<void> {
+    await CouponModel.findByIdAndUpdate(id, { $inc: { usageCount: 1 } });
   }
 
   async deleteCoupon(id: string): Promise<void> {

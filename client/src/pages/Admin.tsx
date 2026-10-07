@@ -3303,8 +3303,14 @@ const CustomersTable = memo(() => {
 
   const updateWalletMutation = useMutation({
     mutationFn: async ({ id, amount, type }: { id: string, amount: string, type: 'deposit' | 'set' }) => {
-      const endpoint = type === 'deposit' ? `/api/admin/users/${id}/deposit` : `/api/admin/users/${id}`;
-      const payload = type === 'deposit' ? { amount: Number(amount) } : { walletBalance: amount };
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || (type === "deposit" && numericAmount <= 0) || (type === "set" && numericAmount < 0)) {
+        throw new Error(type === "deposit" ? "أدخل مبلغًا أكبر من صفر" : "أدخل رصيدًا صحيحًا لا يقل عن صفر");
+      }
+      const endpoint = type === 'deposit' ? "/api/admin/wallet/deposit" : `/api/admin/users/${id}`;
+      const payload = type === 'deposit'
+        ? { userId: id, amount: numericAmount, description: "إيداع رصيد من لوحة الإدارة" }
+        : { walletBalance: amount };
       await apiRequest(type === 'deposit' ? "POST" : "PATCH", endpoint, payload);
     },
     onSuccess: () => {
@@ -3312,6 +3318,13 @@ const CustomersTable = memo(() => {
       toast({ title: "تم تحديث المحفظة بنجاح" });
       setSelectedUser(null);
       setWalletAmount("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "تعذر تحديث المحفظة",
+        description: error?.message || "تحقق من المبلغ وصلاحية الحساب ثم حاول مرة أخرى",
+        variant: "destructive",
+      });
     }
   });
 
@@ -3353,6 +3366,8 @@ const CustomersTable = memo(() => {
                         <Label className="text-xs font-bold uppercase">المبلغ المراد إيداعه</Label>
                         <Input 
                           type="number" 
+                          min="0.01"
+                          step="0.01"
                           value={walletAmount} 
                           onChange={(e) => setWalletAmount(e.target.value)} 
                           placeholder="0"
