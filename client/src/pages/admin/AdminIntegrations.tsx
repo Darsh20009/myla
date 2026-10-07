@@ -234,7 +234,9 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
   const [connectionMessage, setConnectionMessage] = useState("");
   const isStorageStation = integration.id === "storageStation";
   const isStorageXShip = integration.id === "storageXShip";
-  const ready = isStorageStation || isStorageXShip ? connectionState === "connected" : allOk;
+  const isShipox = integration.id === "shipox";
+  const requiresConnectionTest = isStorageStation || isStorageXShip || isShipox;
+  const ready = requiresConnectionTest ? connectionState === "connected" : allOk;
   const statusColor = ready ? "emerald" : noneOk ? "red" : "amber";
   const catColor = CATEGORY_COLORS[integration.category] || "bg-slate-50 text-slate-700 border-slate-200";
 
@@ -301,6 +303,18 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
     }
   };
 
+  const testShipox = async () => {
+    setConnectionState("checking"); setConnectionMessage("");
+    try {
+      const response = await fetch("/api/admin/shipox/test");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.message || "تعذر الاتصال بـ Shipox");
+      setConnectionState("connected"); setConnectionMessage(result.message || "الاتصال يعمل");
+    } catch (error: any) {
+      setConnectionState("failed"); setConnectionMessage(error.message || "تعذر الاتصال بـ Shipox");
+    }
+  };
+
   return (
     <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${
       statusColor === "emerald" ? "border-emerald-100" : statusColor === "red" ? "border-red-100" : "border-amber-100"
@@ -351,8 +365,8 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400">{configured}/{total} مفاتيح مُعدَّة</span>
             {ready
-              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {(isStorageStation || isStorageXShip) ? "متصل" : "جاهز"}</span>
-              : allOk && (isStorageStation || isStorageXShip)
+              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {requiresConnectionTest ? "متصل" : "جاهز"}</span>
+              : allOk && requiresConnectionTest
               ? <span className="flex items-center gap-1 text-[10px] font-black text-amber-600"><AlertTriangle className="h-3 w-3" /> لم يُختبر الاتصال</span>
               : noneOk
               ? <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="h-3 w-3" /> غير مُفعَّل</span>
@@ -366,11 +380,11 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
             />
           </div>
         </div>
-        {(isStorageStation || isStorageXShip) && (
+        {requiresConnectionTest && (
           <div className="mt-3">
             <button
               type="button"
-              onClick={isStorageXShip ? testStorageXShip : testStorageStation}
+              onClick={isShipox ? testShipox : isStorageXShip ? testStorageXShip : testStorageStation}
               disabled={!allOk || connectionState === "checking"}
               className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-black text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
             >

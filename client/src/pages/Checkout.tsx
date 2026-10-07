@@ -42,7 +42,8 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "tap" | "cod">("tap");
+  type CheckoutPaymentMethod = "wallet" | "tap" | "cod";
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod | "">("");
 
   const isAppleDevice = useMemo(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") return false;
@@ -66,6 +67,8 @@ export default function Checkout() {
   const [deliveryDistrict, setDeliveryDistrict] = useState("");
   const [deliveryName, setDeliveryName] = useState("");
   const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryLatitude, setDeliveryLatitude] = useState<number | undefined>();
+  const [deliveryLongitude, setDeliveryLongitude] = useState<number | undefined>();
   const [nationalAddress, setNationalAddress] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [cityDropOpen, setCityDropOpen] = useState(false);
@@ -82,6 +85,8 @@ export default function Checkout() {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 12000, maximumAge: 60000 })
       );
       const { latitude, longitude } = pos.coords;
+      setDeliveryLatitude(latitude);
+      setDeliveryLongitude(longitude);
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ar`,
         { headers: { "User-Agent": "Myla/1.0" } }
@@ -199,6 +204,16 @@ export default function Checkout() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: paymobStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/paymob/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/paymob/status");
+      if (!res.ok) return { configured: false };
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
   const { data: loyaltyData } = useQuery<any>({
     queryKey: ["/api/user/loyalty"],
     queryFn: async () => {
@@ -214,11 +229,23 @@ export default function Checkout() {
   const availableLoyaltyPoints = loyaltyData?.points || 0;
   const loyaltyDiscount = useLoyaltyPoints ? Math.min(availableLoyaltyPoints / 100, 50) : 0;
 
-  const enabledMethods = storeSettings?.paymentMethods || {
-    wallet: true, tap: true, apple_pay: true, cod: false,
-  };
+  const enabledMethods = storeSettings?.paymentMethods || {};
+  const canPayWithCard = enabledMethods.tap === true && paymobStatus?.configured === true;
+  const canPayByCod = enabledMethods.cod === true;
+  const canPayWithWallet = enabledMethods.wallet === true &&
+    !!user && Number(user.walletBalance || 0) > 0;
+  const availablePaymentMethods = useMemo<CheckoutPaymentMethod[]>(() => [
+    ...(canPayWithCard ? ["tap" as const] : []),
+    ...(canPayByCod ? ["cod" as const] : []),
+    ...(canPayWithWallet ? ["wallet" as const] : []),
+  ], [canPayWithCard, canPayByCod, canPayWithWallet]);
 
-  // ── Shipping companies + Mapit status ───────────────────────────────────────
+  useEffect(() => {
+    if (availablePaymentMethods.includes(paymentMethod as CheckoutPaymentMethod)) return;
+    setPaymentMethod(availablePaymentMethods[0] || "");
+  }, [availablePaymentMethods, paymentMethod]);
+
+  // ── Shipping companies + carrier readiness ───────────────────────────────────
   const subtotal = total();
 
   const { data: shippingCompaniesRaw = [] } = useQuery<any[]>({
@@ -241,6 +268,16 @@ export default function Checkout() {
     staleTime: 10 * 60 * 1000,
   });
 
+  const { data: shipoxStatus } = useQuery<{ configured: boolean; senderConfigured: boolean; checkoutReady: boolean }>({
+    queryKey: ["/api/shipox/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/shipox/status");
+      if (!res.ok) return { configured: false, senderConfigured: false, checkoutReady: false };
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
   const { data: storageXShipStatus } = useQuery<{ configured: boolean; checkoutReady: boolean }>({
     queryKey: ["/api/storage-x-ship/status"],
     queryFn: async () => {
@@ -251,7 +288,7 @@ export default function Checkout() {
     staleTime: 10 * 60 * 1000,
   });
 
-  // Build merged shipping options: Mapit first (if configured), then DB companies
+  // Prefer the carrier the store selected, then configured fallback providers.
   const MAPIT_OPTION = {
     id: "__mapit__",
     name: "Mapit — مابت",
@@ -271,13 +308,25 @@ export default function Checkout() {
     const hasMapitConfigured = mapitStatus?.configured;
 
     let list: any[] = [];
+    if (shipoxStatus?.checkoutReady) {
+      list.push({
+        id: "__shipox__",
+        name: "Shipox — 3rd Mile",
+        logo: "",
+        price: Number(storeSettings?.fixedShippingCost ?? 35),
+        estimatedDays: 1,
+        freeShippingThreshold: 0,
+        isActive: true,
+        isShipox: true,
+      });
+    }
     if (hasMapitConfigured) {
       list.push(dbMapit
         ? { ...dbMapit, id: "__mapit__", isMapit: true, logo: dbMapit.logo || "/mapit-logo.png" }
         : { ...MAPIT_OPTION, price: 30 }
       );
     }
-    // Add remaining DB companies (excluding the one already shown as Mapit)
+    // Add remaining database carriers, avoiding duplicate integrated entries.
     const rest = dbOptions.filter((c: any) => c.id !== (dbMapit?.id));
     list = [...list, ...rest];
     // Add Storage X last so enabling the integration doesn't change the
@@ -304,6 +353,8 @@ export default function Checkout() {
   const effectiveSelectedId = selectedShippingId || firstOptionId;
   const selectedShipping = shippingOptions.find(o => o.id === effectiveSelectedId) ?? shippingOptions[0];
   const isStorageXShipSelected = selectedShipping?.isStorageXShip === true;
+  const isShipoxSelected = selectedShipping?.isShipox === true;
+  const isMapitSelected = selectedShipping?.isMapit === true;
 
   // ── Fallback shipping rate (when no companies configured) ────────────────────
   const { data: shippingRateData, isFetching: isLoadingRate } = useQuery<{
@@ -316,7 +367,8 @@ export default function Checkout() {
       if (!res.ok) return { cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
       return res.json();
     },
-    enabled: shippingMode === "delivery" && !!deliveryCity && shippingOptions.length === 0,
+    enabled: shippingMode === "delivery" && !!deliveryCity &&
+      (shippingOptions.length === 0 || isShipoxSelected),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -405,6 +457,9 @@ export default function Checkout() {
     if (isStorageXShipSelected) {
       return storageXShipQuote?.serviceable ? Number(storageXShipQuote.cost) || 0 : 0;
     }
+    if (isShipoxSelected) {
+      return Number(shippingRateData?.cost ?? selectedShipping?.price) || 0;
+    }
     if (shippingOptions.length > 0 && selectedShipping) {
       const threshold = Number(selectedShipping.freeShippingThreshold || 0);
       const price = Number(selectedShipping.price || 0);
@@ -470,6 +525,29 @@ export default function Checkout() {
           return;
         }
       }
+      if (isMapitSelected && (!deliveryLatitude || !deliveryLongitude)) {
+        toast({
+          title: "حدد موقع الاستلام",
+          description: "شركة Mapit تحتاج إحداثيات موقعك. استخدم زر تحديد الموقع ثم أعد المحاولة.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    if (!availablePaymentMethods.includes(paymentMethod as CheckoutPaymentMethod)) {
+      toast({
+        title: "طريقة الدفع غير متاحة",
+        description: "لا توجد طريقة دفع مفعّلة لهذا الطلب حاليًا.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (shippingMode === "delivery" && isLoadingRate) {
+      toast({
+        title: "جارٍ تأكيد رسوم التوصيل",
+        description: "انتظر حتى تظهر رسوم التوصيل النهائية قبل إرسال الطلب.",
+      });
+      return;
     }
     if (paymentMethod === "wallet" && Number(user?.walletBalance || 0) < finalTotal) {
       toast({
@@ -494,7 +572,7 @@ export default function Checkout() {
         });
       } catch {}
 
-      const NEEDS_GATEWAY = ["tap", "apple_pay"];
+      const NEEDS_GATEWAY = ["tap"];
       const requiresGateway = NEEDS_GATEWAY.includes(paymentMethod);
 
       const isDelivery = shippingMode === "delivery";
@@ -516,6 +594,11 @@ export default function Checkout() {
               : (shippingRateData?.methodTitle || "توصيل"))
           : "",
         shippingProvider: isStorageXShipSelected ? "storage-x-ship" : undefined,
+        ...(isDelivery && isShipoxSelected ? { shippingProvider: "shipox" } : {}),
+        ...(isDelivery && isMapitSelected ? { shippingProvider: "mapit" } : {}),
+        ...(isDelivery && !isStorageXShipSelected && !isShipoxSelected && !isMapitSelected
+          ? { shippingProvider: "manual" }
+          : {}),
         deliveryAddress: deliveryAddrStr,
         customerName: user?.name || "",
         customerPhone: (user as any)?.phone || "",
@@ -546,6 +629,9 @@ export default function Checkout() {
           ...(isStorageXShipSelected ? { nationalAddress: normalizedNationalAddress } : {}),
           country: "SA",
         } : undefined,
+        ...(isDelivery && deliveryLatitude !== undefined && deliveryLongitude !== undefined
+          ? { latitude: deliveryLatitude, longitude: deliveryLongitude }
+          : {}),
         paymentMethod,
         status: requiresGateway ? "pending_payment" : "new",
         paymentStatus: paymentMethod === "wallet" ? "paid" : "pending",
@@ -692,7 +778,8 @@ export default function Checkout() {
   const CtaButton = () => (
     <Button
       onClick={handleCheckout}
-      disabled={isSubmitting}
+      disabled={isSubmitting || shippingMode === "delivery" && isLoadingRate ||
+        !availablePaymentMethods.includes(paymentMethod as CheckoutPaymentMethod)}
       data-testid="button-confirm-order"
       className="w-full h-14 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 disabled:opacity-50 active:scale-95 transition-all"
     >
@@ -1122,8 +1209,12 @@ export default function Checkout() {
                         {shippingOptions.map((company: any) => {
                           const isSelected = effectiveSelectedId === company.id;
                           const threshold = Number(company.freeShippingThreshold || 0);
-                          const price = Number(company.price || 0);
-                          const isFree = threshold > 0 && subtotal >= threshold;
+                          const price = company.isShipox
+                            ? Number(shippingRateData?.cost ?? company.price) || 0
+                            : Number(company.price || 0);
+                          const isFree = company.isShipox
+                            ? Boolean(shippingRateData?.isFree)
+                            : threshold > 0 && subtotal >= threshold;
                           const displayPrice = isFree ? "🎉 مجاني" : price > 0 ? `${price.toLocaleString()} ر.س` : "مجاني";
                           return (
                             <button
@@ -1163,6 +1254,10 @@ export default function Checkout() {
                                           : isSelected && storageXShipQuote?.serviceable
                                             ? `${Number(storageXShipQuote.cost).toLocaleString()} ر.س`
                                             : "يُحسب حسب المدينة"}
+                                    </p>
+                                  ) : company.isShipox ? (
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      الرسوم حسب إعداد المتجر، والحجز يتم بعد الطلب
                                     </p>
                                   ) : company.estimatedDays > 0 && (
                                     <p className="text-[10px] text-gray-400 font-medium">
@@ -1224,6 +1319,11 @@ export default function Checkout() {
                         </span>
                       )}
                     </div>
+                  )}
+                  {deliveryCity && shippingOptions.length === 0 && (
+                    <p role="status" className="text-[11px] leading-5 text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      لا توجد شركة شحن مربوطة آليًا حاليًا؛ سيحتاج المتجر إلى تأكيد التوصيل وحجز الشحنة يدويًا.
+                    </p>
                   )}
                 </div>
               )}
@@ -1291,18 +1391,32 @@ export default function Checkout() {
                   </label>
                 )}
 
-                {/* ── Card (coming soon) ── */}
-                <div data-testid="option-payment-card-soon" className="relative flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-200 rounded-xl opacity-50 cursor-not-allowed select-none">
-                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
-                  <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                    <CreditCard className="h-5 w-5 text-gray-400" />
+                {canPayWithCard ? (
+                  <label htmlFor="pay-card" data-testid="option-payment-card" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "tap" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
+                    <RadioGroupItem value="tap" id="pay-card" className="shrink-0" />
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${paymentMethod === "tap" ? "bg-primary/10" : "bg-gray-100"}`}>
+                      <CreditCard className={`h-5 w-5 ${paymentMethod === "tap" ? "text-primary" : "text-gray-500"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm">بطاقة بنكية</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">مدى · فيزا · ماستركارد عبر Paymob</p>
+                    </div>
+                  </label>
+                ) : (
+                  <div data-testid="option-payment-card-unavailable" role="status" className="relative flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-200 rounded-xl opacity-70">
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                    <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm text-gray-500">بطاقة بنكية عبر Paymob</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">غير متاحة حتى تكتمل إعدادات البوابة</p>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                      {paymobStatus ? "غير مهيأة" : "جارٍ التحقق"}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm text-gray-500">بطاقة بنكية</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">مدى · فيزا · ماستركارد</p>
-                  </div>
-                  <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200">قريباً</span>
-                </div>
+                )}
 
                 {/* ── Apple Pay (coming soon, always visible) ── */}
                 <div data-testid="option-payment-apple-soon" className="relative flex items-center gap-3 p-3.5 rounded-2xl overflow-hidden opacity-50 cursor-not-allowed select-none border-2 border-dashed border-gray-700/30" style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}>
@@ -1316,6 +1430,12 @@ export default function Checkout() {
                   </div>
                   <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/20">قريباً</span>
                 </div>
+
+                {availablePaymentMethods.length === 0 && (
+                  <p role="alert" className="text-xs leading-5 text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    لا توجد طريقة دفع مفعّلة لهذا الحساب الآن. لا يمكن إرسال الطلب حتى يفعّل المتجر الدفع عند الاستلام أو تكتمل بوابة Paymob.
+                  </p>
+                )}
 
               </RadioGroup>
 

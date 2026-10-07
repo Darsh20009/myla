@@ -148,6 +148,20 @@ function storageXSettingsReadiness(settings: any) {
   };
 }
 
+function shipoxSenderReadiness(settings: any) {
+  const senderPhone = String(settings?.storePhone || "").replace(/\D/g, "");
+  const senderConfigured = Boolean(
+    /^\d{9,15}$/.test(senderPhone) &&
+    String(settings?.storeAddress || "").trim() &&
+    String(settings?.storeCity || "").trim(),
+  );
+  return {
+    configured: isShipoxConfigured(),
+    senderConfigured,
+    checkoutReady: isShipoxConfigured() && senderConfigured,
+  };
+}
+
 function storageXCreateInput(order: any, settings: any) {
   const address = order.shippingAddress || {};
   const amountDue = Math.max(0, Number(order.total || 0) - Number(order.shippingCost || 0));
@@ -224,6 +238,99 @@ function enqueueStorageXShipment(order: any) {
       if (retryable) throw error;
     }
   }, { critical: false, maxAttempts: 3 });
+}
+
+function enqueueMapitShipment(order: any) {
+  const orderId = String(order?.id || order?._id || "");
+  if (!orderId) return;
+
+  enqueueJob("paid-mapit-create", async () => {
+    try {
+      const freshOrder: any = await storage.getOrder(orderId);
+      if (!freshOrder) throw new Error("الطلب غير موجود عند تجهيز شحنة Mapit");
+      if (freshOrder.mapitOrderNumber && freshOrder.mapitStatus !== "failed") return;
+      const settings = await storage.getStoreSettings().catch(() => null);
+      const result = await createMapitOrder(freshOrder, {
+        warehouseId: (settings as any)?.mapitWarehouseId || "",
+        pickupPointId: (settings as any)?.mapitPickupPointId || "",
+      });
+      await storage.updateOrder(orderId, {
+        mapitOrderNumber: result.orderNumber,
+        mapitStatus: result.status,
+        mapitCreatedAt: new Date(),
+        mapitError: null,
+        mapitTrackingUrl: result.trackingUrl,
+        shippingProvider: "Mapit",
+        trackingNumber: result.orderNumber,
+      } as any);
+      console.log(`[Mapit] order ${orderId} → shipment #${result.orderNumber}`);
+    } catch (err: any) {
+      await storage.updateOrder(orderId, {
+        mapitStatus: "failed",
+        mapitError: err?.message || "Unknown error",
+      } as any);
+      console.error(`[Mapit] create failed for ${orderId}:`, err?.message);
+      throw err;
+    }
+  }, { critical: false, maxAttempts: 3 });
+}
+
+function enqueueShipoxShipment(order: any) {
+  const orderId = String(order?.id || order?._id || "");
+  if (!orderId) return;
+
+  enqueueJob("paid-shipox-create", async () => {
+    try {
+      const freshOrder: any = await storage.getOrder(orderId);
+      if (!freshOrder) throw new Error("الطلب غير موجود عند تجهيز شحنة Shipox");
+      const existingShipoxId = freshOrder.shipoxOrderNumber
+        || freshOrder.shipoxTrackingNumber
+        || freshOrder.shipoxOrderId;
+      if (existingShipoxId && freshOrder.shipoxStatus !== "failed") return;
+
+      const settings = await storage.getStoreSettings().catch(() => null);
+      const shipoxResult = await createShipoxOrder(freshOrder, "STANDARD", {
+        senderName: (settings as any)?.storeName || "Myla",
+        senderPhone: (settings as any)?.storePhone || "",
+        senderAddress: (settings as any)?.storeAddress || "",
+        senderCity: (settings as any)?.storeCity || "",
+      });
+      await storage.updateOrder(orderId, {
+        shipoxOrderId: shipoxResult.orderId,
+        shipoxOrderNumber: shipoxResult.orderNumber,
+        shipoxTrackingNumber: shipoxResult.trackingNumber,
+        shipoxStatus: "created",
+        shipoxServiceType: "STANDARD",
+        shipoxCreatedAt: new Date(),
+        shipoxError: null,
+        shippingProvider: "Storage Station - 3rd Mile",
+        trackingNumber: shipoxResult.trackingNumber,
+      } as any);
+      console.log(`[Shipox] order ${orderId} → shipment #${shipoxResult.orderNumber} (${shipoxResult.trackingNumber})`);
+    } catch (err: any) {
+      await storage.updateOrder(orderId, {
+        shipoxStatus: "failed",
+        shipoxError: err?.message || "Unknown error",
+      } as any);
+      console.error(`[Shipox] create failed for ${orderId}:`, err?.message);
+      throw err;
+    }
+  }, { critical: false, maxAttempts: 3 });
+}
+
+function enqueueSelectedDeliveryShipment(order: any) {
+  if (order?.shippingMethod !== "delivery") return;
+  switch (String(order?.shippingProvider || "").toLowerCase()) {
+    case "storage-x-ship":
+      enqueueStorageXShipment(order);
+      break;
+    case "shipox":
+      enqueueShipoxShipment(order);
+      break;
+    case "mapit":
+      enqueueMapitShipment(order);
+      break;
+  }
 }
 
 function mapitStatusToLocalStatus(status: string): string | null {
@@ -552,97 +659,9 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
       }, { critical: true, maxAttempts: 5 });
     }
 
-    // ── Storage X Ship: only dispatch the carrier chosen at checkout ──────────
-    const usesStorageXShip =
-      order.shippingMethod === "delivery" &&
-      (order.shippingProvider === "storage-x-ship" || order.shippingCompany === "Storage X Ship");
-    if (usesStorageXShip) {
-      enqueueStorageXShipment(order);
-    // ── Mapit fallback when the selected Shipox carrier is not configured ────
-    } else if (
-      order.shippingMethod === "delivery" &&
-      isMapitConfigured() &&
-      !isShipoxConfigured()
-    ) {
-      enqueueJob("paid-mapit-create", async () => {
-        try {
-          // Idempotency: skip if shipment was already successfully created
-          const fresh: any = await storage.getOrder(String(order.id || orderId));
-          if (fresh?.mapitOrderNumber && fresh?.mapitStatus !== "failed") {
-            console.log(`[Mapit] order ${orderId} already has shipment #${fresh.mapitOrderNumber} — skipping`);
-            return;
-          }
-          const mapitSettings = await storage.getStoreSettings().catch(() => null);
-          const result = await createMapitOrder(order, {
-            warehouseId:   (mapitSettings as any)?.mapitWarehouseId   || "",
-            pickupPointId: (mapitSettings as any)?.mapitPickupPointId || "",
-          });
-          await storage.updateOrder(String(order.id || orderId), {
-            mapitOrderNumber: result.orderNumber,
-            mapitStatus: result.status,
-            mapitCreatedAt: new Date(),
-            mapitError: null,
-            mapitTrackingUrl: result.trackingUrl,
-            shippingProvider: "Mapit",
-            trackingNumber: result.orderNumber,
-          } as any);
-          console.log(`[Mapit] order ${orderId} → shipment #${result.orderNumber}`);
-        } catch (err: any) {
-          await storage.updateOrder(String(order.id || orderId), {
-            mapitStatus: "failed",
-            mapitError: err?.message || "Unknown error",
-          } as any);
-          console.error(`[Mapit] create failed for ${orderId}:`, err?.message);
-          throw err;
-        }
-      }, { critical: false, maxAttempts: 3 });
-    // ── Shipox / 3rd Mile is preferred when configured ───────────────────────
-    } else if (order.shippingMethod === "delivery" && isShipoxConfigured()) {
-      enqueueJob("paid-shipox-create", async () => {
-        try {
-          const freshOrder = await storage.getOrder(String(order.id || orderId));
-          if (!freshOrder) throw new Error("الطلب غير موجود عند تجهيز شحنة Shipox");
-          const existingShipoxId = (freshOrder as any).shipoxOrderNumber
-            || (freshOrder as any).shipoxTrackingNumber
-            || (freshOrder as any).shipoxOrderId;
-          if (existingShipoxId && (freshOrder as any).shipoxStatus !== "failed") {
-            console.log(`[Shipox] order ${orderId} already has shipment ${existingShipoxId} — skipping`);
-            return;
-          }
-
-          const settings = await storage.getStoreSettings().catch(() => null);
-          const senderName    = (settings as any)?.storeName    || "Myla";
-          const senderPhone   = (settings as any)?.storePhone   || "";
-          const senderAddress = (settings as any)?.storeAddress || "";
-          const senderCity    = (settings as any)?.storeCity    || "";
-
-          const shipoxResult = await createShipoxOrder(freshOrder, "STANDARD", {
-            senderName, senderPhone, senderAddress, senderCity,
-          });
-
-          await storage.updateOrder(String(order.id || orderId), {
-            shipoxOrderId:       shipoxResult.orderId,
-            shipoxOrderNumber:   shipoxResult.orderNumber,
-            shipoxTrackingNumber: shipoxResult.trackingNumber,
-            shipoxStatus:        "created",
-            shipoxServiceType:   "STANDARD",
-            shipoxCreatedAt:     new Date(),
-            shipoxError:         null,
-            shippingProvider:    "Storage Station - 3rd Mile",
-            trackingNumber:      shipoxResult.trackingNumber,
-          } as any);
-
-          console.log(`[Shipox] order ${orderId} → shipment #${shipoxResult.orderNumber} (${shipoxResult.trackingNumber})`);
-        } catch (err: any) {
-          await storage.updateOrder(String(order.id || orderId), {
-            shipoxStatus: "failed",
-            shipoxError:  err?.message || "Unknown error",
-          } as any);
-          console.error(`[Shipox] create failed for ${orderId}:`, err?.message);
-          throw err;
-        }
-      }, { critical: false, maxAttempts: 3 });
-    }
+    // Create exactly the carrier selected at checkout. This shared dispatcher
+    // is also called at order creation for COD/wallet orders.
+    enqueueSelectedDeliveryShipment(order);
 
     // ── AI Self-Learning: track purchased products to improve recommendations ──
     enqueueJob("paid-ai-track", async () => {
@@ -1649,6 +1668,39 @@ ${allUrls.map(u => `  <url>
         return res.status(400).json({ message: "بيانات الطلب غير مكتملة أو غير صحيحة", details: parsed.error.issues });
       }
 
+      const actor = req.user as any;
+      const staffRoles = [
+        "admin", "assistant_manager", "cashier", "support", "tech_support",
+        "accountant", "legal_consultant", "employee", "branch_manager", "branch_assistant",
+      ];
+      const isCustomerCheckout = !staffRoles.includes(String(actor?.role || ""));
+      if (isCustomerCheckout) {
+        if (String(parsed.data.userId) !== String(actor?.id || "")) {
+          return res.status(403).json({ message: "لا يمكن إنشاء طلب لحساب مستخدم آخر" });
+        }
+        if (parsed.data.type !== "online") {
+          return res.status(403).json({ message: "نوع الطلب غير مسموح من واجهة المتجر" });
+        }
+
+        const settings = await storage.getStoreSettings();
+        const methods = (settings as any)?.paymentMethods || {};
+        if (parsed.data.paymentMethod === "tap") {
+          if (methods.tap !== true || !isPaymobConfigured()) {
+            return res.status(503).json({ message: "الدفع بالبطاقة غير متاح حتى تكتمل إعدادات Paymob" });
+          }
+        } else if (parsed.data.paymentMethod === "cod") {
+          if (methods.cod !== true) {
+            return res.status(503).json({ message: "الدفع عند الاستلام غير مفعّل حاليًا" });
+          }
+        } else if (parsed.data.paymentMethod === "wallet") {
+          if (methods.wallet !== true) {
+            return res.status(503).json({ message: "الدفع بالمحفظة غير مفعّل حاليًا" });
+          }
+        } else {
+          return res.status(400).json({ message: "طريقة الدفع غير مدعومة في إتمام الطلب" });
+        }
+      }
+
       // ── Server-trusted bundle pricing: recompute savings from cart items
       let bundleApplications: any[] = [];
       try {
@@ -1714,48 +1766,116 @@ ${allUrls.map(u => `  <url>
         parsed.data.shippingCompany = "Storage X Ship";
       }
 
+      if (parsed.data.shippingMethod === "delivery") {
+        const provider = String(parsed.data.shippingProvider || "manual").toLowerCase();
+        if (!["manual", "shipox", "mapit", "storage-x-ship"].includes(provider)) {
+          return res.status(400).json({ message: "شركة الشحن المحددة غير مدعومة" });
+        }
+        if (provider !== "storage-x-ship") {
+          const settings = await storage.getStoreSettings();
+          const previousShippingCost = Number(parsed.data.shippingCost) || 0;
+          const merchandiseAndTax = Math.max(0, Number(parsed.data.total) - previousShippingCost);
+          const itemSubtotal = Number(parsed.data.subtotal) || merchandiseAndTax;
+          const selectedCompany = provider === "manual" && parsed.data.shippingCompany
+            ? (await storage.getShippingCompanies()).find((company: any) =>
+                company.isActive !== false && String(company.name) === String(parsed.data.shippingCompany))
+            : undefined;
+
+          let authoritativeShippingCost: number;
+          if (selectedCompany) {
+            const threshold = Number((selectedCompany as any).freeShippingThreshold) || 0;
+            authoritativeShippingCost = threshold > 0 && itemSubtotal >= threshold
+              ? 0
+              : Math.max(0, Number(selectedCompany.price) || 0);
+          } else {
+            const threshold = Number((settings as any)?.freeShippingThreshold) || 0;
+            const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
+            const fixedCost = Number((settings as any)?.fixedShippingCost ?? 30);
+            const rate = await getShippingRateForCity(
+              String((parsed.data.shippingAddress as any)?.city || ""),
+              itemSubtotal,
+              freeEnabled ? threshold : 0,
+              Number.isFinite(fixedCost) && fixedCost >= 0 ? fixedCost : 30,
+            );
+            authoritativeShippingCost = Number(rate.cost) || 0;
+          }
+
+          parsed.data.shippingCost = authoritativeShippingCost.toFixed(2);
+          parsed.data.total = (merchandiseAndTax + authoritativeShippingCost).toFixed(2);
+        }
+        if (provider === "shipox") {
+          const settings = await storage.getStoreSettings();
+          if (!shipoxSenderReadiness(settings).checkoutReady) {
+            return res.status(503).json({ message: "Shipox غير جاهز: أكمل بيانات المرسل وإعدادات الاتصال أولًا" });
+          }
+        }
+        if (provider === "mapit") {
+          if (!isMapitConfigured()) {
+            return res.status(503).json({ message: "Mapit غير مهيأ حاليًا" });
+          }
+          if (!Number.isFinite(Number(parsed.data.latitude)) || !Number.isFinite(Number(parsed.data.longitude))) {
+            return res.status(400).json({ message: "حدد موقع التوصيل لإرسال الإحداثيات المطلوبة إلى Mapit" });
+          }
+        }
+      }
+
+      let walletDebit: { userId: string; amount: number } | null = null;
       if (parsed.data.paymentMethod === "wallet" && parsed.data.userId) {
         const user = await storage.getUser(parsed.data.userId);
-        if (user) {
-          const balance = Number(user.walletBalance || 0);
-          const orderTotal = Number(parsed.data.total);
-          if (balance < orderTotal) return res.status(400).json({ message: "رصيد المحفظة غير كافٍ" });
-          await storage.updateUserWallet(user.id, (balance - orderTotal).toString());
-          await storage.createWalletTransaction({
-            userId: user.id,
-            amount: orderTotal,
-            type: "withdrawal",
-            description: `دفع طلب POS #${new Date().getTime()}`,
-          });
-        }
+        if (!user) return res.status(404).json({ message: "حساب المحفظة غير موجود" });
+        const balance = Number(user.walletBalance || 0);
+        const orderTotal = Number(parsed.data.total);
+        if (balance < orderTotal) return res.status(400).json({ message: "رصيد المحفظة غير كافٍ" });
+        await storage.updateUserWallet(user.id, (balance - orderTotal).toString());
+        walletDebit = { userId: user.id, amount: orderTotal };
       }
       const user = req.user as any;
       let order;
       try {
         order = await storage.createOrder({
           ...parsed.data,
+          ...(isCustomerCheckout ? {
+            userId: String(actor.id),
+            status: parsed.data.paymentMethod === "tap" ? "pending_payment" : "new",
+            paymentStatus: parsed.data.paymentMethod === "wallet" ? "paid" : "pending",
+          } : {}),
           type: parsed.data.type || "online",
           branchId: parsed.data.branchId || user.branchId,
           cashierId: parsed.data.cashierId || user.id,
         });
       } catch (e: any) {
-        if (e?.code === "OUT_OF_STOCK") {
-          // Refund the wallet if we already debited it above
-          if (parsed.data.paymentMethod === "wallet" && parsed.data.userId) {
-            try {
-              const u = await storage.getUser(parsed.data.userId);
-              if (u) {
-                const restored = (Number(u.walletBalance || 0) + Number(parsed.data.total)).toString();
-                await storage.updateUserWallet(u.id, restored);
-              }
-            } catch {}
+        if (walletDebit) {
+          try {
+            const latestUser = await storage.getUser(walletDebit.userId);
+            if (latestUser) {
+              await storage.updateUserWallet(
+                walletDebit.userId,
+                (Number(latestUser.walletBalance || 0) + walletDebit.amount).toString(),
+              );
+            }
+          } catch (refundError: any) {
+            console.error("[API] wallet refund after order failure failed:", refundError?.message);
           }
+          walletDebit = null;
+        }
+        if (e?.code === "OUT_OF_STOCK") {
           const msg = e.branchStock
             ? "هذا المنتج غير متوفر في الفرع المختار — يرجى اختيار فرع آخر أو التوصيل"
             : "نفدت كمية أحد المنتجات قبل إتمام الطلب";
           return res.status(409).json({ message: msg, variantSku: e.variantSku, code: "OUT_OF_STOCK", branchStock: !!e.branchStock });
         }
         throw e;
+      }
+
+      if (walletDebit) {
+        await storage.createWalletTransaction({
+          userId: walletDebit.userId,
+          amount: walletDebit.amount,
+          type: "withdrawal",
+          description: `دفع طلب #${String(order.id).slice(-8).toUpperCase()}`,
+        }).catch((err: any) => {
+          console.error("[API] wallet transaction log failed:", err?.message);
+        });
       }
 
       // ── Track bundle offer usage (one increment per applied tier)
@@ -1768,13 +1888,6 @@ ${allUrls.map(u => `  <url>
       // ── Defer slow side-effects to the background queue so the response
       //    returns immediately. Critical for handling 100k orders/hour.
       const orderRef = order.id.slice(-8).toUpperCase();
-      if (
-        order.shippingMethod === "delivery" &&
-        (order.shippingProvider === "storage-x-ship" || order.shippingCompany === "Storage X Ship") &&
-        (order.paymentStatus === "paid" || order.paymentMethod === "cod")
-      ) {
-        enqueueStorageXShipment(order);
-      }
 
       // CRITICAL: For orders that go through an external gateway (tabby/tamara/paymob/apple_pay),
       // we must NOT send "تم استلام طلبك" / "طلب جديد" / invoices / confirmation emails until
@@ -1784,6 +1897,14 @@ ${allUrls.map(u => `  <url>
       const isAwaitingGatewayPayment =
         order.status === "pending_payment" &&
         GATEWAY_METHODS.includes(order.paymentMethod);
+
+      if (
+        !isAwaitingGatewayPayment &&
+        order.shippingMethod === "delivery" &&
+        (order.paymentStatus === "paid" || order.paymentMethod === "cod")
+      ) {
+        enqueueSelectedDeliveryShipment(order);
+      }
 
       if (!isAwaitingGatewayPayment) {
         enqueueJob("notify-admins-new-order", async () => {
@@ -3728,6 +3849,15 @@ ${allUrls.map(u => `  <url>
   // Public: Mapit availability status (used by checkout)
   app.get("/api/mapit/status", (_req, res) => {
     res.json({ configured: isMapitConfigured() });
+  });
+
+  app.get("/api/shipox/status", async (_req, res) => {
+    try {
+      const settings = await storage.getStoreSettings();
+      res.json(shipoxSenderReadiness(settings));
+    } catch {
+      res.json({ configured: isShipoxConfigured(), senderConfigured: false, checkoutReady: false });
+    }
   });
 
   // Shipping Companies
@@ -6406,6 +6536,20 @@ ${allUrls.map(u => `  <url>
       })),
       account,
     });
+  });
+
+  app.get("/api/admin/shipox/test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    if (!isShipoxConfigured()) {
+      return res.status(503).json({ success: false, message: "بيانات دخول Shipox غير مُعدّة في أسرار المشروع" });
+    }
+    try {
+      await getShipoxAccount();
+      res.json({ success: true, message: "اتصال Shipox يعمل" });
+    } catch {
+      res.status(502).json({ success: false, message: "تعذر تسجيل الدخول إلى Shipox؛ تحقق من بيانات الدخول والاتصال" });
+    }
   });
 
   // Create Shipox shipment for a given order
