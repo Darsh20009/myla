@@ -15,6 +15,7 @@ import { UserModel, OrderModel, NotificationModel, PushSubscriptionModel, Activi
 import { encryptSecret, PROVIDER_PRESETS, testConnection as testInboxConnection, syncAccount as syncInboxAccount, setMessageFlags as setInboxFlags, deleteMessage as deleteInboxMessage, sendFromAccount as sendInboxMessage } from "./inbox";
 import { paymentGateway } from "./payments";
 import { fireNotify, fireNotifyAdmins, sendWhatsAppOrderAlert, VAPID_PUBLIC_KEY } from "./notifications";
+import { getWaStatus, sendWhatsAppDocument, sendWhatsAppNotification } from "./whatsapp";
 import {
   initiateCardPayment, verify3DS, initiateSTPay, verifySTCPay,
   processApplePay,
@@ -94,6 +95,7 @@ import { startAbandonedCartWorker, notifyCart, markCartConverted } from "./aband
 import { startPickupExpiryWorker } from "./pickup-expiry";
 import { startPendingPaymentExpiryWorker } from "./pending-payment-expiry";
 import { buildInvoiceHtml } from "./invoice-html";
+import { renderInvoiceHtmlToPdf } from "./invoice-pdf";
 import { buildZatcaQrDataUrl } from "./zatca";
 import rateLimit from "express-rate-limit";
 import {
@@ -147,10 +149,12 @@ function storageXSettingsReadiness(settings: any) {
     isValidStorageXNationalAddress(pickupNationalAddress),
   );
   const weightConfigured = STORAGE_STATION_ITEM_WEIGHT_GRAMS === 1000;
+  const merchantRefConfigured = isValidStorageXMerchantRef(settings?.storageXMerchantRef);
   return {
     pickupConfigured,
     weightConfigured,
-    checkoutReady: isStorageXShipConfigured() && pickupConfigured && weightConfigured,
+    merchantRefConfigured,
+    checkoutReady: isStorageXShipConfigured() && pickupConfigured && weightConfigured && merchantRefConfigured,
   };
 }
 
@@ -378,6 +382,46 @@ function enqueueSelectedDeliveryShipment(order: any) {
       enqueueMapitShipment(order);
       break;
   }
+}
+
+function enqueueCustomerWhatsApp(order: any, message: string, jobName: string, attachInvoice = false) {
+  enqueueJob(jobName, async () => {
+    const waStatus = getWaStatus().state;
+    if (waStatus !== "connected") {
+      console.warn(`[WhatsApp] ${jobName} skipped for order ${String(order?.id || "").slice(-8)}: session ${waStatus}`);
+      return;
+    }
+
+    const customer = await storage.getUser(String(order?.userId || "")).catch(() => null);
+    const phone = String(
+      order?.customerPhone ||
+      order?.shippingAddress?.phone ||
+      customer?.phone ||
+      "",
+    ).trim();
+    if (!phone) {
+      console.warn(`[WhatsApp] ${jobName} skipped for order ${String(order?.id || "").slice(-8)}: no customer phone`);
+      return;
+    }
+
+    if (attachInvoice && order?.paymentStatus === "paid") {
+      try {
+        const invoiceHtml = await buildInvoiceHtml({
+          order,
+          customer: customer
+            ? { name: customer.name, email: customer.email, phone: customer.phone }
+            : undefined,
+        });
+        const invoicePdf = await renderInvoiceHtmlToPdf(invoiceHtml);
+        const orderRef = String(order.id || "").slice(-8).toUpperCase();
+        await sendWhatsAppDocument(phone, invoicePdf, `فاتورة-${orderRef}.pdf`, message);
+        return;
+      } catch (error: any) {
+        console.warn(`[WhatsApp] invoice attachment failed for order ${String(order?.id || "").slice(-8)}: ${error?.message || "unknown error"}`);
+      }
+    }
+    await sendWhatsAppNotification(phone, message);
+  }, { critical: false, maxAttempts: 1 });
 }
 
 function mapitStatusToLocalStatus(status: string): string | null {
@@ -613,6 +657,12 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
         { type: "success", link: "/orders", icon: "✅", webPush: true }
       );
     });
+    enqueueCustomerWhatsApp(
+      order,
+      `✅ تم تأكيد الدفع لطلبك #${shortRef} بقيمة ${Number(order.total || 0).toFixed(2)} ر.س. يمكنك متابعة الطلب وحفظ الفاتورة PDF من صفحة «طلباتي».`,
+      "paid-notify-customer-whatsapp",
+      true,
+    );
 
     enqueueJob("paid-email-confirmation", async () => {
       const customer = await storage.getUser(order.userId);
@@ -2150,6 +2200,12 @@ ${allUrls.map(u => `  <url>
             { type: "success", link: "/orders", icon: "✅", webPush: true }
           );
         });
+        enqueueCustomerWhatsApp(
+          order,
+          `🛍️ تم استلام طلبك #${order.id.slice(-6).toUpperCase()} بقيمة ${Number(order.total || 0).toFixed(2)} ر.س. يمكنك متابعة الطلب وحفظ الفاتورة PDF من صفحة «طلباتي».`,
+          "customer-order-received-whatsapp",
+          order.paymentStatus === "paid",
+        );
 
         enqueueJob("email-order-confirmation", async () => {
           const customer = await storage.getUser(order.userId);
@@ -2266,7 +2322,12 @@ ${allUrls.map(u => `  <url>
         cancelled: { title: "❌ تم إلغاء طلبك", body: `تم إلغاء طلبك #${order.id.slice(-6).toUpperCase()}.`, icon: "❌", type: "error" },
       };
       const label = statusLabels[status];
-      if (label) {
+      if (label && status !== currentStatus) {
+        enqueueCustomerWhatsApp(
+          order,
+          `${label.title}\n${label.body}\nيمكنك متابعة الطلب وحفظ الفاتورة PDF من صفحة «طلباتي».`,
+          "customer-order-status-whatsapp",
+        );
         try {
           await fireNotify(order.userId, label.title, label.body, {
             type: label.type, link: "/orders", icon: label.icon, webPush: true,
@@ -6177,8 +6238,27 @@ ${allUrls.map(u => `  <url>
       return res.status(503).json({ success: false, message: "مفتاح Storage X Ship غير مضاف" });
     }
     try {
+      const settings: any = await storage.getStoreSettings();
+      const readiness = storageXSettingsReadiness(settings);
+      if (!readiness.pickupConfigured || !readiness.merchantRefConfigured) {
+        return res.status(400).json({
+          success: false,
+          message: "أكمل عنوان الاستلام واحفظ merchantRef قبل اختبار ربط حساب التاجر",
+        });
+      }
       await getStorageXStatuses();
-      res.json({ success: true, message: "الاتصال بـ Storage X Ship يعمل" });
+      const quote = await quoteStorageX({
+        recipientCity: String(settings.storageXPickupCity),
+        pickupCity: String(settings.storageXPickupCity),
+        merchantRef: String(settings.storageXMerchantRef),
+        weightGrams: getShippingWeightGrams(1),
+      });
+      res.json({
+        success: true,
+        message: quote?.serviceable
+          ? "الاتصال ورمز merchantRef يعملان؛ اختبار السعر لم ينشئ شحنة"
+          : "الاتصال ورمز merchantRef مقبولان، لكن Storage X لا يخدم مدينة الاستلام",
+      });
     } catch (err: any) {
       res.status(502).json({
         success: false,
@@ -8136,6 +8216,43 @@ ${allUrls.map(u => `  <url>
     } catch (err: any) {
       console.error("[Invoice] error:", err?.message);
       res.status(500).send("تعذر إنشاء الفاتورة");
+    }
+  });
+
+  app.get("/api/orders/:id/invoice.pdf", async (req, res) => {
+    try {
+      const order: any = await OrderModel.findById(req.params.id).lean();
+      if (!order) return res.status(404).send("الطلب غير موجود");
+
+      const user: any = req.user;
+      const isOwner = req.isAuthenticated() && user &&
+        String(order.userId) === String(user._id || user.id);
+      const isStaff = req.isAuthenticated() && user &&
+        ["admin", "cashier", "owner"].includes(String(user.role));
+      if (!isOwner && !isStaff) return res.status(403).send("غير مصرح بتحميل الفاتورة");
+
+      const customer = order.userId
+        ? await storage.getUser(String(order.userId)).catch(() => null)
+        : null;
+      const html = await buildInvoiceHtml({
+        order,
+        customer: customer
+          ? { name: customer.name, email: customer.email, phone: customer.phone }
+          : undefined,
+      });
+      const pdf = await renderInvoiceHtmlToPdf(html);
+      const orderRef = String(order._id || order.id).slice(-8).toUpperCase();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="Myla-invoice-${orderRef}.pdf"`);
+      res.setHeader("Content-Length", pdf.length);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.send(pdf);
+    } catch (err: any) {
+      console.error("[Invoice PDF] render failed:", err?.message || "unknown error");
+      const unavailable = err?.message === "PDF_RENDER_UNAVAILABLE";
+      res.status(unavailable ? 503 : 500).send(
+        unavailable ? "تحميل PDF غير متاح على هذا الخادم؛ استخدم صفحة الفاتورة ثم طباعة / PDF" : "تعذر إنشاء ملف PDF",
+      );
     }
   });
 

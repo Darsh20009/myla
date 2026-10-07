@@ -872,6 +872,25 @@ export async function sendWhatsAppNotification(phone: string, text: string): Pro
   await sock.sendMessage(jid, { text });
 }
 
+export async function sendWhatsAppDocument(
+  phone: string,
+  document: Buffer,
+  fileName: string,
+  caption?: string,
+): Promise<void> {
+  if (!sock || waState !== "connected") throw new Error("WhatsApp غير متصل");
+  if (!document.length || document.length > 15 * 1024 * 1024) {
+    throw new Error("ملف الفاتورة غير صالح أو أكبر من الحد المسموح");
+  }
+  const jid = `${normalizeWhatsAppPhone(phone)}@s.whatsapp.net`;
+  await sock.sendMessage(jid, {
+    document,
+    mimetype: "application/pdf",
+    fileName: fileName.replace(/[\\/:*?"<>|]/g, "-").slice(0, 120),
+    caption: caption || "",
+  });
+}
+
 export async function sendWaImage(
   chatId: string,
   imageBase64: string,

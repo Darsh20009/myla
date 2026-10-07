@@ -309,7 +309,11 @@ export default function Checkout() {
     staleTime: 60 * 1000,
   });
 
-  const { data: storageXShipStatus } = useQuery<{ configured: boolean; checkoutReady: boolean }>({
+  const { data: storageXShipStatus } = useQuery<{
+    configured: boolean;
+    checkoutReady: boolean;
+    merchantRefConfigured?: boolean;
+  }>({
     queryKey: ["/api/storage-x-ship/status"],
     queryFn: async () => {
       const res = await fetch("/api/storage-x-ship/status");
@@ -705,6 +709,7 @@ export default function Checkout() {
           size: item.size,
           length: item.length,
           notes: item.notes,
+          image: item.image,
         })),
         shippingMethod: isDelivery ? "delivery" : "pickup",
         pickupBranch: isDelivery ? undefined : pickupBranchId,
@@ -1432,6 +1437,11 @@ export default function Checkout() {
                   {deliveryCity && shippingOptions.length === 0 && (
                     <p role="status" className="text-[11px] leading-5 text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                       لا توجد شركة شحن مربوطة آليًا حاليًا؛ سيحتاج المتجر إلى تأكيد التوصيل وحجز الشحنة يدويًا.
+                    </p>
+                  )}
+                  {deliveryCity && storageXShipStatus?.configured && storageXShipStatus.merchantRefConfigured === false && (
+                    <p role="status" className="text-[11px] leading-5 text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      شحن Storage X غير متاح مؤقتًا حتى يُحفظ رمز merchantRef في إعدادات التكامل؛ هذا يمنع إرسال الشحنات إلى حساب غير حساب المتجر.
                     </p>
                   )}
                 </div>

@@ -445,14 +445,14 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
               ["pickupName", "اسم المرسل"], ["pickupPhone", "هاتف المرسل"],
               ["pickupCity", "مدينة الاستلام"], ["pickupAddressLine", "عنوان الاستلام"],
               ["pickupNationalAddress", "العنوان الوطني المختصر"],
-              ["merchantRef", "رمز merchantRef من Storage X (اختياري)"],
+               ["merchantRef", "رمز merchantRef من Storage X (مطلوب للشحن)"],
             ] as const).map(([key, label]) => (
               <Input key={key} value={pickupForm[key]} placeholder={label}
                 onChange={e => setPickupForm(v => ({ ...v, [key]: e.target.value }))}
                 className="h-9 text-xs" />
             ))}
             <p className="text-[10px] font-bold text-slate-500">
-              أدخل رمز ربط التاجر الصادر من Storage X فقط (صيغة SXH-…). لا تضع مفتاح API في هذه الخانة.
+              أدخل رمز ربط التاجر الصادر من Storage X فقط (صيغة SXH-…). لن تُنشأ شحنات جديدة قبل حفظه. لا تضع مفتاح API في هذه الخانة.
             </p>
             <p className="rounded-lg bg-blue-50 px-3 py-2 text-[10px] font-bold text-blue-700">
               وزن الشحنة يُحسب تلقائيًا: 1 كجم لكل قطعة في الطلب.

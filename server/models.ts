@@ -143,6 +143,7 @@ const orderSchema = new Schema<Order>(
       size: String,
       length: String,
       notes: String,
+      image: String,
     }],
     shippingMethod: { type: String, enum: ["pickup", "delivery"], required: true },
     shippingAddress: {

@@ -210,6 +210,7 @@ export const insertOrderSchema = z.object({
     size: z.string().optional(),
     length: z.string().optional(),
     notes: z.string().optional(),
+    image: z.string().optional(),
   })),
   shippingMethod: z.enum(["pickup", "delivery"]),
   shippingAddress: z.object({

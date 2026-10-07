@@ -11,9 +11,10 @@ import {
   FileText, Bike, Wallet, X, Share2, Copy, Calendar,
   ArrowRight, Star, RefreshCw, MessageCircle, ChevronRight, ChevronLeft as ChevronLeftIcon
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RiyalSign } from "@/components/RiyalSign";
+import { optimizeCloudinaryImageUrl } from "@/lib/image-utils";
 
 // ─── Status Config ──────────────────────────────────────────────────────────
 const statusConfig: Record<string, { icon: any; color: string; label: string; bg: string; border: string; step: number; }> = {
@@ -193,7 +194,7 @@ function ImageCarousel({ images }: { images: string[] }) {
       <AnimatePresence initial={false}>
         <motion.img
           key={current}
-          src={images[current]}
+          src={optimizeCloudinaryImageUrl(images[current], 1400)}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           initial={{ opacity: 0, scale: 1.04 }}
@@ -201,6 +202,15 @@ function ImageCarousel({ images }: { images: string[] }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.6 }}
           draggable={false}
+          onError={(event) => {
+            const image = event.currentTarget;
+            if (!image.dataset.fallback) {
+              image.dataset.fallback = "1";
+              image.src = "/myla-logo.png";
+            } else {
+              image.style.display = "none";
+            }
+          }}
         />
       </AnimatePresence>
 
@@ -339,6 +349,21 @@ export default function OrderDetail() {
     refetchInterval: 30000,
   });
 
+  const { data: catalogProducts = [] } = useQuery<any[]>({
+    queryKey: ["/api/products"],
+    queryFn: async () => {
+      const response = await fetch("/api/products");
+      if (!response.ok) throw new Error("تعذر تحميل صور المنتجات");
+      return response.json();
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+  const catalogProductById = useMemo(
+    () => new Map(catalogProducts.map((product: any) => [String(product.id || product._id), product])),
+    [catalogProducts],
+  );
+
   const cancelMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status: "cancelled" });
@@ -385,7 +410,9 @@ export default function OrderDetail() {
   // Collect product images for carousel
   const productImages: string[] = [];
   (order.items || []).forEach((item: any) => {
-    if (item.image) productImages.push(item.image);
+    const product = catalogProductById.get(String(item.productId || ""));
+    const image = String(item.image || product?.images?.[0] || product?.image || "").trim();
+    if (image) productImages.push(image);
   });
 
    const sc = statusConfig[order.status] || { icon: AlertCircle, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", step: -2, label: "حالة غير معروفة" };
@@ -729,12 +756,13 @@ export default function OrderDetail() {
             </button>
 
             <a
-              href={`/api/orders/${orderId}/invoice`}
+              href={`/api/orders/${orderId}/invoice.pdf`}
               target="_blank"
+              rel="noreferrer"
               className="flex items-center justify-center gap-2 h-14 rounded-2xl border-2 border-black/8 bg-white font-black text-[11px] uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all active:scale-95"
             >
               <FileText className="h-4 w-4" />
-              الفاتورة
+              حفظ الفاتورة PDF
             </a>
 
             <button
