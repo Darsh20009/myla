@@ -512,7 +512,7 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
   );
 }
 
-export default function AdminIntegrations() {
+export default function AdminIntegrations({ integrationIds }: { integrationIds?: string[] } = {}) {
   const { data, isLoading, refetch, isFetching } = useQuery<any>({
     queryKey: ["/api/admin/integrations-status"],
     queryFn: async () => {
@@ -528,8 +528,12 @@ export default function AdminIntegrations() {
     </div>
   );
 
-  const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
-  const totalConfigured = INTEGRATIONS.filter(intg => {
+  const visibleIntegrations = integrationIds?.length
+    ? INTEGRATIONS.filter(integration => integrationIds.includes(integration.id))
+    : INTEGRATIONS;
+  const focusedIntegration = integrationIds?.length === 1 ? visibleIntegrations[0] : undefined;
+  const categories = [...new Set(visibleIntegrations.map(i => i.category))];
+  const totalConfigured = visibleIntegrations.filter(intg => {
     const st = data?.[intg.id] || {};
     return intg.keys.every(k => st[k.key]);
   }).length;
@@ -543,9 +547,13 @@ export default function AdminIntegrations() {
             <div className="p-2 bg-blue-50 rounded-xl">
               <Key className="h-6 w-6 text-blue-600" />
             </div>
-            ربط الخدمات والمفاتيح
+            {focusedIntegration?.name || "ربط الخدمات والمفاتيح"}
           </h2>
-          <p className="text-sm text-slate-400 font-bold mt-1 pr-11">إدارة جميع مفاتيح API والخدمات المرتبطة بالنظام</p>
+          <p className="text-sm text-slate-400 font-bold mt-1 pr-11">
+            {focusedIntegration
+              ? "إعداد الشحن، اختبار الاتصال، والبحث عن شحنة برقم التتبع"
+              : "إدارة جميع مفاتيح API والخدمات المرتبطة بالنظام"}
+          </p>
         </div>
         <button
           onClick={() => refetch()}
@@ -558,14 +566,14 @@ export default function AdminIntegrations() {
       </div>
 
       {/* Summary bar */}
-      <div className="grid grid-cols-3 gap-4">
+      {!focusedIntegration && <div className="grid grid-cols-3 gap-4">
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-emerald-600">{totalConfigured}</p>
           <p className="text-[11px] font-bold text-emerald-500 mt-1">خدمة مُفعَّلة</p>
         </div>
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-amber-600">
-            {INTEGRATIONS.filter(intg => {
+            {visibleIntegrations.filter(intg => {
               const st = data?.[intg.id] || {};
               const c = intg.keys.filter(k => st[k.key]).length;
               return c > 0 && c < intg.keys.length;
@@ -575,17 +583,17 @@ export default function AdminIntegrations() {
         </div>
         <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-red-600">
-            {INTEGRATIONS.filter(intg => {
+            {visibleIntegrations.filter(intg => {
               const st = data?.[intg.id] || {};
               return intg.keys.every(k => !st[k.key]);
             }).length}
           </p>
           <p className="text-[11px] font-bold text-red-500 mt-1">غير مُفعَّلة</p>
         </div>
-      </div>
+      </div>}
 
       {/* Notice */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
+      {!focusedIntegration && <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
         <AlertTriangle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
         <div>
           <p className="text-xs font-black text-blue-800">لإضافة أو تعديل مفتاح</p>
@@ -593,11 +601,11 @@ export default function AdminIntegrations() {
             انتقل إلى <strong>إعدادات Replit ← Secrets</strong> وأضف المفتاح بالاسم الصحيح. تُطبَّق التغييرات بعد إعادة تشغيل الخادم.
           </p>
         </div>
-      </div>
+      </div>}
 
       {/* By category */}
       {categories.map(cat => {
-        const catIntgs = INTEGRATIONS.filter(i => i.category === cat);
+        const catIntgs = visibleIntegrations.filter(i => i.category === cat);
         return (
           <div key={cat}>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{cat}</h3>

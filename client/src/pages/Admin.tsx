@@ -2771,6 +2771,14 @@ const statusLabels: Record<string, string> = {
   returned: "مُرتجع",
 };
 
+const statusOptionDotColors: Record<string, string> = {
+  new: "bg-sky-500",
+  processing: "bg-violet-500",
+  shipped: "bg-cyan-600",
+  completed: "bg-emerald-600",
+  cancelled: "bg-rose-600",
+};
+
 const OrdersManagement = memo(() => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ["/api/orders"],
@@ -3015,9 +3023,12 @@ const OrdersManagement = memo(() => {
                             <MoreVertical className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl font-bold text-xs min-w-[180px] bg-white border-gray-100 text-gray-900">
+                        <DropdownMenuContent
+                          align="end"
+                          className="min-w-[210px] rounded-xl border border-slate-200 bg-white p-1.5 text-slate-800 shadow-xl"
+                        >
                           {order.status === "pending_payment" ? (
-                            <DropdownMenuItem disabled className="text-right text-amber-400 text-[10px]">
+                            <DropdownMenuItem disabled className="min-h-9 justify-start rounded-lg bg-amber-50 text-right text-[11px] font-bold text-amber-800">
                               ⚠ أكد أو ارفض الدفع أولاً
                             </DropdownMenuItem>
                           ) : (
@@ -3026,25 +3037,25 @@ const OrdersManagement = memo(() => {
                                 <DropdownMenuItem
                                   key={status}
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, status); }}
-                                  className="text-right gap-2 text-white/70 hover:text-white"
+                                  className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-950 data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-950"
                                 >
-                                  <span className={`w-2 h-2 rounded-full inline-block ${statusColors[status]?.split(" ")[0]}`}></span>
+                                  <span className={`h-2 w-2 shrink-0 rounded-full ${statusOptionDotColors[status]}`} />
                                   {statusLabels[status] || status}
                                 </DropdownMenuItem>
                               ))}
                               <DropdownMenuItem
                                 onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, "out_for_delivery"); }}
-                                className="text-right gap-2 text-violet-400"
+                                className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-violet-800 focus:bg-violet-50 focus:text-violet-900 data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-900"
                               >
-                                <Bike className="w-3 h-3" />
-                                🛵 خرج للتوصيل (داخلي)
+                                <Bike className="h-4 w-4 shrink-0 text-violet-600" />
+                                خرج للتوصيل (داخلي)
                               </DropdownMenuItem>
                               {(order as any).shippingMethod === "pickup" && (
                                 <DropdownMenuItem
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, "ready_for_pickup"); }}
-                                  className="text-right gap-2 text-emerald-400"
+                                  className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-emerald-800 focus:bg-emerald-50 focus:text-emerald-900 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-900"
                                 >
-                                  <span className="text-sm">📦</span>
+                                  <Package className="h-4 w-4 shrink-0 text-emerald-600" />
                                   جاهز للاستلام من الفرع
                                 </DropdownMenuItem>
                               )}
@@ -3052,9 +3063,15 @@ const OrdersManagement = memo(() => {
                                 <DropdownMenuItem
                                   key={status}
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, status); }}
-                                  className="text-right gap-2 text-white/70 hover:text-white"
+                                  className={`min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold
+                                    ${status === "completed"
+                                      ? "text-emerald-800 focus:bg-emerald-50 focus:text-emerald-900 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-900"
+                                      : status === "cancelled"
+                                        ? "text-rose-800 focus:bg-rose-50 focus:text-rose-900 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-900"
+                                        : "text-cyan-800 focus:bg-cyan-50 focus:text-cyan-900 data-[highlighted]:bg-cyan-50 data-[highlighted]:text-cyan-900"
+                                    }`}
                                 >
-                                  <span className={`w-2 h-2 rounded-full inline-block ${statusColors[status]?.split(" ")[0]}`}></span>
+                                  <span className={`h-2 w-2 shrink-0 rounded-full ${statusOptionDotColors[status]}`} />
                                   {statusLabels[status] || status}
                                 </DropdownMenuItem>
                               ))}
@@ -5620,6 +5637,10 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
   const { user, logout: handleLogout } = useAuth();
   const [, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    "الرئيسية": true,
+    "الشحن": true,
+  });
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -5634,82 +5655,88 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
   const groups = [
     {
       label: "الرئيسية",
+      icon: Home,
       items: [
-        { id: "overview", label: "نظرة عامة", icon: BarChart3 },
+        { id: "overview", label: "نظرة عامة", icon: Home },
         { id: "orders", label: "الطلبات", icon: ShoppingCart, badge: pendingOrders },
-      ]
+      ],
     },
     {
-      label: "المخزون",
+      label: "المنتجات والمخزون",
+      icon: Package,
       items: [
         { id: "products", label: "المنتجات", icon: PackageCheck },
         { id: "categories", label: "الفئات / الأقسام", icon: LayoutGrid },
         { id: "inventory", label: "جرد الفروع", icon: Package },
-      ]
+        { id: "bundles", label: "عروض الباقات", icon: Package },
+      ],
     },
     {
-      label: "العمليات",
+      label: "الشحن",
+      icon: Truck,
       items: [
-        { id: "shifts", label: "إدارة الورديات", icon: Clock },
-        { id: "staff", label: "الموظفون", icon: Users },
-        { id: "branches", label: "الفروع", icon: Building },
         { id: "shipping", label: "شركات الشحن", icon: Truck },
-      ]
+        ...(user?.role === "admin" ? [
+          { id: "storage-x", label: "Storage X Ship", icon: PackageCheck },
+        ] : []),
+        { id: "returns", label: "المرتجعات والاسترداد", icon: RotateCcw },
+      ],
     },
     {
       label: "العملاء",
+      icon: Users,
       items: [
         { id: "customers", label: "قاعدة العملاء", icon: UserIcon, badge: newUsers },
         { id: "reviews", label: "تقييمات العملاء", icon: Star },
         { id: "vendors", label: "البائعون", icon: Store },
-        { id: "coupons", label: "أكواد الخصم", icon: Tag },
-        { id: "broadcast", label: "إشعارات جماعية", icon: Megaphone },
-      ]
-    },
-    {
-      label: "المحتوى",
-      items: [
-        { id: "media-library", label: "مكتبة الصور", icon: ImageIcon },
-      ]
+      ],
     },
     {
       label: "التسويق",
+      icon: Megaphone,
       items: [
         { id: "marketing", label: "الحملات التسويقية", icon: Activity },
-        { id: "pixels", label: "البيكسل التسويقي", icon: Activity },
+        { id: "coupons", label: "أكواد الخصم", icon: Tag },
+        { id: "broadcast", label: "إشعارات جماعية", icon: Megaphone },
         { id: "flash-deals", label: "عروض فلاش", icon: Zap },
-        { id: "bundles", label: "عروض الباقات", icon: Package },
-        { id: "returns", label: "المرتجعات", icon: RotateCcw },
         { id: "promo-strip", label: "شريط المميّزات", icon: Sparkles },
-        { id: "stats", label: "إحصائيات الرئيسية", icon: BarChart3 },
-        { id: "pages", label: "صفحات المتجر", icon: FileText },
-      ]
+        { id: "pixels", label: "البيكسل التسويقي", icon: Activity },
+      ],
     },
     {
-      label: "المالية والـ ERP",
+      label: "الفروع والموظفون",
+      icon: Building,
       items: [
+        { id: "branches", label: "الفروع", icon: Building },
+        { id: "staff", label: "الموظفون", icon: Users },
+        { id: "shifts", label: "إدارة الورديات", icon: Clock },
+      ],
+    },
+    {
+      label: "التقارير والمالية",
+      icon: BarChart3,
+      items: [
+        { id: "stats", label: "الإحصائيات", icon: BarChart3 },
         { id: "erp", label: "نظام ERP المالي", icon: Landmark },
-      ]
+      ],
     },
-    ...(user?.role === "admin" ? [{
-      label: "ذكاء اصطناعي",
-      items: [
-        { id: "ai-insights", label: "تحليلات المخزون AI", icon: Brain },
-      ]
-    }] : []),
     {
-      label: "النظام",
+      label: "المزيد",
+      icon: MoreVertical,
       items: [
+        { id: "pages", label: "صفحات المتجر", icon: FileText },
+        { id: "media-library", label: "مكتبة الصور", icon: ImageIcon },
         { id: "inbox", label: "صندوق البريد", icon: Bell, badge: unreadNotifications },
         { id: "email", label: "البريد الإلكتروني", icon: Send },
         { id: "logs", label: "سجل العمليات", icon: History },
         { id: "settings", label: "إعدادات المتجر", icon: Settings2 },
         ...(user?.role === "admin" ? [
+          { id: "ai-insights", label: "تحليلات المخزون AI", icon: Brain },
           { id: "health", label: "صحة النظام", icon: Activity },
-          { id: "integrations", label: "ربط الخدمات", icon: Shield },
+          { id: "integrations", label: "ربط الخدمات والمفاتيح", icon: Shield },
           { id: "whatsapp", label: "ربط واتس‌آب", icon: Phone },
         ] : []),
-      ]
+      ],
     },
   ];
 
@@ -5730,6 +5757,10 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
 
   // On mobile, every nav click should also close the drawer
   const handleTabChange = (tab: string) => {
+    const parentGroup = groups.find(group => group.items.some(item => item.id === tab));
+    if (parentGroup) {
+      setOpenGroups(current => ({ ...current, [parentGroup.label]: true }));
+    }
     onTabChange(tab);
     if (onMobileClose) onMobileClose();
   };
@@ -5801,75 +5832,92 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
 
       {/* Navigation */}
       <nav className="relative z-10 flex-1 overflow-y-auto py-3 px-2 space-y-0.5 no-scrollbar">
-        {groups.map((group) => (
-          <div key={group.label}>
-            {!collapsed && (
-              <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">{group.label}</p>
-            )}
-            {group.items.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabChange(item.id)}
-                  title={collapsed ? item.label : undefined}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group
-                    ${isActive
-                      ? "bg-[#C9A882]/15 text-[#C9A882] border border-[#C9A882]/25"
-                      : "text-white/50 hover:text-white hover:bg-white/5"
-                    }`}
-                >
-                  {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A882] rounded-l-full" />}
-                  <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-white/70"}`} />
-                  {!collapsed && <span className="text-xs font-bold truncate">{item.label}</span>}
-                  {!collapsed && (item as any).badge > 0 && (
-                    <span className="mr-auto px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
-                      {(item as any).badge}
-                    </span>
+        {groups.map((group) => {
+          const expanded = collapsed || Boolean(openGroups[group.label]);
+          const hasActiveItem = group.items.some(item => item.id === activeTab);
+          return (
+            <div key={group.label} className="mb-1">
+              <button
+                type="button"
+                aria-expanded={expanded}
+                title={collapsed ? group.label : undefined}
+                onClick={() => {
+                  if (collapsed) return;
+                  setOpenGroups(current => ({ ...current, [group.label]: !current[group.label] }));
+                }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-right transition-colors
+                  ${hasActiveItem ? "text-[#C9A882] bg-white/5" : "text-white/70 hover:text-white hover:bg-white/5"}`}
+              >
+                <group.icon className="w-4 h-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="text-xs font-black truncate">{group.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 mr-auto transition-transform ${expanded ? "" : "-rotate-90"}`} />
+                  </>
+                )}
+              </button>
+              {expanded && (
+                <div className={`mt-1 space-y-0.5 ${collapsed ? "" : "mr-2 pr-2 border-r border-white/10"}`}>
+                  {group.items.map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        aria-current={isActive ? "page" : undefined}
+                        onClick={() => handleTabChange(item.id)}
+                        title={collapsed ? item.label : undefined}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all relative group
+                          ${isActive
+                            ? "bg-[#C9A882]/15 text-[#C9A882] border border-[#C9A882]/25"
+                            : "text-white/50 hover:text-white hover:bg-white/5"
+                          }`}
+                      >
+                        {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A882] rounded-l-full" />}
+                        <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-white/70"}`} />
+                        {!collapsed && <span className="text-[11px] font-bold truncate">{item.label}</span>}
+                        {!collapsed && Number((item as any).badge) > 0 && (
+                          <span className="mr-auto px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
+                            {(item as any).badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {group.label === "المزيد" && (
+                    <>
+                      {!collapsed && <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1">الموارد البشرية</p>}
+                      {cafeOperationsLinks.map((link) => (
+                        <Link key={link.url} href={link.url}>
+                          <div
+                            title={collapsed ? link.label : undefined}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/5 transition-all cursor-pointer group"
+                          >
+                            <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/70" />
+                            {!collapsed && <span className="text-[11px] font-bold">{link.label}</span>}
+                            {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-20 group-hover:opacity-50" />}
+                          </div>
+                        </Link>
+                      ))}
+                      {!collapsed && <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1">روابط سريعة</p>}
+                      {externalLinks.map((link) => (
+                        <Link key={link.url} href={link.url}>
+                          <div
+                            title={collapsed ? link.label : undefined}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-all cursor-pointer group"
+                          >
+                            <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/60" />
+                            {!collapsed && <span className="text-[11px] font-bold">{link.label}</span>}
+                            {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-30 group-hover:opacity-70" />}
+                          </div>
+                        </Link>
+                      ))}
+                    </>
                   )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-
-        {/* HR & Operations links */}
-        {!collapsed && (
-          <div>
-            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">الموارد البشرية</p>
-          </div>
-        )}
-        {cafeOperationsLinks.map((link) => (
-          <Link key={link.url} href={link.url}>
-            <div
-              title={collapsed ? link.label : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/40 hover:text-white/80 hover:bg-white/5 transition-all cursor-pointer group"
-            >
-              <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/70" />
-              {!collapsed && <span className="text-xs font-bold">{link.label}</span>}
-              {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-20 group-hover:opacity-50" />}
+                </div>
+              )}
             </div>
-          </Link>
-        ))}
-
-        {/* External links */}
-        {!collapsed && (
-          <div>
-            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">روابط سريعة</p>
-          </div>
-        )}
-        {externalLinks.map((link) => (
-          <Link key={link.url} href={link.url}>
-            <div
-              title={collapsed ? link.label : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all cursor-pointer group"
-            >
-              <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/60" />
-              {!collapsed && <span className="text-xs font-bold">{link.label}</span>}
-              {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-30 group-hover:opacity-70" />}
-            </div>
-          </Link>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Logout */}
@@ -5902,6 +5950,7 @@ const pageTitles: Record<string, string> = {
   coupons:      "أكواد الخصم",
   broadcast:    "إشعارات جماعية",
   shipping:     "شركات الشحن",
+  "storage-x":  "Storage X Ship",
   marketing:    "الحملات التسويقية",
   "flash-deals": "عروض فلاش",
   returns:      "المرتجعات والاسترداد",
@@ -6082,6 +6131,7 @@ export default function Admin() {
                 {activeTab === "settings"  && <StoreSettingsPanel />}
                 {activeTab === "health"    && user?.role === "admin" && <AdminSystemHealth />}
                 {activeTab === "integrations" && user?.role === "admin" && <AdminIntegrations />}
+                {activeTab === "storage-x" && user?.role === "admin" && <AdminIntegrations integrationIds={["storageXShip"]} />}
                 {activeTab === "whatsapp"     && user?.role === "admin" && <AdminWhatsApp />}
                {activeTab === "media-library" && <AdminMediaLibrary />}
               </motion.div>
