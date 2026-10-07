@@ -25,6 +25,10 @@ import {
 } from "@/components/payment/PaymentBrands";
 import { RiyalSign } from "@/components/RiyalSign";
 import { Badge } from "@/components/ui/badge";
+import {
+  calculateStorageStationRate,
+  getShippingPieceCount,
+} from "@shared/storage-station-rates";
 
 const SAUDI_CITIES = [
   "الرياض","جدة","مكة المكرمة","المدينة المنورة","الدمام","الخبر","الطائف","تبوك",
@@ -247,6 +251,16 @@ export default function Checkout() {
 
   // ── Shipping companies + carrier readiness ───────────────────────────────────
   const subtotal = total();
+  const shippingPieces = getShippingPieceCount(items);
+  const defaultPolicyRate = calculateStorageStationRate({
+    city: deliveryCity,
+    pieces: shippingPieces,
+    cashOnDelivery: paymentMethod === "cod",
+    orderTotal: subtotal,
+    freeShippingThreshold: storeSettings?.freeShippingEnabled !== false
+      ? Number(storeSettings?.freeShippingThreshold) || 0
+      : 0,
+  });
 
   const { data: shippingCompaniesRaw = [] } = useQuery<any[]>({
     queryKey: ["/api/shipping-companies"],
@@ -313,7 +327,7 @@ export default function Checkout() {
         id: "__shipox__",
         name: "Shipox — 3rd Mile",
         logo: "",
-        price: Number(storeSettings?.fixedShippingCost ?? 35),
+        price: defaultPolicyRate.cost,
         estimatedDays: 1,
         freeShippingThreshold: 0,
         isActive: true,
@@ -359,12 +373,16 @@ export default function Checkout() {
   // ── Fallback shipping rate (when no companies configured) ────────────────────
   const { data: shippingRateData, isFetching: isLoadingRate } = useQuery<{
     cost: number; zoneName: string; methodTitle: string; isFree: boolean;
+    pieces?: number; weightGrams?: number; baseCost?: number; extraWeightCost?: number; codFee?: number;
   }>({
-    queryKey: ["/api/shipping/rate", deliveryCity, subtotal],
+    queryKey: ["/api/shipping/rate", deliveryCity, subtotal, shippingPieces, paymentMethod],
     queryFn: async () => {
-      if (!deliveryCity) return { cost: 0, zoneName: "", methodTitle: "", isFree: true };
-      const res = await fetch(`/api/shipping/rate?city=${encodeURIComponent(deliveryCity)}&total=${subtotal}`);
-      if (!res.ok) return { cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
+      if (!deliveryCity) return defaultPolicyRate;
+      const res = await fetch(
+        `/api/shipping/rate?city=${encodeURIComponent(deliveryCity)}` +
+        `&total=${subtotal}&pieces=${shippingPieces}&cashOnDelivery=${paymentMethod === "cod"}`,
+      );
+      if (!res.ok) return defaultPolicyRate;
       return res.json();
     },
     enabled: shippingMode === "delivery" && !!deliveryCity &&
@@ -430,8 +448,11 @@ export default function Checkout() {
     data: storageXShipQuote,
     isFetching: isLoadingStorageXShipQuote,
     isError: isStorageXShipQuoteError,
-  } = useQuery<{ serviceable: boolean; cost: number; totalMinor: string; weightGrams: number }>({
-    queryKey: ["/api/storage-x-ship/quote", deliveryCity, storageXShipCodAmount],
+  } = useQuery<{
+    serviceable: boolean; cost: number | null; weightGrams: number; pieces: number;
+    baseCost: number; extraWeightCost: number; codFee: number; zoneName: string;
+  }>({
+    queryKey: ["/api/storage-x-ship/quote", deliveryCity, storageXShipCodAmount, shippingPieces, paymentMethod, subtotal],
     queryFn: async () => {
       const res = await fetch("/api/storage-x-ship/quote", {
         method: "POST",
@@ -440,6 +461,9 @@ export default function Checkout() {
         body: JSON.stringify({
           city: deliveryCity,
           codAmount: storageXShipCodAmount,
+          cashOnDelivery: paymentMethod === "cod",
+          pieces: shippingPieces,
+          orderTotal: subtotal,
           ...(paymentMethod === "cod" ? { codMethod: "cash" } : {}),
         }),
       });
@@ -455,17 +479,19 @@ export default function Checkout() {
   const shippingCostValue = (() => {
     if (shippingMode !== "delivery" || !deliveryCity) return 0;
     if (isStorageXShipSelected) {
-      return storageXShipQuote?.serviceable ? Number(storageXShipQuote.cost) || 0 : 0;
+      return storageXShipQuote?.serviceable
+        ? Number(storageXShipQuote.cost ?? defaultPolicyRate.cost) || 0
+        : 0;
     }
     if (isShipoxSelected) {
-      return Number(shippingRateData?.cost ?? selectedShipping?.price) || 0;
+      return Number(shippingRateData?.cost ?? defaultPolicyRate.cost) || 0;
     }
     if (shippingOptions.length > 0 && selectedShipping) {
       const threshold = Number(selectedShipping.freeShippingThreshold || 0);
       const price = Number(selectedShipping.price || 0);
       return threshold > 0 && subtotal >= threshold ? 0 : price;
     }
-    return shippingRateData?.cost ?? 0;
+    return shippingRateData?.cost ?? defaultPolicyRate.cost;
   })();
 
   const finalTotal = Math.max(0, subtotal - discountAmount - loyaltyDiscount - bundleSavings + shippingCostValue);
@@ -1308,6 +1334,16 @@ export default function Checkout() {
                           </p>
                           {shippingRateData?.zoneName && (
                             <p className="text-[10px] text-gray-400 font-bold">{shippingRateData.zoneName}</p>
+                          )}
+                          <p className="text-[10px] text-gray-400 font-bold">
+                            وزن الشحنة: {shippingPieces} كجم ({shippingPieces} قطعة × 1 كجم)
+                            {(shippingRateData?.extraWeightCost ?? defaultPolicyRate.extraWeightCost) > 0 &&
+                              ` — وزن زائد ${shippingRateData?.extraWeightCost ?? defaultPolicyRate.extraWeightCost} ر.س`}
+                          </p>
+                          {(shippingRateData?.codFee ?? defaultPolicyRate.codFee) > 0 && (
+                            <p className="text-[10px] text-gray-400 font-bold">
+                              تشمل 5 ر.س رسوم الدفع عند الاستلام
+                            </p>
                           )}
                         </div>
                       </div>

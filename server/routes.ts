@@ -96,6 +96,12 @@ import { startPendingPaymentExpiryWorker } from "./pending-payment-expiry";
 import { buildInvoiceHtml } from "./invoice-html";
 import { buildZatcaQrDataUrl } from "./zatca";
 import rateLimit from "express-rate-limit";
+import {
+  calculateStorageStationRate,
+  getShippingPieceCount,
+  getShippingWeightGrams,
+  STORAGE_STATION_ITEM_WEIGHT_GRAMS,
+} from "@shared/storage-station-rates";
 import { enqueueJob, getQueueStats, resetQueueStats } from "./job-queue";
 import {
   cacheMiddleware, invalidateTags, getStats as getCacheStats, resetStats as resetCacheStats,
@@ -139,8 +145,7 @@ function storageXSettingsReadiness(settings: any) {
     settings?.storageXPickupAddressLine?.toString().trim() &&
     isValidStorageXNationalAddress(pickupNationalAddress),
   );
-  const weightGrams = Number(settings?.storageXDefaultWeightGrams);
-  const weightConfigured = Number.isInteger(weightGrams) && weightGrams > 0;
+  const weightConfigured = STORAGE_STATION_ITEM_WEIGHT_GRAMS === 1000;
   return {
     pickupConfigured,
     weightConfigured,
@@ -224,7 +229,7 @@ function storageXCreateInput(order: any, settings: any) {
       nationalAddress: String(settings?.storageXPickupNationalAddress || "").trim(),
       city: String(settings?.storageXPickupCity || "").trim(),
     },
-    weightGrams: Number(settings?.storageXDefaultWeightGrams),
+    weightGrams: getShippingWeightGrams(getShippingPieceCount(order.items || [])),
     description: (order.items || [])
       .map((item: any) => `${item.title || "منتج"} × ${Number(item.quantity) || 1}`)
       .join("، ")
@@ -1781,12 +1786,14 @@ ${allUrls.map(u => `  <url>
         }
         const oldShippingCost = Number(parsed.data.shippingCost) || 0;
         const merchandiseDue = Math.max(0, Number(parsed.data.total) - oldShippingCost);
+        const pieces = getShippingPieceCount(parsed.data.items || []);
+        const weightGrams = getShippingWeightGrams(pieces);
         let quote: any;
         try {
           quote = await quoteStorageX({
             recipientCity: String(deliveryAddress.city || ""),
             pickupCity: settings.storageXPickupCity,
-            weightGrams: Number(settings.storageXDefaultWeightGrams),
+            weightGrams,
             codAmount: parsed.data.paymentMethod === "cod" ? merchandiseDue : 0,
             codMethod: "cash",
           });
@@ -1797,12 +1804,25 @@ ${allUrls.map(u => `  <url>
         if (quote?.serviceable !== true) {
           return res.status(422).json({ message: "Storage X Ship لا يخدم مدينة التوصيل المحددة" });
         }
-        const authoritativeShippingCost = Number(quote.totalMinor) / 100;
-        if (!Number.isFinite(authoritativeShippingCost) || authoritativeShippingCost < 0) {
-          return res.status(502).json({ message: "تعذر تأكيد سعر الشحن" });
+        const carrierQuoteCost = Number(quote.totalMinor) / 100;
+        const freeShippingThreshold = settings?.freeShippingEnabled !== false
+          ? Number(settings?.freeShippingThreshold) || 0
+          : 0;
+        const policyRate = calculateStorageStationRate({
+          city: String(deliveryAddress.city || ""),
+          pieces,
+          cashOnDelivery: ["cod", "cash"].includes(String(parsed.data.paymentMethod || "").toLowerCase()),
+          orderTotal: Number(parsed.data.subtotal) || merchandiseDue,
+          freeShippingThreshold,
+        });
+        if (Number.isFinite(carrierQuoteCost) && Math.abs(carrierQuoteCost - policyRate.cost) > 0.01) {
+          console.warn(
+            `[StorageX] partner quote differs from Storage Station tariff for ${String(deliveryAddress.city || "")}: ` +
+            `partner=${carrierQuoteCost.toFixed(2)} SAR, customerTariff=${policyRate.cost.toFixed(2)} SAR`,
+          );
         }
-        parsed.data.shippingCost = authoritativeShippingCost.toFixed(2);
-        parsed.data.total = (merchandiseDue + authoritativeShippingCost).toFixed(2);
+        parsed.data.shippingCost = policyRate.cost.toFixed(2);
+        parsed.data.total = (merchandiseDue + policyRate.cost).toFixed(2);
         parsed.data.shippingCompany = "Storage X Ship";
       }
 
@@ -1830,12 +1850,13 @@ ${allUrls.map(u => `  <url>
           } else {
             const threshold = Number((settings as any)?.freeShippingThreshold) || 0;
             const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
-            const fixedCost = Number((settings as any)?.fixedShippingCost ?? 30);
+            const pieces = getShippingPieceCount(parsed.data.items || []);
             const rate = await getShippingRateForCity(
               String((parsed.data.shippingAddress as any)?.city || ""),
               itemSubtotal,
               freeEnabled ? threshold : 0,
-              Number.isFinite(fixedCost) && fixedCost >= 0 ? fixedCost : 30,
+              pieces,
+              ["cod", "cash"].includes(String(parsed.data.paymentMethod || "").toLowerCase()),
             );
             authoritativeShippingCost = Number(rate.cost) || 0;
           }
@@ -3868,22 +3889,32 @@ ${allUrls.map(u => `  <url>
     try {
       const orderTotal = parseFloat(String(req.query.total || "0")) || 0;
       const city = String(req.query.city || "").trim();
+      if (!city) return res.status(400).json({ message: "حدد مدينة التوصيل أولاً" });
+      const pieces = Number(req.query.pieces ?? 1);
+      if (!Number.isSafeInteger(pieces) || pieces < 1 || pieces > 1000) {
+        return res.status(400).json({ message: "عدد القطع غير صالح" });
+      }
 
       const settings = await storage.getStoreSettings();
       const threshold   = Number((settings as any)?.freeShippingThreshold) || 0;
       const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
-      const fixedCost   = Number((settings as any)?.fixedShippingCost ?? 30);
 
       const rate = await getShippingRateForCity(
         city,
         orderTotal,
         freeEnabled ? threshold : 0,
-        Number.isFinite(fixedCost) && fixedCost >= 0 ? fixedCost : 30,
+        pieces,
+        String(req.query.cashOnDelivery || "").toLowerCase() === "true",
       );
       res.json(rate);
     } catch (err: any) {
       console.error("[API] shipping/rate error:", err?.message);
-      res.json({ cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false });
+      res.json(calculateStorageStationRate({
+        city: String(req.query.city || ""),
+        pieces: Number(req.query.pieces) || 1,
+        cashOnDelivery: String(req.query.cashOnDelivery || "").toLowerCase() === "true",
+        orderTotal: Number(req.query.total) || 0,
+      }));
     }
   });
 
@@ -5865,6 +5896,10 @@ ${allUrls.map(u => `  <url>
       }
       const city = String(req.body?.city || "").trim();
       if (!city) return res.status(400).json({ serviceable: false, code: "city_required" });
+      const pieces = Number(req.body?.pieces ?? 1);
+      if (!Number.isSafeInteger(pieces) || pieces < 1 || pieces > 1000) {
+        return res.status(400).json({ serviceable: false, code: "invalid_piece_count" });
+      }
       const rawCodAmount = Number(req.body?.codAmount || 0);
       if (!Number.isFinite(rawCodAmount) || rawCodAmount < 0 || rawCodAmount > 1_000_000) {
         return res.status(400).json({ serviceable: false, code: "invalid_cod_amount" });
@@ -5873,15 +5908,39 @@ ${allUrls.map(u => `  <url>
       const result = await quoteStorageX({
         recipientCity: city,
         pickupCity: settings.storageXPickupCity,
-        weightGrams: Number(settings.storageXDefaultWeightGrams),
+        weightGrams: getShippingWeightGrams(pieces),
         codAmount: rawCodAmount,
         codMethod: req.body?.codMethod === "pos" ? "pos" : "cash",
       });
-      const cost = result?.serviceable === true ? Number(result.totalMinor) / 100 : null;
+      const cashOnDelivery = req.body?.cashOnDelivery === true || rawCodAmount > 0;
+      const freeShippingThreshold = settings?.freeShippingEnabled !== false
+        ? Number(settings?.freeShippingThreshold) || 0
+        : 0;
+      const policyRate = calculateStorageStationRate({
+        city,
+        pieces,
+        cashOnDelivery,
+        orderTotal: Number(req.body?.orderTotal) || 0,
+        freeShippingThreshold,
+      });
+      const carrierQuoteCost = Number(result?.totalMinor) / 100;
+      if (result?.serviceable === true &&
+          Number.isFinite(carrierQuoteCost) &&
+          Math.abs(carrierQuoteCost - policyRate.cost) > 0.01) {
+        console.warn(
+          `[StorageX] partner quote differs from Storage Station tariff for ${city}: ` +
+          `partner=${carrierQuoteCost.toFixed(2)} SAR, customerTariff=${policyRate.cost.toFixed(2)} SAR`,
+        );
+      }
       res.json({
-        ...result,
-        cost,
-        weightGrams: Number(settings.storageXDefaultWeightGrams),
+        serviceable: result?.serviceable === true,
+        cost: result?.serviceable === true ? policyRate.cost : null,
+        pieces,
+        weightGrams: getShippingWeightGrams(pieces),
+        baseCost: policyRate.baseCost,
+        extraWeightCost: policyRate.extraWeightCost,
+        codFee: policyRate.codFee,
+        zoneName: policyRate.zoneName,
       });
     } catch (err: any) {
       const status = err instanceof StorageXShipApiError && err.status >= 400 && err.status < 500 ? 422 : 502;
@@ -5912,7 +5971,6 @@ ${allUrls.map(u => `  <url>
       pickupCity: settings?.storageXPickupCity || "",
       pickupAddressLine: settings?.storageXPickupAddressLine || "",
       pickupNationalAddress: settings?.storageXPickupNationalAddress || "",
-      defaultWeightGrams: Number(settings?.storageXDefaultWeightGrams) || 0,
     });
   });
 
@@ -5941,13 +5999,6 @@ ${allUrls.map(u => `  <url>
           !isValidStorageXNationalAddress(update.storageXPickupNationalAddress)) {
         return res.status(400).json({ message: "العنوان الوطني للمرسل يجب أن يتكون من 4 أحرف و4 أرقام" });
       }
-      if (body.defaultWeightGrams !== undefined) {
-        const weight = Number(body.defaultWeightGrams);
-        if (!Number.isInteger(weight) || weight < 0 || weight > 50_000) {
-          return res.status(400).json({ message: "وزن الطرد يجب أن يكون رقماً صحيحاً بين 1 و50000 غرام، أو صفراً لتركه غير مضبوط" });
-        }
-        update.storageXDefaultWeightGrams = weight;
-      }
       if (!Object.keys(update).length) return res.status(400).json({ message: "لا توجد إعدادات للتحديث" });
       await storage.updateStoreSettings(update);
       res.json({
@@ -5956,7 +6007,6 @@ ${allUrls.map(u => `  <url>
         pickupCity: update.storageXPickupCity ?? body.pickupCity,
         pickupAddressLine: update.storageXPickupAddressLine ?? body.pickupAddressLine,
         pickupNationalAddress: update.storageXPickupNationalAddress ?? body.pickupNationalAddress,
-        defaultWeightGrams: update.storageXDefaultWeightGrams ?? body.defaultWeightGrams,
       });
     } catch (err: any) {
       res.status(500).json({ message: err?.message || "تعذر حفظ إعدادات الشحن" });

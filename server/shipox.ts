@@ -185,7 +185,7 @@ export async function createShipoxOrder(
 
     description:     `طلب Myla #${orderRef}`,
     pieces_count:    piecesCount,
-    weight:          0.5,
+    weight:          piecesCount,
     cod_amount:      codAmount,
     notes:           order.notes || "",
     reference_number: orderRef,

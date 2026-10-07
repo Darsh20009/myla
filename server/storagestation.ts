@@ -6,6 +6,8 @@
  * Each order item is mapped using variantSku.
  */
 
+import { calculateStorageStationRate, type StorageStationRate } from "@shared/storage-station-rates";
+
 const SS_BASE_URL = "https://storagestation.app/wp-json/wc/v3";
 const SS_KEY = process.env.STORAGE_STATION_API_KEY || "";
 const SS_SECRET = process.env.STORAGE_STATION_API_SECRET || "";
@@ -129,81 +131,27 @@ async function fetchZoneData(): Promise<ZoneCache["zones"]> {
   return zones;
 }
 
-export interface ShippingRateResult {
-  cost: number;
-  zoneName: string;
-  methodTitle: string;
-  isFree: boolean;
-}
+export type ShippingRateResult = StorageStationRate;
 
 /**
- * Fetch the shipping rate for a given Saudi city from Storage Station's
- * WooCommerce Shipping Zones API.  Falls back to a flat rate of 30 SAR if
- * no matching zone is found.
+ * Customer-facing Saudi delivery prices follow the current Storage Station
+ * tariff supplied by the merchant. The carrier integration still uses its
+ * separate APIs for coverage and shipment creation.
  */
 export async function getShippingRateForCity(
   city: string,
   orderTotal = 0,
   freeShippingThreshold = 0,
-  fallbackCost = 30,
+  pieces = 1,
+  cashOnDelivery = false,
 ): Promise<ShippingRateResult> {
-  // Free shipping threshold
-  if (freeShippingThreshold > 0 && orderTotal >= freeShippingThreshold) {
-    return { cost: 0, zoneName: "شحن مجاني", methodTitle: "شحن مجاني", isFree: true };
-  }
-
-  if (!isStorageStationConfigured()) {
-    return { cost: fallbackCost, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
-  }
-
-  try {
-    const zones = await fetchZoneData();
-    const stateCode = CITY_TO_STATE[city.trim()] || "";
-
-    // Find zone whose locations include this state code or a SA wildcard
-    let matched = zones.find((z) =>
-      z.locations.some((loc) =>
-        loc === stateCode ||
-        loc === "SA" ||
-        loc.startsWith(`${stateCode}:`) ||
-        (stateCode && loc === `SA:${stateCode.replace("SA-", "")}`)
-      ),
-    );
-
-    // Fallback: zone named "Saudi Arabia" or contains city name
-    if (!matched) {
-      matched = zones.find((z) =>
-        /saudi|ksa|المملكة|السعودية/i.test(z.name) ||
-        z.name.includes(city)
-      );
-    }
-
-    const availableMethods = (matched?.methods || []).filter((method) => {
-      if (!method.enabled) return false;
-      if (method.methodId !== "free_shipping") return true;
-      if (!method.requires || method.requires === "min_amount") {
-        return !method.minAmount || orderTotal >= method.minAmount;
-      }
-      // Coupon-dependent free shipping cannot be selected without a coupon
-      // context, so let the next configured method provide the rate.
-      return false;
-    });
-
-    if (matched && availableMethods.length > 0) {
-      const method = availableMethods[0];
-      return {
-        cost: method.cost,
-        zoneName: matched.name,
-        methodTitle: method.title,
-        isFree: method.cost === 0,
-      };
-    }
-  } catch (err) {
-    console.error("[StorageStation] getShippingRateForCity error:", err);
-  }
-
-  // Default fallback
-  return { cost: fallbackCost, zoneName: "سعر افتراضي", methodTitle: "توصيل", isFree: false };
+  return calculateStorageStationRate({
+    city,
+    pieces,
+    cashOnDelivery,
+    orderTotal,
+    freeShippingThreshold,
+  });
 }
 
 /** Invalidate the zones cache (call after admin updates shipping settings) */

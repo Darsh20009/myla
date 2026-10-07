@@ -4931,7 +4931,6 @@ const StoreSettingsPanel = () => {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(0);
   const [freeShippingMessageAr, setFreeShippingMessageAr] = useState("");
   const [freeShippingMessageEn, setFreeShippingMessageEn] = useState("");
-  const [fixedShippingCost, setFixedShippingCost] = useState<number>(30);
   const [storeLat, setStoreLat] = useState<number | null>(null);
   const [storeLng, setStoreLng] = useState<number | null>(null);
   const [seoTitle, setSeoTitle] = useState("");
@@ -4970,7 +4969,6 @@ const StoreSettingsPanel = () => {
       setFreeShippingThreshold(Number(settings.freeShippingThreshold ?? 0));
       setFreeShippingMessageAr(settings.freeShippingMessageAr ?? "");
       setFreeShippingMessageEn(settings.freeShippingMessageEn ?? "");
-      setFixedShippingCost(Number((settings as any).fixedShippingCost ?? 30));
       setStoreLat((settings as any).storeLat ?? null);
       setStoreLng((settings as any).storeLng ?? null);
       setSeoTitle(settings.seoTitle ?? "");
@@ -5059,7 +5057,6 @@ const StoreSettingsPanel = () => {
       // shipping rules
       freeShippingEnabled, freeShippingThreshold: Number(freeShippingThreshold) || 0,
       freeShippingMessageAr, freeShippingMessageEn,
-      fixedShippingCost: Number(fixedShippingCost) || 30,
       storeLat: storeLat ?? null, storeLng: storeLng ?? null,
       // SEO
       seoTitle, seoTitleEn, seoDescription, seoDescriptionEn, seoKeywords, ogImage,
@@ -5185,21 +5182,17 @@ const StoreSettingsPanel = () => {
             <Truck className="h-5 w-5 text-primary" />
             إعدادات الشحن
           </CardTitle>
-          <p className="text-xs text-muted-foreground font-bold">سعر التوصيل الثابت وقاعدة الشحن المجاني</p>
+          <p className="text-xs text-muted-foreground font-bold">تعرفة Storage Station حسب المدينة ووزن الطلب</p>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
-          {/* Fixed shipping cost */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-            <Label className="text-xs font-black uppercase text-blue-900">سعر الشحن الثابت (<RiyalSign />)</Label>
-            <Input
-              type="number"
-              value={fixedShippingCost}
-              onChange={e => setFixedShippingCost(Number(e.target.value))}
-              className="font-bold"
-              min={0}
-              placeholder="30"
-            />
-            <p className="text-[10px] text-blue-700 font-bold">يُطبَّق على جميع الطلبات بغض النظر عن المدينة</p>
+            <p className="text-xs font-black text-blue-900">أسعار التوصيل المحلية المعتمدة</p>
+            <p className="text-[11px] text-blue-800 font-bold">
+              14 ر.س للرياض والدمام والخبر وسيهات والقطيف والظهران وتاروت، و18 ر.س لبقية مدن المملكة حتى 15 كجم.
+            </p>
+            <p className="text-[10px] text-blue-700 font-bold">
+              بعد 15 كجم: 1 ر.س لكل كجم إضافي. الدفع عند الاستلام: 5 ر.س لكل طلب. وزن كل قطعة يُحسب 1 كجم تلقائيًا.
+            </p>
           </div>
           {/* Free shipping toggle */}
           <div className="flex items-center justify-between bg-secondary/10 rounded p-3">

@@ -259,7 +259,7 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
 
   const [pickupForm, setPickupForm] = useState({
     pickupName: "", pickupPhone: "", pickupCity: "", pickupAddressLine: "",
-    pickupNationalAddress: "", defaultWeightGrams: "0",
+    pickupNationalAddress: "",
   });
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMessage, setSetupMessage] = useState("");
@@ -272,7 +272,6 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
         pickupName: s.pickupName || "", pickupPhone: s.pickupPhone || "",
         pickupCity: s.pickupCity || "", pickupAddressLine: s.pickupAddressLine || "",
         pickupNationalAddress: s.pickupNationalAddress || "",
-        defaultWeightGrams: String(s.defaultWeightGrams || 0),
       }))
       .catch(() => {});
   }, [isStorageXShip]);
@@ -282,7 +281,7 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
     try {
       const response = await fetch("/api/admin/storage-x-ship/settings", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...pickupForm, defaultWeightGrams: Number(pickupForm.defaultWeightGrams) || 0 }),
+        body: JSON.stringify(pickupForm),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || "تعذر حفظ إعدادات Storage X");
@@ -414,10 +413,9 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
                 onChange={e => setPickupForm(v => ({ ...v, [key]: e.target.value }))}
                 className="h-9 text-xs" />
             ))}
-            <Input type="number" min={1} value={pickupForm.defaultWeightGrams}
-              placeholder="الوزن الافتراضي بالجرام"
-              onChange={e => setPickupForm(v => ({ ...v, defaultWeightGrams: e.target.value }))}
-              className="h-9 text-xs" />
+            <p className="rounded-lg bg-blue-50 px-3 py-2 text-[10px] font-bold text-blue-700">
+              وزن الشحنة يُحسب تلقائيًا: 1 كجم لكل قطعة في الطلب.
+            </p>
             <button type="button" onClick={saveStorageXSettings} disabled={setupLoading}
               className="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50">
               {setupLoading ? "جاري الحفظ..." : "حفظ إعدادات الاستلام"}

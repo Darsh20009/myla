@@ -39,6 +39,12 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Match the vendor's exact docs, base URL, auth method, payload, and secret names before testing or changing carrier readiness. A health check for one API says nothing about the other.
 
+**Customer tariff vs. partner quote:** Treat the merchant-supplied Storage Station rate sheet as the customer-facing tariff, separate from the Storage X partner API quote. The partner quote may differ; do not claim that customer charges and carrier billing reconcile until verified.
+
+**Why:** The API quote returned prices that differed from the supplied rate sheet, so silently using either amount for both customer pricing and carrier cost could create an unexpected margin gap.
+
+**How to apply:** Keep the rate-card charge and API quote distinct, surface discrepancies, and confirm the provider's billing basis before describing automatic shipping as financially reconciled.
+
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 
 **Mongoose $in typing:** When using `$in` with a `string[]` variable in Mongoose 9, cast with `as any[]` to satisfy strict enum types, e.g. `{ status: { $in: arr as any[] } }`.
