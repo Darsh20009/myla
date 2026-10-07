@@ -1247,6 +1247,7 @@ const waBotSettingsSchema = new Schema({
   autoReplyDelaySeconds: { type: Number,  default: 60 },
   customSystemPrompt:    { type: String,  default: "" },
   customCommands:        [waBotCustomCommandSchema],
+  adminPhones:           { type: [String], default: [] },
 }, { timestamps: true });
 
 export const WaBotSettingsModel = mongoose.model("WaBotSettings", waBotSettingsSchema);

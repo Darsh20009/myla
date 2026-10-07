@@ -2789,8 +2789,17 @@ const OrdersManagement = memo(() => {
   });
 
   const { toast } = useToast();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const deepLinkOrderId = typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.search).get("orderId");
+  const [expandedId, setExpandedId] = useState<string | null>(deepLinkOrderId);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (!deepLinkOrderId || !Array.isArray(orders)) return;
+    const target = orders.find((order: any) => String(order.id) === deepLinkOrderId);
+    if (target) setExpandedId(String(target.id));
+  }, [deepLinkOrderId, orders]);
 
   const [driverDialog, setDriverDialog] = useState<{ orderId: string } | null>(null);
   const [driverName, setDriverName] = useState("");
@@ -5982,7 +5991,12 @@ const pageTitles: Record<string, string> = {
 export default function Admin() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "overview";
+    return new URLSearchParams(window.location.search).get("tab") === "orders"
+      ? "orders"
+      : "overview";
+  });
   const [time, setTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const adminRoles = ['admin', 'assistant_manager', 'tech_support', 'accountant', 'legal_consultant'];

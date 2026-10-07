@@ -496,12 +496,12 @@ function ChatsPanel({
           <Dialog open={showAdminNumbers} onOpenChange={setShowAdminNumbers}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                <Phone className="w-3.5 h-3.5" /> أرقام الإدارة
+                <Phone className="w-3.5 h-3.5" /> تنبيهات الطلبات
               </Button>
             </DialogTrigger>
             <DialogContent dir="rtl" className="max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-right">أرقام الإدارة (أوامر واتس‌آب)</DialogTitle>
+                <DialogTitle className="text-right">أرقام الإدارة والموظفين لتنبيهات الطلبات</DialogTitle>
               </DialogHeader>
               <p className="text-xs text-slate-500 mb-3">
                 هذه الأرقام تستطيع إرسال أوامر للنظام: <code>تقرير</code> · <code>كوبون [اسم]</code> · <code>رابط</code>
@@ -819,6 +819,7 @@ export default function AdminWhatsApp() {
   const savePhonesMut = useMutation({
     mutationFn: (phones: string[]) => put("/api/admin/whatsapp/admin-phones", { phones }),
     onSuccess: () => { toast({ title: "تم حفظ أرقام الإدارة ✅" }); qc.invalidateQueries({ queryKey: ["/api/admin/whatsapp/admin-phones"] }); },
+    onError: (e: any) => toast({ title: "تعذر حفظ أرقام التنبيه", description: e.message, variant: "destructive" }),
   });
 
   // ── Render ──

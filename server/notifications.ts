@@ -1,7 +1,8 @@
 import webpush from "web-push";
-import { NotificationModel, PushSubscriptionModel, UserModel } from "./models";
+import { NotificationModel, PushSubscriptionModel, UserModel, WaBotSettingsModel } from "./models";
 import type { WebSocket } from "ws";
 import { sendWhatsAppNotification } from "./whatsapp";
+import { ROUTES } from "./site-config";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BMuRKYfA848bkr9LPDIi0BiXwbgcisqOp2NPzDDDsbc2aVpx1FtvUWxQj8YsP7stW5sdIRgh45NWvLNzu7gqRnE";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "IoOFkWsX7Ga7_EQjA_cA0cxE7ChrFHENkNKpE6eyR10";
@@ -155,17 +156,32 @@ export async function fireNotifyAdmins(
 
 /** Send a minimal new-order alert to active administrator phone numbers. */
 export async function sendWhatsAppOrderAlert(
-  order: { id?: string; _id?: unknown; total?: unknown; paymentMethod?: string },
+  order: {
+    id?: string;
+    _id?: unknown;
+    total?: unknown;
+    paymentMethod?: string;
+    shippingStatus?: string;
+    shippingTrackingNumber?: string;
+    storageXShipTrackingNumber?: string;
+    trackingNumber?: string;
+  },
   paid = false,
 ) {
-  const admins = await UserModel.find({
-    role: "admin",
-    isActive: true,
-  }).select("phone").lean();
+  const [settings, admins] = await Promise.all([
+    WaBotSettingsModel.findOne().select("adminPhones").lean(),
+    UserModel.find({
+      role: { $in: ["admin", "assistant_manager", "tech_support", "accountant", "legal_consultant"] },
+      isActive: true,
+    }).select("phone").lean(),
+  ]);
 
   const recipients = new Set<string>();
-  for (const admin of admins) {
-    const phone = String(admin.phone || "").trim();
+  const configuredPhones: string[] = Array.isArray((settings as any)?.adminPhones)
+    ? (settings as any).adminPhones
+    : [];
+  for (const rawPhone of [...configuredPhones, ...admins.map((admin: any) => admin.phone || "")]) {
+    const phone = String(rawPhone || "").trim();
     if (phone) recipients.add(phone);
   }
 
@@ -174,16 +190,32 @@ export async function sendWhatsAppOrderAlert(
     return;
   }
 
-  const orderId = String(order.id || order._id || "").slice(-8).toUpperCase() || "—";
+  const fullOrderId = String(order.id || order._id || "");
+  const orderId = fullOrderId.slice(-8).toUpperCase() || "—";
   const total = Number(order.total);
   const amount = Number.isFinite(total) ? `${total.toFixed(2)} ر.س` : "—";
   const title = paid ? "💳 تم تأكيد طلب جديد" : "🛍️ طلب جديد";
+  let orderUrl = "";
+  try {
+    const parsedUrl = new URL(ROUTES.ADMIN);
+    parsedUrl.searchParams.set("tab", "orders");
+    if (fullOrderId) parsedUrl.searchParams.set("orderId", fullOrderId);
+    orderUrl = parsedUrl.toString();
+  } catch {
+    console.error("[WhatsApp Orders] Public site URL is invalid; order link omitted");
+  }
+  const trackingNumber = String(
+    order.storageXShipTrackingNumber || order.shippingTrackingNumber || order.trackingNumber || "",
+  ).trim();
   const message = [
     `*${title}*`,
     `رقم الطلب: #${orderId}`,
     `الإجمالي: ${amount}`,
     `طريقة الدفع: ${String(order.paymentMethod || "—").slice(0, 30)}`,
-    "راجع لوحة الإدارة للتفاصيل.",
+    trackingNumber ? `رقم التتبع: ${trackingNumber}` : "يرجى متابعة تجهيز الشحنة ورقم التتبع من صفحة الطلب.",
+    orderUrl
+      ? `افتح الطلب في لوحة الإدارة (سجّل الدخول إذا طُلب منك):\n${orderUrl}`
+      : "افتح لوحة الإدارة وابحث عن رقم الطلب أعلاه.",
   ].join("\n");
 
   const results = await Promise.allSettled(
