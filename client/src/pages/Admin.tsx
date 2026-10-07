@@ -1986,7 +1986,7 @@ const OrdersTable = memo(() => {
                           </p>
                         ) : (
                           <div className="grid grid-cols-3 gap-2">
-                            {(["new", "processing", "shipped", "completed", "cancelled"] as const).map(s => (
+                            {(["new", "processing", "shipped", "completed"] as const).map(s => (
                               <Button 
                                 key={s} 
                                 variant={order.status === s ? 'default' : 'outline'}
@@ -2805,14 +2805,104 @@ const OrdersManagement = memo(() => {
   const [driverName, setDriverName] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
 
+  const activeCarrierNames = (order: any): string[] => {
+    const terminalStatuses = new Set([
+      "cancelled", "canceled", "failed", "returned", "completed", "delivered",
+      "order_cancelled", "order_canceled", "order_failed", "order_completed", "order_returned",
+    ]);
+    const isActive = (status: unknown) => {
+      const normalized = String(status || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      return !terminalStatuses.has(normalized);
+    };
+    const active: string[] = [];
+    if (order?.storageXShipTrackingNumber && isActive(order.storageXShipStatus)) active.push("Storage X");
+    if ((order?.shipoxTrackingNumber || order?.shipoxOrderId) && isActive(order.shipoxStatus)) active.push("Shipox");
+    if (order?.mapitOrderNumber && isActive(order.mapitStatus)) active.push("Mapit");
+    return active;
+  };
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, deliveryDriverName, deliveryDriverPhone }: { id: string; status: string; deliveryDriverName?: string; deliveryDriverPhone?: string }) => {
-      await apiRequest("PATCH", `/api/orders/${id}/status`, { status, deliveryDriverName, deliveryDriverPhone });
+      const response = await apiRequest("PATCH", `/api/orders/${id}/status`, { status, deliveryDriverName, deliveryDriverPhone });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "تعذر تحديث حالة الطلب");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       toast({ title: "تم تحديث حالة الطلب بنجاح" });
-    }
+    },
+    onError: (error: any) => toast({
+      title: "تعذر تحديث الطلب",
+      description: error.message,
+      variant: "destructive",
+    }),
+  });
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (order: any) => {
+      const orderId = String(order.id);
+      const activeCarriers = activeCarrierNames(order);
+      const ensureSuccess = async (response: Response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.message || "تعذر إلغاء الشحنة");
+        }
+        return response.json().catch(() => ({}));
+      };
+
+      for (const carrier of activeCarriers) {
+        if (carrier === "Storage X") {
+          await ensureSuccess(await apiRequest(
+            "POST",
+            `/api/admin/storage-x-ship/cancel/${orderId}`,
+            { reason: "إلغاء الطلب من لوحة الإدارة" },
+          ));
+        } else if (carrier === "Shipox") {
+          await ensureSuccess(await apiRequest(
+            "PUT",
+            `/api/admin/shipox/cancel/${orderId}`,
+            { reason: "إلغاء الطلب من لوحة الإدارة" },
+          ));
+        } else if (carrier === "Mapit") {
+          await ensureSuccess(await apiRequest("DELETE", `/api/admin/mapit/delete/${orderId}`));
+        }
+      }
+
+      let cancellation: any = {};
+      if (order.status !== "cancelled") {
+        cancellation = await ensureSuccess(await apiRequest(
+          "POST",
+          `/api/orders/${orderId}/cancel`,
+          { reason: "إلغاء من لوحة الإدارة" },
+        ));
+      }
+      return {
+        alreadyCancelled: order.status === "cancelled",
+        refundAmount: Number(cancellation.refundAmount || 0),
+        refundError: cancellation.refundError ? String(cancellation.refundError) : null,
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({
+        title: result.alreadyCancelled ? "تم طلب إلغاء الشحنة" : "تم إلغاء الطلب",
+        description: result.alreadyCancelled
+          ? "الطلب كان ملغيًا بالفعل؛ لم يتغير المبلغ المدفوع."
+          : result.refundError
+            ? result.refundError
+            : result.refundAmount > 0
+            ? `تم إرجاع ${result.refundAmount.toFixed(2)} ر.س إلى محفظة العميل حسب سياسة الإلغاء.`
+            : "تم تطبيق سياسة إلغاء الطلب والمخزون.",
+        variant: result.refundError ? "destructive" : "default",
+      });
+    },
+    onError: (error: any) => toast({
+      title: "لم يكتمل الإلغاء",
+      description: error.message,
+      variant: "destructive",
+    }),
   });
 
   const handleStatusChange = (orderId: string, status: string) => {
@@ -2823,6 +2913,18 @@ const OrdersManagement = memo(() => {
     } else {
       updateStatusMutation.mutate({ id: orderId, status });
     }
+  };
+
+  const handleCancelOrder = (order: any) => {
+    const activeCarriers = activeCarrierNames(order);
+    if (order.status === "cancelled" && activeCarriers.length === 0) return;
+
+    const confirmation = order.status === "cancelled"
+      ? `الطلب مسجل كملغي بالفعل. سيتم طلب إلغاء الشحنة لدى ${activeCarriers.join(" و ")} فقط؛ قد تترتب رسوم، ولن يتغير المبلغ المدفوع. هل تريد المتابعة؟`
+      : activeCarriers.length > 0
+        ? `سيتم طلب إلغاء الشحنة لدى ${activeCarriers.join(" و ")} أولًا، ثم إلغاء الطلب وتطبيق سياسة الاسترداد والمخزون. قد تترتب رسوم من شركة الشحن. هل تريد المتابعة؟`
+        : "سيتم إلغاء الطلب وتطبيق سياسة الاسترداد والمخزون. هل تريد المتابعة؟";
+    if (window.confirm(confirmation)) cancelOrderMutation.mutate(order);
   };
 
   const confirmDelivery = () => {
@@ -3068,22 +3170,29 @@ const OrdersManagement = memo(() => {
                                   جاهز للاستلام من الفرع
                                 </DropdownMenuItem>
                               )}
-                              {(["shipped", "completed", "cancelled"] as const).map((status) => (
+                              {(["shipped", "completed"] as const).map((status) => (
                                 <DropdownMenuItem
                                   key={status}
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, status); }}
                                   className={`min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold
                                     ${status === "completed"
                                       ? "text-emerald-800 focus:bg-emerald-50 focus:text-emerald-900 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-900"
-                                      : status === "cancelled"
-                                        ? "text-rose-800 focus:bg-rose-50 focus:text-rose-900 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-900"
-                                        : "text-cyan-800 focus:bg-cyan-50 focus:text-cyan-900 data-[highlighted]:bg-cyan-50 data-[highlighted]:text-cyan-900"
+                                      : "text-cyan-800 focus:bg-cyan-50 focus:text-cyan-900 data-[highlighted]:bg-cyan-50 data-[highlighted]:text-cyan-900"
                                     }`}
                                 >
                                   <span className={`h-2 w-2 shrink-0 rounded-full ${statusOptionDotColors[status]}`} />
                                   {statusLabels[status] || status}
                                 </DropdownMenuItem>
                               ))}
+                              {order.status !== "completed" && order.status !== "returned" &&
+                                (order.status !== "cancelled" || activeCarrierNames(order).length > 0) && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => { e.stopPropagation(); handleCancelOrder(order); }}
+                                    className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-rose-800 focus:bg-rose-50 focus:text-rose-900 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-900"
+                                  >
+                                    {order.status === "cancelled" ? "إلغاء الشحنة المرتبطة" : "إلغاء الطلب والشحنة"}
+                                  </DropdownMenuItem>
+                                )}
                             </>
                           )}
                         </DropdownMenuContent>

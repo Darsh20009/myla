@@ -274,6 +274,8 @@ const walletTransactionSchema = new Schema<WalletTransaction>(
     amount: { type: Number, required: true },
     type: { type: String, enum: ["deposit", "withdrawal", "payment", "refund"], required: true },
     description: { type: String, required: true },
+    reference: String,
+    status: { type: String, default: "completed" },
   },
   { timestamps: true }
 );

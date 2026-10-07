@@ -90,7 +90,12 @@ const upload = multer({
 
 import { registerEmployeeAssistant } from "./employee-assistant";
 import { CartSessionModel, CancellationPolicyModel } from "./models";
-import { cancelOrder, canCustomerCancel, getPolicy as getCancellationPolicy } from "./cancellation";
+import {
+  cancelOrder,
+  canCustomerCancel,
+  getActiveCarrierShipmentProviders,
+  getPolicy as getCancellationPolicy,
+} from "./cancellation";
 import { startAbandonedCartWorker, notifyCart, markCartConverted } from "./abandoned-carts";
 import { startPickupExpiryWorker } from "./pickup-expiry";
 import { startPendingPaymentExpiryWorker } from "./pending-payment-expiry";
@@ -2284,6 +2289,11 @@ ${allUrls.map(u => `  <url>
       if (!status) {
         return res.status(400).json({ message: "حالة الطلب غير معروفة أو غير مدعومة" });
       }
+      if (status === "cancelled") {
+        return res.status(409).json({
+          message: "استخدم إجراء «إلغاء الطلب» حتى تُطبّق سياسة الاسترداد والمخزون وتُراجع الشحنة المرتبطة.",
+        });
+      }
       const existingOrder: any = await storage.getOrder(req.params.id);
       if (!existingOrder) return res.status(404).json({ message: "الطلب غير موجود" });
       const currentStatus = normalizeOrderStatus(existingOrder.status);
@@ -2463,24 +2473,14 @@ ${allUrls.map(u => `  <url>
       } else {
         // reject → cancel order and mark payment failed
         await storage.updateOrderPaymentStatus(req.params.id, "failed");
-        updatedOrder = await storage.updateOrderStatus(req.params.id, "cancelled");
-        try {
-          await fireNotify(
-            order.userId,
-            "❌ تعذّر تأكيد الدفع",
-            `لم يتم التحقق من إيصال التحويل البنكي لطلبك #${order.id.slice(-6).toUpperCase()}. يرجى التواصل معنا.`,
-            { type: "error", link: "/orders", icon: "❌", webPush: true }
-          );
-          const customer = await storage.getUser(order.userId);
-          if (customer?.email) {
-            await sendOrderStatusEmail({
-              to: customer.email,
-              customerName: customer.name || "عزيزي العميل",
-              orderRef: order.id.slice(-8).toUpperCase(),
-              status: "cancelled",
-            });
-          }
-        } catch {}
+        const cancellation = await cancelOrder({
+          orderId: req.params.id,
+          reason: "لم يتم التحقق من الدفع",
+          initiatedBy: "admin",
+          actorName: user.name,
+          bypassPolicy: true,
+        });
+        updatedOrder = cancellation.order;
       }
 
       res.json(updatedOrder);
@@ -8054,6 +8054,13 @@ ${allUrls.map(u => `  <url>
         return res.status(403).json({ allowed: false });
       }
       const result = await canCustomerCancel(order);
+      const activeCarrierShipments = getActiveCarrierShipmentProviders(order);
+      if (result.allowed && activeCarrierShipments.length > 0) {
+        return res.json({
+          allowed: false,
+          reason: `للشحنة رقم تتبع لدى ${activeCarrierShipments.join(" و ")}. تواصل مع خدمة العملاء لإلغاء الشحنة بأمان.`,
+        });
+      }
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ allowed: false, reason: err?.message });
@@ -8070,6 +8077,15 @@ ${allUrls.map(u => `  <url>
       const isOwner = String(order.userId) === String(user.id);
       const isStaff = ["admin", "assistant_manager", "employee", "support"].includes(user.role);
       if (!isOwner && !isStaff) return res.sendStatus(403);
+
+      const activeCarrierShipments = getActiveCarrierShipmentProviders(order);
+      if (activeCarrierShipments.length > 0) {
+        return res.status(409).json({
+          code: "active_carrier_shipment",
+          providers: activeCarrierShipments,
+          message: `ألغِ الشحنة لدى ${activeCarrierShipments.join(" و ")} أولًا، ثم أعد إلغاء الطلب. قد تترتب رسوم من شركة الشحن.`,
+        });
+      }
 
       const result = await cancelOrder({
         orderId: req.params.id,
