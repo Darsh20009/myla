@@ -263,6 +263,15 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
   });
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMessage, setSetupMessage] = useState("");
+  const [trackingLookup, setTrackingLookup] = useState("");
+  const [trackingLookupLoading, setTrackingLookupLoading] = useState(false);
+  const [trackingLookupMessage, setTrackingLookupMessage] = useState("");
+  const [trackingLookupResult, setTrackingLookupResult] = useState<{
+    trackingNumber: string;
+    status: string;
+    custody?: string | null;
+    updatedAt?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!isStorageXShip) return;
@@ -300,6 +309,33 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
       setConnectionState("connected"); setConnectionMessage(result.message || "الاتصال يعمل");
     } catch (error: any) {
       setConnectionState("failed"); setConnectionMessage(error.message || "تعذر الاتصال بـ Storage X Ship");
+    }
+  };
+
+  const lookupStorageXShipment = async () => {
+    const trackingNumber = trackingLookup.trim();
+    if (!trackingNumber) {
+      setTrackingLookupResult(null);
+      setTrackingLookupMessage("أدخل رقم التتبع أولاً");
+      return;
+    }
+
+    setTrackingLookupLoading(true);
+    setTrackingLookupMessage("");
+    setTrackingLookupResult(null);
+    try {
+      const response = await fetch("/api/admin/storage-x-ship/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackingNumber }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "تعذر البحث عن الشحنة");
+      setTrackingLookupResult(result);
+    } catch (error: any) {
+      setTrackingLookupMessage(error?.message || "تعذر البحث عن الشحنة");
+    } finally {
+      setTrackingLookupLoading(false);
     }
   };
 
@@ -426,6 +462,49 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
               {setupLoading ? "جاري الحفظ..." : "حفظ إعدادات الاستلام"}
             </button>
             {setupMessage && <p className="text-[10px] font-bold text-slate-500">{setupMessage}</p>}
+          </div>
+        )}
+        {isStorageXShip && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+            <p className="text-[10px] font-black text-slate-700">البحث عن شحنة برقم التتبع</p>
+            <p className="text-[10px] font-bold text-slate-500">
+              يعرض حالة الشحنة والحيازة فقط، ولا يغيّرها أو يلغيها.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={trackingLookup}
+                placeholder="رقم التتبع"
+                dir="ltr"
+                onChange={e => setTrackingLookup(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void lookupStorageXShipment();
+                  }
+                }}
+                className="h-9 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => void lookupStorageXShipment()}
+                disabled={trackingLookupLoading || !trackingLookup.trim()}
+                className="shrink-0 rounded-lg bg-blue-700 px-3 py-2 text-[11px] font-black text-white hover:bg-blue-800 disabled:opacity-50"
+              >
+                {trackingLookupLoading ? "جاري البحث..." : "بحث"}
+              </button>
+            </div>
+            {trackingLookupMessage && (
+              <p role="alert" className="text-[10px] font-bold text-red-600">{trackingLookupMessage}</p>
+            )}
+            {trackingLookupResult && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-[11px]">
+                <p className="font-mono font-black text-blue-800" dir="ltr">{trackingLookupResult.trackingNumber}</p>
+                <p className="mt-1 font-bold text-slate-700">الحالة: {trackingLookupResult.status || "غير متاحة"}</p>
+                {trackingLookupResult.custody && (
+                  <p className="mt-1 font-bold text-slate-600">الحيازة: {trackingLookupResult.custody}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

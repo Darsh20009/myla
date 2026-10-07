@@ -6040,6 +6040,35 @@ ${allUrls.map(u => `  <url>
     }
   });
 
+  app.post("/api/admin/storage-x-ship/lookup", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    const trackingNumber = String(req.body?.trackingNumber || "").trim();
+    if (!trackingNumber || trackingNumber.length > 120 || /[\u0000-\u001f]/.test(trackingNumber)) {
+      return res.status(400).json({ message: "أدخل رقم تتبع صحيحًا" });
+    }
+    if (!isStorageXShipConfigured()) {
+      return res.status(503).json({ message: "مفتاح Storage X Ship غير مضاف" });
+    }
+    try {
+      const remote: any = await trackStorageXShipment(trackingNumber);
+      const shipment = remote?.shipment || remote?.data || remote;
+      res.json({
+        trackingNumber: String(shipment?.trackingNumber || shipment?.tracking_number || trackingNumber),
+        status: String(shipment?.status || ""),
+        custody: shipment?.custody ? String(shipment.custody) : null,
+        updatedAt: shipment?.updatedAt || shipment?.updated_at || null,
+      });
+    } catch (error: any) {
+      const notFound = error instanceof StorageXShipApiError && error.status === 404;
+      res.status(notFound ? 404 : 502).json({
+        message: notFound
+          ? "لم يتم العثور على الشحنة، أو لا يتيح حساب API الوصول إليها"
+          : safeStorageXError(error),
+      });
+    }
+  });
+
   app.get("/api/store/settings", async (_req, res) => {
     try {
       const settings = await storage.getStoreSettings();
