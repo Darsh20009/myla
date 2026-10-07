@@ -4,7 +4,7 @@
 - [Order item variant fields & cart line identity](order-item-variant-fields.md) — order-item fields need BOTH Zod (shared/schema) + Mongoose subdoc or they're stripped; cart line key = productId+variantSku+length, keep consistent across add/remove/update/merge/render.
 - [RF Perfume rebrand](rf-rebrand.md) — Myla → RF Perfume / رفيف العود brand values, Arabic word-boundary replace gotcha, and what was left out (artwork, content, DB).
 - [TypeScript config gotchas](ts-config-gotchas.md) — tsconfig had no target (defaulted to ES3), breaking iterators, regex /u, top-level await; Mongoose Schema<T> body needs whole-object `as any` cast (not per-field value cast) to suppress TS2353; groqChatFor arg order is (audience, messages, maxTokens).
-- [Mapit integration](mapit-integration.md) — Coordinates are mandatory; selected carrier and idempotency matter; expose Shipox only after authenticated health-check, not secret presence alone.
+- [Mapit and carrier APIs](mapit-integration.md) — Match the exact carrier API: Storage X Ship uses a bearer key; Shipox uses a separate username/password endpoint.
 - [Production storage and email](production-storage-email.md) — Render needs persistent media storage; diagnostics must validate the SMTP provider actually used for sending.
 - [Vite cold-start preview](vite-cold-start-preview.md) — A first-load React hook error disappeared after Vite finished optimizing dependencies; verify a fresh load before changing app code.
 - [Admin bootstrap credentials](admin-bootstrap-credentials.md) — Preserve an existing admin account when the bootstrap secret is absent; require it for first setup or explicit rotation.

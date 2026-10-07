@@ -33,6 +33,12 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Keep the customer-facing availability endpoint and server-side order guard tied to authenticated health. Health checks must not create shipments.
 
+**Storage X vs. Shipox:** The Storage X Ship Partner API at `shipping.3rdmile.net/api/public/partner/v1` uses a bearer API key. The Shipox customer API at `3rdmile.my.shipox.com/api/v1/customer/authenticate` uses username/password. These are separate integrations despite both using 3rd Mile branding.
+
+**Why:** Testing Storage X credentials against Shipox's customer-auth endpoint can produce a misleading 400 and send diagnosis in the wrong direction.
+
+**How to apply:** Match the vendor's exact docs, base URL, auth method, payload, and secret names before testing or changing carrier readiness. A health check for one API says nothing about the other.
+
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 
 **Mongoose $in typing:** When using `$in` with a `string[]` variable in Mongoose 9, cast with `as any[]` to satisfy strict enum types, e.g. `{ status: { $in: arr as any[] } }`.
