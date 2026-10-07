@@ -29,6 +29,28 @@ import { RiyalSign } from "@/components/RiyalSign";
 
 const LayoutContext = createContext(false);
 
+function HeaderBrandLogo({ mobile = false }: { mobile?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden ${mobile ? "h-16 w-40" : "h-14 w-36"}`}
+      aria-label="Myla"
+    >
+      {failed ? (
+        <span className="font-serif text-2xl font-semibold tracking-wide text-[#E8D5B7]">Myla</span>
+      ) : (
+        <img
+          src="/myla-logo-header.png"
+          alt="Myla"
+          className="absolute inset-0 h-full w-full object-cover object-center drop-shadow-lg"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </span>
+  );
+}
+
 export function Layout({ children, hideFooter, transparentNav }: { children: ReactNode; hideFooter?: boolean; transparentNav?: boolean }) {
   const isNested = useContext(LayoutContext);
   const { user, logout } = useAuth();
@@ -168,7 +190,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
             href="/"
             className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center hover:opacity-80 active:scale-95 transition-all"
           >
-            <img src="/myla-logo-header.png" alt="Myla" className="h-20 w-auto object-contain drop-shadow-lg" />
+            <HeaderBrandLogo mobile />
           </Link>
 
           <div className="flex items-center gap-2 md:gap-4">
@@ -380,7 +402,7 @@ export function Layout({ children, hideFooter, transparentNav }: { children: Rea
             </Sheet>
 
             <Link href="/" className="hidden md:flex items-center py-1 hover:opacity-80 transition-opacity active:scale-95 transition-transform">
-              <img src="/myla-logo-header.png" alt="Myla" className="h-12 md:h-14 w-auto object-contain drop-shadow-lg" />
+              <HeaderBrandLogo />
             </Link>
           </div>
 

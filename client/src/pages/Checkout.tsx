@@ -29,6 +29,7 @@ import {
   calculateStorageStationRate,
   getShippingPieceCount,
 } from "@shared/storage-station-rates";
+import { optimizeCloudinaryImageUrl } from "@/lib/image-utils";
 
 const SAUDI_CITIES = [
   "الرياض","جدة","مكة المكرمة","المدينة المنورة","الدمام","الخبر","الطائف","تبوك",
@@ -248,10 +249,12 @@ export default function Checkout() {
   const loyaltyDiscount = useLoyaltyPoints ? Math.min(availableLoyaltyPoints / 100, 50) : 0;
 
   const enabledMethods = storeSettings?.paymentMethods || {};
-  const walletBalance = Number(walletData?.balance ?? user?.walletBalance ?? 0);
+  const walletBalanceRaw = Number(walletData?.balance ?? user?.walletBalance ?? 0);
+  const walletBalance = Number.isFinite(walletBalanceRaw) ? Math.max(0, walletBalanceRaw) : 0;
   const canPayWithCard = enabledMethods.tap === true && paymobStatus?.configured === true;
   const canPayByCod = enabledMethods.cod === true;
-  const canPayWithWallet = enabledMethods.wallet !== false && !!user && walletBalance > 0;
+  const walletPaymentEnabled = enabledMethods.wallet !== false;
+  const canPayWithWallet = walletPaymentEnabled && !!user && walletBalance > 0;
   const availablePaymentMethods = useMemo<CheckoutPaymentMethod[]>(() => [
     ...(canPayWithCard ? ["tap" as const] : []),
     ...(canPayByCod ? ["cod" as const] : []),
@@ -918,7 +921,20 @@ export default function Checkout() {
             {items.map((item) => (
               <div key={item.variantSku} className="flex gap-3 items-center">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                  <img
+                    src={optimizeCloudinaryImageUrl(item.image, 360)}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    onError={(event) => {
+                      const image = event.currentTarget;
+                      if (!image.dataset.fallback) {
+                        image.dataset.fallback = "1";
+                        image.src = "/myla-logo.png";
+                      } else {
+                        image.style.display = "none";
+                      }
+                    }}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-xs truncate">{item.title}</p>
@@ -1439,59 +1455,6 @@ export default function Checkout() {
               />
             </div>
 
-            {/* Coupon code */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100">
-              <h2 className="font-black text-sm mb-3">كود الخصم</h2>
-              {appliedCoupon && discountAmount + cashbackAmount > 0 ? (
-                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-black text-sm text-emerald-800">{appliedCoupon.code}</p>
-                    <p className="text-xs text-emerald-700">
-                      {discountAmount > 0
-                        ? `تم خصم ${discountAmount.toFixed(2)} ر.س`
-                        : `كاش باك ${cashbackAmount.toFixed(2)} ر.س`}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { clearCoupon(); setCouponInput(""); }}
-                    className="text-gray-500 hover:text-red-600"
-                  >
-                    إزالة
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input
-                    value={couponInput}
-                    onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
-                    placeholder="أدخل كود الخصم"
-                    aria-label="كود الخصم"
-                    className="h-11 rounded-xl"
-                    dir="ltr"
-                    data-testid="input-coupon-code"
-                  />
-                  <Button
-                    type="button"
-                    onClick={applyCoupon}
-                    disabled={couponLoading || !couponInput.trim()}
-                    className="h-11 shrink-0 rounded-xl px-5"
-                    data-testid="button-apply-coupon"
-                  >
-                    {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "تطبيق"}
-                  </Button>
-                </div>
-              )}
-              {appliedCoupon && discountAmount + cashbackAmount === 0 && (
-                <p className="mt-2 text-xs text-amber-700" role="status">
-                  تغيّر إجمالي السلة؛ أعد تطبيق الكود للتحقق منه.
-                </p>
-              )}
-            </div>
-
             {/* Payment method */}
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100">
               <h2 className="font-black text-sm mb-4">
@@ -1500,6 +1463,58 @@ export default function Checkout() {
                   طريقة الدفع
                 </span>
               </h2>
+
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+                <h3 className="mb-2 text-xs font-black text-gray-800">كود ترويجي أو خصم</h3>
+                {appliedCoupon && discountAmount + cashbackAmount > 0 ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black text-emerald-800">{appliedCoupon.code}</p>
+                      <p className="text-xs text-emerald-700">
+                        {discountAmount > 0
+                          ? `تم خصم ${discountAmount.toFixed(2)} ر.س`
+                          : `كاش باك ${cashbackAmount.toFixed(2)} ر.س`}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { clearCoupon(); setCouponInput(""); }}
+                      className="text-gray-500 hover:text-red-600"
+                    >
+                      إزالة
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponInput}
+                      onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
+                      placeholder="أدخل الكود هنا"
+                      aria-label="كود ترويجي أو خصم"
+                      className="h-11 rounded-xl bg-white"
+                      dir="ltr"
+                      data-testid="input-coupon-code"
+                    />
+                    <Button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={couponLoading || !couponInput.trim()}
+                      className="h-11 shrink-0 rounded-xl px-5"
+                      data-testid="button-apply-coupon"
+                    >
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "تطبيق"}
+                    </Button>
+                  </div>
+                )}
+                {appliedCoupon && discountAmount + cashbackAmount === 0 && (
+                  <p className="mt-2 text-xs text-amber-700" role="status">
+                    تغيّر إجمالي السلة؛ أعد تطبيق الكود للتحقق منه.
+                  </p>
+                )}
+              </div>
 
               <RadioGroup
                 value={paymentMethod}
@@ -1524,21 +1539,46 @@ export default function Checkout() {
                 )}
 
                 {/* ── Wallet ── */}
-                {canPayWithWallet && (
-                  <label htmlFor="pay-wallet" data-testid="option-payment-wallet" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "wallet" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
-                    <RadioGroupItem value="wallet" id="pay-wallet" className="shrink-0" />
+                <label
+                  htmlFor="pay-wallet"
+                  data-testid="option-payment-wallet"
+                  className={`flex items-center gap-3 p-3.5 border-2 rounded-xl transition-all ${
+                    !canPayWithWallet ? "cursor-not-allowed border-gray-200 bg-gray-50 opacity-75" :
+                    paymentMethod === "wallet" ? "cursor-pointer border-primary bg-primary/5" :
+                    "cursor-pointer border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                    <RadioGroupItem value="wallet" id="pay-wallet" className="shrink-0" disabled={!canPayWithWallet} />
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${paymentMethod === "wallet" ? "bg-primary/10" : "bg-gray-100"}`}>
                       <Wallet className={`h-5 w-5 ${paymentMethod === "wallet" ? "text-primary" : "text-gray-500"}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-sm">رصيد المحفظة</p>
                       <p className="text-[11px] text-gray-500 mt-0.5">
-                        رصيدك: <span className="font-black text-gray-700">{walletBalance.toFixed(2)} <RiyalSign /></span>
+                        {user ? (
+                          <>رصيدك: <span className="font-black text-gray-700">{walletBalance.toFixed(2)} <RiyalSign /></span></>
+                        ) : (
+                          <span>سجّل الدخول لعرض رصيدك واستخدامه</span>
+                        )}
                         {isFetchingWallet && <span className="mr-2 text-gray-400">جارٍ التحديث</span>}
                       </p>
+                      {user && (
+                        <p className={`mt-1 text-[10px] font-bold ${
+                          !walletPaymentEnabled || walletBalance <= 0 || walletBalance < finalTotal
+                            ? "text-amber-700"
+                            : "text-emerald-700"
+                        }`}>
+                          {!walletPaymentEnabled
+                            ? "الدفع بالمحفظة غير مفعّل حاليًا"
+                            : walletBalance <= 0
+                              ? "لا يوجد رصيد متاح؛ أضف رصيدًا من لوحة الإدارة"
+                              : walletBalance < finalTotal
+                                ? `الرصيد أقل من إجمالي الطلب (${finalTotal.toFixed(2)} ر.س)`
+                                : "الرصيد يكفي لدفع الطلب"}
+                        </p>
+                      )}
                     </div>
-                  </label>
-                )}
+                </label>
 
                 {canPayWithCard ? (
                   <label htmlFor="pay-card" data-testid="option-payment-card" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "tap" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
@@ -1613,7 +1653,20 @@ export default function Checkout() {
                 {items.map((item) => (
                   <div key={item.variantSku} className="flex gap-3 items-center">
                     <div className="w-13 h-13 w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
-                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                      <img
+                        src={optimizeCloudinaryImageUrl(item.image, 360)}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        onError={(event) => {
+                          const image = event.currentTarget;
+                          if (!image.dataset.fallback) {
+                            image.dataset.fallback = "1";
+                            image.src = "/myla-logo.png";
+                          } else {
+                            image.style.display = "none";
+                          }
+                        }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-xs leading-tight truncate">{item.title}</p>

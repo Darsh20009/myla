@@ -163,6 +163,15 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
             alt="Myla"
             className="myla-splash-logo"
             draggable={false}
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (!image.dataset.fallback) {
+                image.dataset.fallback = "1";
+                image.src = "/myla-logo.png";
+              } else {
+                image.style.display = "none";
+              }
+            }}
           />
 
           <div ref={ruleRef} className="myla-splash-rule">

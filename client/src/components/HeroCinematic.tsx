@@ -406,7 +406,22 @@ export function HeroCinematic({
 
         {/* Content */}
         <div className="myla-content">
-          <img ref={wordRef} src="/myla-logo-header.png" alt="Myla" className="myla-wordmark" draggable={false} />
+          <img
+            ref={wordRef}
+            src="/myla-logo-header.png"
+            alt="Myla"
+            className="myla-wordmark"
+            draggable={false}
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (!image.dataset.fallback) {
+                image.dataset.fallback = "1";
+                image.src = "/myla-logo.png";
+              } else {
+                image.style.display = "none";
+              }
+            }}
+          />
           <div ref={ctaRef}  className="myla-ctas">
             <button className="myla-btn-primary" onClick={onShop}>
               ابدأ التسوق · Shop Now

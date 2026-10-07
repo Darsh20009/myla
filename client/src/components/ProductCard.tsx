@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { flyToCart } from "@/lib/flyToCart";
 import { RiyalSign } from "@/components/RiyalSign";
+import { optimizeCloudinaryImageUrl } from "@/lib/image-utils";
 
 const CATEGORY_BADGE_MAP: Record<string, { labelAr: string; labelEn: string; cls: string }> = {
   men:         { labelAr: "رجالي",    labelEn: "Men",     cls: "bg-[#6B3F2A] text-white" },
@@ -100,7 +101,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="relative aspect-[4/5] overflow-hidden bg-[#0E0A07]">
             {images[0] ? (
               <img
-                src={images[0]}
+                src={optimizeCloudinaryImageUrl(images[0], 720)}
                 alt={product.name}
                 loading="lazy"
                 decoding="async"
@@ -123,7 +124,13 @@ export function ProductCard({ product }: ProductCardProps) {
                 alt="Myla"
                 className="w-2/3 max-w-[160px] object-contain opacity-60"
                 draggable={false}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                  const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.style.display = "block";
+                }}
               />
+              <span className="hidden font-serif text-xl text-[#C9A882]">Myla</span>
             </div>
 
             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
