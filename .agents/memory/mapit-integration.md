@@ -45,6 +45,12 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Keep the rate-card charge and API quote distinct, surface discrepancies, and confirm the provider's billing basis before describing automatic shipping as financially reconciled.
 
+**User decision while pricing is pending:** Keep Storage X available at checkout using the merchant's rate-card prices, even while the partner quote differs. The store may absorb a difference if the quote reflects the eventual bill.
+
+**Why:** The user chose to keep the shipping option enabled after being shown the possible price gap.
+
+**How to apply:** Do not disable Storage X or replace the customer tariff with the API quote without a new instruction; keep the discrepancy visible until the provider confirms billing.
+
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 
 **Mongoose $in typing:** When using `$in` with a `string[]` variable in Mongoose 9, cast with `as any[]` to satisfy strict enum types, e.g. `{ status: { $in: arr as any[] } }`.
