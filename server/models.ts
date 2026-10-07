@@ -803,6 +803,7 @@ const storeSettingsSchema = new Schema(
     mapitWarehouseId:    { type: String, default: "" },
     mapitPickupPointId:  { type: String, default: "" },
     // ── Storage X Ship sender configuration (admin-only API) ──
+    storageXMerchantRef: { type: String, default: "" },
     storageXPickupName: { type: String, default: "" },
     storageXPickupPhone: { type: String, default: "" },
     storageXPickupCity: { type: String, default: "" },

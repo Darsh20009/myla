@@ -38,6 +38,7 @@ export interface StorageXRecipient {
 export interface StorageXQuoteInput {
   recipientCity: string;
   pickupCity?: string;
+  merchantRef?: string;
   weightGrams: number;
   codAmount?: number;
   codMethod?: "cash" | "pos";
@@ -46,6 +47,7 @@ export interface StorageXQuoteInput {
 
 export interface StorageXShipmentInput {
   externalOrderId: string;
+  merchantRef?: string;
   recipient: StorageXRecipient;
   pickup: StorageXPickup;
   weightGrams: number;
@@ -77,6 +79,24 @@ export function normalizeStorageXNationalAddress(value: unknown): string {
 
 export function isValidStorageXNationalAddress(value: unknown): boolean {
   return /^[A-Z]{4}\d{4}$/.test(normalizeStorageXNationalAddress(value));
+}
+
+export function normalizeStorageXMerchantRef(value: unknown): string {
+  const merchantRef = String(value || "").trim().toUpperCase();
+  if (!merchantRef) return "";
+  if (!/^SXH-[A-Z0-9]{10}$/.test(merchantRef)) {
+    throw new Error("[StorageX] merchantRef must use the SXH- merchant handoff-code format");
+  }
+  return merchantRef;
+}
+
+export function isValidStorageXMerchantRef(value: unknown): boolean {
+  try {
+    normalizeStorageXMerchantRef(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function normalizeStorageXPhone(value: unknown): string {
@@ -173,10 +193,12 @@ export async function getStorageXCoverage(city?: string): Promise<any> {
 export async function quoteStorageX(input: StorageXQuoteInput): Promise<any> {
   const recipientCity = requireText(input.recipientCity, "recipient.city");
   const weightGrams = requireWeight(input.weightGrams);
+  const merchantRef = normalizeStorageXMerchantRef(input.merchantRef);
   const body: Record<string, unknown> = {
     recipient: { city: recipientCity },
     package: { weightGrams },
   };
+  if (merchantRef) body.merchantRef = merchantRef;
   if (input.pickupCity?.trim()) body.pickup = { city: input.pickupCity.trim() };
   const cod = buildCod(input.codAmount, input.codMethod);
   if (cod) body.cod = cod;
@@ -192,6 +214,7 @@ export async function quoteStorageX(input: StorageXQuoteInput): Promise<any> {
 export async function createStorageXShipment(input: StorageXShipmentInput): Promise<StorageXShipmentResult> {
   const externalOrderId = requireText(input.externalOrderId, "externalOrderId");
   const weightGrams = requireWeight(input.weightGrams);
+  const merchantRef = normalizeStorageXMerchantRef(input.merchantRef);
   const recipientNationalAddress = normalizeStorageXNationalAddress(input.recipient.nationalAddress);
   const pickupNationalAddress = normalizeStorageXNationalAddress(input.pickup.nationalAddress);
 
@@ -207,6 +230,7 @@ export async function createStorageXShipment(input: StorageXShipmentInput): Prom
 
   const body: Record<string, unknown> = {
     externalOrderId,
+    ...(merchantRef ? { merchantRef } : {}),
     recipient: {
       name: requireText(input.recipient.name, "recipient.name"),
       phone: normalizeStorageXPhone(requireText(input.recipient.phone, "recipient.phone")),

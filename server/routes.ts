@@ -125,7 +125,7 @@ import {
 import {
   cancelStorageXShipment, createStorageXShipment, getStorageXCoverage,
   getStorageXLabelUrl, getStorageXStatuses, isStorageXShipConfigured,
-  isValidStorageXNationalAddress, isValidStorageXPhone, normalizeStorageXNationalAddress,
+  isValidStorageXMerchantRef, isValidStorageXNationalAddress, isValidStorageXPhone, normalizeStorageXNationalAddress,
   quoteStorageX, StorageXShipApiError, trackStorageXShipment,
   updateStorageXShipment,
 } from "./storageXShip";
@@ -215,6 +215,7 @@ function storageXCreateInput(order: any, settings: any) {
   const addressLine = [address.street, address.district].filter(Boolean).join("، ");
   return {
     externalOrderId: String(order.id || order._id || ""),
+    merchantRef: String(settings?.storageXMerchantRef || "").trim() || undefined,
     recipient: {
       name: String(address.name || order.customerName || "عميل").trim(),
       phone: String(address.phone || order.customerPhone || "").trim(),
@@ -1794,6 +1795,7 @@ ${allUrls.map(u => `  <url>
           quote = await quoteStorageX({
             recipientCity: String(deliveryAddress.city || ""),
             pickupCity: settings.storageXPickupCity,
+            merchantRef: settings.storageXMerchantRef,
             weightGrams,
             codAmount: parsed.data.paymentMethod === "cod" ? merchandiseDue : 0,
             codMethod: "cash",
@@ -5909,6 +5911,7 @@ ${allUrls.map(u => `  <url>
       const result = await quoteStorageX({
         recipientCity: city,
         pickupCity: settings.storageXPickupCity,
+        merchantRef: settings.storageXMerchantRef,
         weightGrams: getShippingWeightGrams(pieces),
         codAmount: rawCodAmount,
         codMethod: req.body?.codMethod === "pos" ? "pos" : "cash",
@@ -5972,6 +5975,7 @@ ${allUrls.map(u => `  <url>
       pickupCity: settings?.storageXPickupCity || "",
       pickupAddressLine: settings?.storageXPickupAddressLine || "",
       pickupNationalAddress: settings?.storageXPickupNationalAddress || "",
+      merchantRef: settings?.storageXMerchantRef || "",
     });
   });
 
@@ -5986,6 +5990,7 @@ ${allUrls.map(u => `  <url>
         pickupCity: "storageXPickupCity",
         pickupAddressLine: "storageXPickupAddressLine",
         pickupNationalAddress: "storageXPickupNationalAddress",
+        merchantRef: "storageXMerchantRef",
       };
       const update: Record<string, any> = {};
       for (const [inputKey, settingKey] of Object.entries(stringFields)) {
@@ -6000,6 +6005,9 @@ ${allUrls.map(u => `  <url>
           !isValidStorageXNationalAddress(update.storageXPickupNationalAddress)) {
         return res.status(400).json({ message: "العنوان الوطني للمرسل يجب أن يتكون من 4 أحرف و4 أرقام" });
       }
+      if (update.storageXMerchantRef && !isValidStorageXMerchantRef(update.storageXMerchantRef)) {
+        return res.status(400).json({ message: "رمز merchantRef يجب أن يكون رمز ربط تاجر من Storage X بصيغة SXH-…" });
+      }
       if (!Object.keys(update).length) return res.status(400).json({ message: "لا توجد إعدادات للتحديث" });
       await storage.updateStoreSettings(update);
       res.json({
@@ -6008,6 +6016,7 @@ ${allUrls.map(u => `  <url>
         pickupCity: update.storageXPickupCity ?? body.pickupCity,
         pickupAddressLine: update.storageXPickupAddressLine ?? body.pickupAddressLine,
         pickupNationalAddress: update.storageXPickupNationalAddress ?? body.pickupNationalAddress,
+        merchantRef: update.storageXMerchantRef ?? body.merchantRef,
       });
     } catch (err: any) {
       res.status(500).json({ message: err?.message || "تعذر حفظ إعدادات الشحن" });
