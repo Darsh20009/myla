@@ -77,9 +77,24 @@ export default function Checkout() {
   const [deliveryLatitude, setDeliveryLatitude] = useState<number | undefined>();
   const [deliveryLongitude, setDeliveryLongitude] = useState<number | undefined>();
   const [nationalAddress, setNationalAddress] = useState("");
+  const nationalAddressSessionKey = user?.id
+    ? `myla:checkout:storage-x-national-address:${user.id}`
+    : null;
   const [citySearch, setCitySearch] = useState("");
   const [cityDropOpen, setCityDropOpen] = useState(false);
   const [geoLocating, setGeoLocating] = useState(false);
+
+  useEffect(() => {
+    if (!nationalAddressSessionKey) {
+      setNationalAddress("");
+      return;
+    }
+    try {
+      setNationalAddress(window.sessionStorage.getItem(nationalAddressSessionKey) || "");
+    } catch {
+      setNationalAddress("");
+    }
+  }, [nationalAddressSessionKey]);
 
   const detectLocation = async () => {
     if (!navigator.geolocation) {
@@ -583,6 +598,17 @@ export default function Checkout() {
 
   const normalizedNationalAddress = nationalAddress.replace(/\s+/g, "").toUpperCase();
   const validNationalAddress = /^[A-Z]{4}\d{4}$/.test(normalizedNationalAddress);
+  const handleNationalAddressChange = (value: string) => {
+    const normalized = value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8);
+    setNationalAddress(normalized);
+    if (!nationalAddressSessionKey) return;
+    try {
+      if (normalized) window.sessionStorage.setItem(nationalAddressSessionKey, normalized);
+      else window.sessionStorage.removeItem(nationalAddressSessionKey);
+    } catch {
+      // The field remains usable when browser storage is disabled.
+    }
+  };
 
   const handleCheckout = async () => {
     if (!user) { setAuthOpen(true); return; }
@@ -1285,19 +1311,20 @@ export default function Checkout() {
                   {isStorageXShipSelected && (
                     <div>
                       <label className="text-[11px] font-black text-gray-500 mb-1.5 block">
-                        العنوان الوطني المختصر *
+                        العنوان الوطني المختصر للمستلم *
                       </label>
                       <Input
                         placeholder="مثال: RRRD6636"
                         value={nationalAddress}
-                        onChange={(e) => setNationalAddress(e.target.value)}
+                        onChange={(e) => handleNationalAddressChange(e.target.value)}
                         className="h-12 border-2 border-gray-200 rounded-xl focus-visible:ring-primary/30 focus-visible:border-primary/40 shadow-sm uppercase"
                         dir="ltr"
-                        maxLength={12}
+                        maxLength={8}
+                        inputMode="text"
                         data-testid="input-national-address"
                       />
-                      <p className="text-[10px] text-gray-400 font-bold mt-1">
-                        أربعة أحرف لاتينية وأربعة أرقام
+                      <p className="text-[10px] text-gray-500 leading-relaxed mt-1.5">
+                        تجده في تطبيق سبل ضمن «العنوان الوطني ← العنوان المختصر». يجب أن يكون خاصًا بعنوان المستلم، ولا يُستخرج من GPS أو تحديث الصفحة. بعد إدخاله سيبقى في هذه الجلسة إذا حدّثت الصفحة.
                       </p>
                     </div>
                   )}
