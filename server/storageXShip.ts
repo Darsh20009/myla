@@ -79,6 +79,26 @@ export function isValidStorageXNationalAddress(value: unknown): boolean {
   return /^[A-Z]{4}\d{4}$/.test(normalizeStorageXNationalAddress(value));
 }
 
+export function normalizeStorageXPhone(value: unknown): string {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("00966")) digits = digits.slice(5);
+  else if (digits.startsWith("966")) digits = digits.slice(3);
+  if (/^5\d{8}$/.test(digits)) digits = `0${digits}`;
+  if (!/^05\d{8}$/.test(digits)) {
+    throw new Error("[StorageX] phone must be a Saudi mobile number in 05XXXXXXXX format");
+  }
+  return digits;
+}
+
+export function isValidStorageXPhone(value: unknown): boolean {
+  try {
+    normalizeStorageXPhone(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function requireText(value: unknown, label: string): string {
   const result = String(value || "").trim();
   if (!result) throw new Error(`[StorageX] ${label} is required`);
@@ -189,7 +209,7 @@ export async function createStorageXShipment(input: StorageXShipmentInput): Prom
     externalOrderId,
     recipient: {
       name: requireText(input.recipient.name, "recipient.name"),
-      phone: requireText(input.recipient.phone, "recipient.phone"),
+      phone: normalizeStorageXPhone(requireText(input.recipient.phone, "recipient.phone")),
       addressLine: requireText(input.recipient.addressLine, "recipient.addressLine"),
       nationalAddress: recipientNationalAddress,
       city: requireText(input.recipient.city, "recipient.city"),
@@ -197,7 +217,7 @@ export async function createStorageXShipment(input: StorageXShipmentInput): Prom
     },
     pickup: {
       ...(input.pickup.name?.trim() ? { name: input.pickup.name.trim() } : {}),
-      phone: requireText(input.pickup.phone, "pickup.phone"),
+      phone: normalizeStorageXPhone(requireText(input.pickup.phone, "pickup.phone")),
       addressLine: requireText(input.pickup.addressLine, "pickup.addressLine"),
       nationalAddress: pickupNationalAddress,
       city: requireText(input.pickup.city, "pickup.city"),

@@ -51,6 +51,18 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Do not disable Storage X or replace the customer tariff with the API quote without a new instruction; keep the discrepancy visible until the provider confirms billing.
 
+**Storage X phone format:** Shipment creation expects Saudi mobile numbers in local `05XXXXXXXX` format. Normalize stored international forms such as `+9665...` or `9665...` before sending.
+
+**Why:** The partner rejected the stored international form as `invalid_recipient_phone`; its create examples use the local 05 format.
+
+**How to apply:** Normalize both pickup and recipient phones at the API boundary, and make readiness validate that a stored number can be normalized.
+
+**Storage X cancellation:** A shipment can be cancelled outright before carrier pickup; once moving, the carrier routes it to a hub and returns it. Cancellation does not guarantee that fees are waived.
+
+**Why:** The partner's cancellation response depends on parcel custody, so an immediate cancel can still leave return handling or charges.
+
+**How to apply:** Report the returned status/custody and never promise that create-then-cancel is free.
+
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 
 **Mongoose $in typing:** When using `$in` with a `string[]` variable in Mongoose 9, cast with `as any[]` to satisfy strict enum types, e.g. `{ status: { $in: arr as any[] } }`.

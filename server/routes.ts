@@ -125,7 +125,7 @@ import {
 import {
   cancelStorageXShipment, createStorageXShipment, getStorageXCoverage,
   getStorageXLabelUrl, getStorageXStatuses, isStorageXShipConfigured,
-  isValidStorageXNationalAddress, normalizeStorageXNationalAddress,
+  isValidStorageXNationalAddress, isValidStorageXPhone, normalizeStorageXNationalAddress,
   quoteStorageX, StorageXShipApiError, trackStorageXShipment,
   updateStorageXShipment,
 } from "./storageXShip";
@@ -139,8 +139,9 @@ const storageXQuoteLimiter = rateLimit({
 
 function storageXSettingsReadiness(settings: any) {
   const pickupNationalAddress = normalizeStorageXNationalAddress(settings?.storageXPickupNationalAddress);
+  const pickupPhone = settings?.storageXPickupPhone || settings?.storePhone;
   const pickupConfigured = Boolean(
-    (settings?.storageXPickupPhone || settings?.storePhone)?.toString().trim() &&
+    isValidStorageXPhone(pickupPhone) &&
     settings?.storageXPickupCity?.toString().trim() &&
     settings?.storageXPickupAddressLine?.toString().trim() &&
     isValidStorageXNationalAddress(pickupNationalAddress),
