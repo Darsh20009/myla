@@ -162,6 +162,46 @@ function shipoxSenderReadiness(settings: any) {
   };
 }
 
+let shipoxHealthCache: { connected: boolean; expiresAt: number; httpStatus?: number } | null = null;
+let shipoxHealthCheckInFlight: Promise<boolean> | null = null;
+const SHIPOX_HEALTH_CACHE_MS = 2 * 60 * 1000;
+
+async function verifyShipoxConnection(force = false): Promise<boolean> {
+  if (!isShipoxConfigured()) {
+    shipoxHealthCache = { connected: false, expiresAt: Date.now() + SHIPOX_HEALTH_CACHE_MS };
+    return false;
+  }
+
+  if (!force && shipoxHealthCache && Date.now() < shipoxHealthCache.expiresAt) {
+    return shipoxHealthCache.connected;
+  }
+  if (shipoxHealthCheckInFlight) return shipoxHealthCheckInFlight;
+
+  shipoxHealthCheckInFlight = (async () => {
+    try {
+      await getShipoxAccount();
+      shipoxHealthCache = {
+        connected: true,
+        expiresAt: Date.now() + SHIPOX_HEALTH_CACHE_MS,
+      };
+      return true;
+    } catch (error: any) {
+      const httpStatus = String(error?.message || "").match(/(?:Auth failed|HTTP)\s+\(?(\d{3})\)?/i)?.[1];
+      shipoxHealthCache = {
+        connected: false,
+        expiresAt: Date.now() + SHIPOX_HEALTH_CACHE_MS,
+        ...(httpStatus ? { httpStatus: Number(httpStatus) } : {}),
+      };
+      console.warn(`[Shipox] connectivity check failed${httpStatus ? ` (HTTP ${httpStatus})` : ""}`);
+      return false;
+    } finally {
+      shipoxHealthCheckInFlight = null;
+    }
+  })();
+
+  return shipoxHealthCheckInFlight;
+}
+
 function storageXCreateInput(order: any, settings: any) {
   const address = order.shippingAddress || {};
   const amountDue = Math.max(0, Number(order.total || 0) - Number(order.shippingCost || 0));
@@ -1805,8 +1845,9 @@ ${allUrls.map(u => `  <url>
         }
         if (provider === "shipox") {
           const settings = await storage.getStoreSettings();
-          if (!shipoxSenderReadiness(settings).checkoutReady) {
-            return res.status(503).json({ message: "Shipox غير جاهز: أكمل بيانات المرسل وإعدادات الاتصال أولًا" });
+          const readiness = shipoxSenderReadiness(settings);
+          if (!readiness.senderConfigured || !(await verifyShipoxConnection())) {
+            return res.status(503).json({ message: "Shipox غير جاهز: تحقق من اتصال الحساب وأكمل بيانات المرسل أولًا" });
           }
         }
         if (provider === "mapit") {
@@ -3854,9 +3895,22 @@ ${allUrls.map(u => `  <url>
   app.get("/api/shipox/status", async (_req, res) => {
     try {
       const settings = await storage.getStoreSettings();
-      res.json(shipoxSenderReadiness(settings));
+      const readiness = shipoxSenderReadiness(settings);
+      const connectionReady = readiness.senderConfigured
+        ? await verifyShipoxConnection()
+        : false;
+      res.json({
+        ...readiness,
+        connectionReady,
+        checkoutReady: readiness.senderConfigured && connectionReady,
+      });
     } catch {
-      res.json({ configured: isShipoxConfigured(), senderConfigured: false, checkoutReady: false });
+      res.json({
+        configured: isShipoxConfigured(),
+        senderConfigured: false,
+        connectionReady: false,
+        checkoutReady: false,
+      });
     }
   });
 
@@ -6544,12 +6598,15 @@ ${allUrls.map(u => `  <url>
     if (!isShipoxConfigured()) {
       return res.status(503).json({ success: false, message: "بيانات دخول Shipox غير مُعدّة في أسرار المشروع" });
     }
-    try {
-      await getShipoxAccount();
-      res.json({ success: true, message: "اتصال Shipox يعمل" });
-    } catch {
-      res.status(502).json({ success: false, message: "تعذر تسجيل الدخول إلى Shipox؛ تحقق من بيانات الدخول والاتصال" });
+    const connected = await verifyShipoxConnection(true);
+    if (!connected) {
+      const httpStatus = shipoxHealthCache?.httpStatus;
+      return res.status(502).json({
+        success: false,
+        message: `تعذر تسجيل الدخول إلى Shipox${httpStatus ? ` (HTTP ${httpStatus})` : ""}؛ تحقق من بيانات الحساب ومتطلبات واجهة 3rd Mile`,
+      });
     }
+    res.json({ success: true, message: "اتصال Shipox يعمل" });
   });
 
   // Create Shipox shipment for a given order

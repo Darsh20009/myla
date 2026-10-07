@@ -27,6 +27,12 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Keep Shipox first for automatic delivery orders, with Mapit as a continuity fallback until Shipox is configured.
 
+**Shipox readiness:** Do not treat non-empty credentials as proof that the carrier works. Require both sender details and a successful authenticated account check before exposing Shipox at checkout or accepting a Shipox order. Cache the check briefly and expose only a safe status code, not credentials or raw API response text.
+
+**Why:** Credentials can be present in Replit while the carrier API rejects authentication; allowing checkout based on presence alone risks accepting paid orders that cannot be shipped.
+
+**How to apply:** Keep the customer-facing availability endpoint and server-side order guard tied to authenticated health. Health checks must not create shipments.
+
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 
 **Mongoose $in typing:** When using `$in` with a `string[]` variable in Mongoose 9, cast with `as any[]` to satisfy strict enum types, e.g. `{ status: { $in: arr as any[] } }`.
