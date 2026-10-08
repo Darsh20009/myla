@@ -51,6 +51,12 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Keep the rate-card charge and API quote distinct, surface discrepancies, and confirm the provider's billing basis before describing automatic shipping as financially reconciled.
 
+**Rate-card authority:** Offer only destinations and customer prices listed in the latest rate/coverage sheet supplied by Storage Station. A partner API quote may verify serviceability, but it must not expand coverage or override the agreed customer tariff. If multiple supplied sheets conflict, confirm which one applies before changing checkout prices.
+
+**Why:** The user said the carrier's own table defines the supported places and prices they accept; the newly supplied table differs from an earlier image.
+
+**How to apply:** Use the carrier sheet as the source of truth for checkout coverage and rates. Treat conflicting versions as unresolved until the user identifies the applicable service/table.
+
 **User decision while pricing is pending:** Keep Storage X available at checkout using the merchant's rate-card prices, even while the partner quote differs. The store may absorb a difference if the quote reflects the eventual bill.
 
 **Why:** The user chose to keep the shipping option enabled after being shown the possible price gap.
