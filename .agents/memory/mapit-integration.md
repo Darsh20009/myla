@@ -53,7 +53,7 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **Rate-card authority:** The user confirmed the latest Storage Station sheet replaces the previous one: domestic KSA is SAR 19 up to 15 kg, +SAR 1/kg above that, COD SAR 5/order; GCC is SAR 38 for the first 0.5 kg then SAR 9 per additional 0.5 kg; returns are listed at the original shipping rate; SMSA fuel surcharge is SAR 1.5/order.
 
-**Why:** The user explicitly said to use only the newly supplied carrier table.
+**Why:** The user explicitly said to use only the newly supplied carrier table and chose Saudi-only checkout until Storage X supports GCC destinations in its API.
 
 **How to apply:** Use the sheet, not the partner quote, for customer prices. Keep SMSA fuel conditional on SMSA service and apply return rates only in the return flow. The current Storage X API requires a Saudi National Address and has no recipient-country field, so keep GCC checkout disabled until the partner provides a country-aware API; manual-only orders must never trigger Storage X auto-shipment.
 
