@@ -808,6 +808,7 @@ const storeSettingsSchema = new Schema(
     mapitPickupPointId:  { type: String, default: "" },
     // ── Storage X Ship sender configuration (admin-only API) ──
     storageXMerchantRef: { type: String, default: "" },
+    storageXMerchantRefMigrationVersion: { type: Number, default: 0, select: false },
     storageXPickupName: { type: String, default: "" },
     storageXPickupPhone: { type: String, default: "" },
     storageXPickupCity: { type: String, default: "" },

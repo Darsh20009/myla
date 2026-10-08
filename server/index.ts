@@ -226,6 +226,30 @@ process.on('uncaughtException', (err: any) => {
     console.warn("[Migration] Could not enable COD:", e?.message);
   }
 
+  // Save the merchant handoff code previously supplied by the store owner.
+  // Only fill an empty value once; do not overwrite a later admin change.
+  try {
+    const { StoreSettingsModel } = await import("./models");
+    const settings: any = await StoreSettingsModel.findOne({ key: "main" })
+      .select("+storageXMerchantRefMigrationVersion")
+      .lean();
+    if (Number(settings?.storageXMerchantRefMigrationVersion || 0) < 1) {
+      const update: Record<string, unknown> = {
+        storageXMerchantRefMigrationVersion: 1,
+      };
+      if (!String(settings?.storageXMerchantRef || "").trim()) {
+        update.storageXMerchantRef = "SXH-MDYUPYBWAZ";
+      }
+      await StoreSettingsModel.updateOne(
+        { key: "main", storageXMerchantRefMigrationVersion: { $ne: 1 } },
+        { $set: update },
+      );
+    }
+    console.log("[Migration] Storage X merchant reference checked");
+  } catch (e: any) {
+    console.warn("[Migration] Could not verify Storage X merchant reference:", e?.message);
+  }
+
   // ─── Seed: Myla Riyadh pickup branch ──────────────────────────────────
   try {
     const { BranchModel } = await import("./models");

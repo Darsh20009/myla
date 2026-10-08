@@ -91,6 +91,7 @@ export function normalizeStorageXMerchantRef(value: unknown): string {
 }
 
 export function isValidStorageXMerchantRef(value: unknown): boolean {
+  if (!String(value || "").trim()) return false;
   try {
     normalizeStorageXMerchantRef(value);
     return true;

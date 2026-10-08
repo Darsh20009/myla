@@ -43,7 +43,11 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **Why:** The partner docs define `merchantRef` as the merchant handoff code and say omission bills the API-key owner. A shipment created without it was trackable through the API but absent from the merchant's shipment list.
 
-**How to apply:** Obtain the `SXH-…` handoff code from Storage X, store it separately from the API key, and pass it to quote/create. Do not use an `sxs_…` API key as `merchantRef`; adding the field affects new shipments, not previously created ones.
+**How to apply:** Obtain the `SXH-…` handoff code from Storage X, store it separately from the API key, and pass it to quote/create. Do not use an `sxs_…` API key as `merchantRef`; adding the field affects new shipments, not previously created ones. Readiness must reject an empty value: optional normalization may return `""`, but that must never count as a configured merchant reference.
+
+**Why:** An empty stored handoff code was incorrectly reported as valid, so checkout appeared ready while quote/create requests could omit the merchant routing code and use the API-key owner's account.
+
+**How to apply:** Verify the non-empty saved code and run a quote with it before creating a live shipment. A manual database test order plus a direct carrier API call proves carrier acceptance/tracking only; it bypasses customer checkout, the automatic queue, and notifications. Do not describe it as end-to-end checkout verification.
 
 **Customer tariff vs. partner quote:** Treat the merchant-supplied Storage Station rate sheet as the customer-facing tariff, separate from the Storage X partner API quote. The partner quote may differ; do not claim that customer charges and carrier billing reconcile until verified.
 
