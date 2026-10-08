@@ -188,6 +188,44 @@ process.on('uncaughtException', (err: any) => {
     console.warn("[Migration] Could not update store legal data:", e?.message);
   }
 
+  // One-time user-approved activation of cash on delivery. A marker prevents
+  // later server restarts from overriding an admin's future payment settings.
+  try {
+    const { StoreSettingsModel } = await import("./models");
+    await StoreSettingsModel.updateOne(
+      { key: "main" },
+      {
+        $setOnInsert: {
+          key: "main",
+          paymentMethods: {
+            cod: true,
+            wallet: true,
+            tap: true,
+            stc_pay: true,
+            apple_pay: true,
+            bank_transfer: true,
+            tamara: true,
+            tabby: true,
+          },
+          codActivationMigrationVersion: 1,
+        },
+      },
+      { upsert: true },
+    );
+    await StoreSettingsModel.updateOne(
+      { key: "main", codActivationMigrationVersion: { $ne: 1 } },
+      {
+        $set: {
+          "paymentMethods.cod": true,
+          codActivationMigrationVersion: 1,
+        },
+      },
+    );
+    console.log("[Migration] COD enabled per store decision");
+  } catch (e: any) {
+    console.warn("[Migration] Could not enable COD:", e?.message);
+  }
+
   // ─── Seed: Myla Riyadh pickup branch ──────────────────────────────────
   try {
     const { BranchModel } = await import("./models");

@@ -720,6 +720,7 @@ const storeSettingsSchema = new Schema(
     storeAddress: { type: String, default: "" },
     storeCity: { type: String, default: "" },
     mylaAbayaCatalogSeedVersion: { type: Number, default: 0 },
+    codActivationMigrationVersion: { type: Number, default: 0, select: false },
     vatNumber: { type: String, default: "" },
     crNumber: { type: String, default: "" },
     nationalUnifiedNumber: { type: String, default: "" },
