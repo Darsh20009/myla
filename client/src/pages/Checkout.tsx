@@ -223,7 +223,7 @@ export default function Checkout() {
       const res = await fetch("/api/store/settings");
       return res.json();
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 30_000,
   });
 
   const { data: paymobStatus } = useQuery<{ configured: boolean }>({

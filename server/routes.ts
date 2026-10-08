@@ -6304,7 +6304,9 @@ ${allUrls.map(u => `  <url>
   app.get("/api/store/settings", async (_req, res) => {
     try {
       const settings = await storage.getStoreSettings();
-      res.set("Cache-Control", "public, max-age=600, stale-while-revalidate=1200");
+      // Payment and shipping settings can change from the admin panel; avoid
+      // serving stale checkout methods after an admin enables or disables one.
+      res.set("Cache-Control", "no-store");
       const {
         storageXPickupName: _pickupName,
         storageXPickupPhone: _pickupPhone,
