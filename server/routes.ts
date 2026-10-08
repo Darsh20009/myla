@@ -2453,6 +2453,11 @@ ${allUrls.map(u => `  <url>
       if (action === "confirm") {
         updatedOrder = await storage.updateOrderPaymentStatus(req.params.id, "paid");
         // updateOrderPaymentStatus already sets status = "processing" when paid
+        // Bank-transfer orders are intentionally not dispatched at creation time.
+        // Queue the selected carrier once the admin confirms payment.
+        if (order.paymentStatus !== "paid" && updatedOrder?.shippingMethod === "delivery") {
+          enqueueSelectedDeliveryShipment(updatedOrder);
+        }
         try {
           await fireNotify(
             order.userId,
