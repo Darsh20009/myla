@@ -1,32 +1,11 @@
 export const STORAGE_STATION_ITEM_WEIGHT_GRAMS = 1000;
 
 export const STORAGE_STATION_DOMESTIC_TARIFF = {
-  priorityCityPrice: 14,
-  otherCityPrice: 18,
+  basePrice: 19,
   includedWeightGrams: 15_000,
   extraPerKilogram: 1,
   cashOnDeliveryFee: 5,
 } as const;
-
-const PRIORITY_CITIES = new Set([
-  "الرياض", "riyadh",
-  "الدمام", "dammam",
-  "الخبر", "khobar", "alkhobar",
-  "سيهات", "sayhat", "saihat",
-  "القطيف", "qatif",
-  "الظهران", "dhahran",
-  "تاروت", "tarout", "tarut",
-]);
-
-function normalizeCity(city: string): string {
-  return String(city || "")
-    .normalize("NFKC")
-    .trim()
-    .toLowerCase()
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/[\s._-]+/g, "");
-}
 
 export function getShippingPieceCount(
   items: ReadonlyArray<{ quantity?: number | string | null }>,
@@ -67,15 +46,11 @@ export interface StorageStationRate {
 export function calculateStorageStationRate(
   input: StorageStationRateInput,
 ): StorageStationRate {
-  const cityKey = normalizeCity(input.city);
-  const priorityCity = PRIORITY_CITIES.has(cityKey);
   const pieces = Number.isSafeInteger(input.pieces) && input.pieces > 0
     ? input.pieces
     : 1;
   const weightGrams = getShippingWeightGrams(pieces);
-  const baseCost = priorityCity
-    ? STORAGE_STATION_DOMESTIC_TARIFF.priorityCityPrice
-    : STORAGE_STATION_DOMESTIC_TARIFF.otherCityPrice;
+  const baseCost = STORAGE_STATION_DOMESTIC_TARIFF.basePrice;
   const extraWeightKg = Math.ceil(
     Math.max(0, weightGrams - STORAGE_STATION_DOMESTIC_TARIFF.includedWeightGrams) / 1000,
   );
@@ -98,9 +73,7 @@ export function calculateStorageStationRate(
     weightGrams,
     zoneName: freeShipping
       ? (codFee ? "شحن مجاني مع رسوم الدفع عند الاستلام" : "شحن مجاني")
-      : priorityCity
-        ? "الرياض والدمام والخبر وسيهات والقطيف والظهران وتاروت"
-        : "بقية مدن المملكة",
+      : "جميع مدن المملكة",
     methodTitle: "توصيل Storage Station",
     isFree: cost === 0,
   };

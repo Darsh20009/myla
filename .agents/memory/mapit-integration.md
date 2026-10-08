@@ -51,11 +51,11 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Keep the rate-card charge and API quote distinct, surface discrepancies, and confirm the provider's billing basis before describing automatic shipping as financially reconciled.
 
-**Rate-card authority:** Offer only destinations and customer prices listed in the latest rate/coverage sheet supplied by Storage Station. A partner API quote may verify serviceability, but it must not expand coverage or override the agreed customer tariff. If multiple supplied sheets conflict, confirm which one applies before changing checkout prices.
+**Rate-card authority:** The user confirmed the latest Storage Station sheet replaces the previous one: domestic KSA is SAR 19 up to 15 kg, +SAR 1/kg above that, COD SAR 5/order; GCC is SAR 38 for the first 0.5 kg then SAR 9 per additional 0.5 kg; returns are listed at the original shipping rate; SMSA fuel surcharge is SAR 1.5/order.
 
-**Why:** The user said the carrier's own table defines the supported places and prices they accept; the newly supplied table differs from an earlier image.
+**Why:** The user explicitly said to use only the newly supplied carrier table.
 
-**How to apply:** Use the carrier sheet as the source of truth for checkout coverage and rates. Treat conflicting versions as unresolved until the user identifies the applicable service/table.
+**How to apply:** Use the sheet, not the partner quote, for customer prices. Keep SMSA fuel conditional on SMSA service and apply return rates only in the return flow. GCC rates require an enabled country/address path; do not expose unlisted destinations or fees.
 
 **User decision while pricing is pending:** Keep Storage X available at checkout using the merchant's rate-card prices, even while the partner quote differs. The store may absorb a difference if the quote reflects the eventual bill.
 
