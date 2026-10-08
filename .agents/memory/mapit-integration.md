@@ -55,7 +55,7 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **Why:** The user explicitly said to use only the newly supplied carrier table.
 
-**How to apply:** Use the sheet, not the partner quote, for customer prices. Keep SMSA fuel conditional on SMSA service and apply return rates only in the return flow. GCC rates require an enabled country/address path; do not expose unlisted destinations or fees.
+**How to apply:** Use the sheet, not the partner quote, for customer prices. Keep SMSA fuel conditional on SMSA service and apply return rates only in the return flow. The current Storage X API requires a Saudi National Address and has no recipient-country field, so keep GCC checkout disabled until the partner provides a country-aware API; manual-only orders must never trigger Storage X auto-shipment.
 
 **User decision while pricing is pending:** Keep Storage X available at checkout using the merchant's rate-card prices, even while the partner quote differs. The store may absorb a difference if the quote reflects the eventual bill.
 
