@@ -21,11 +21,11 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **Idempotency:** `dispatchOrderPaidSideEffects` re-fetches the order before calling `createMapitOrder`. If `mapitOrderNumber` is already set and `mapitStatus !== "failed"`, it skips. Admin create route also returns early if shipment exists and is not failed.
 
-**Provider priority:** Shipox/3rd Mile is the user's selected carrier and is preferred when configured. Mapit remains the fallback when Shipox is not configured; if neither is configured, no automatic shipment is created.
+**Provider priority:** Storage X Ship is the current default checkout carrier whenever it is ready; Shipox, Mapit, and other configured carriers remain alternatives.
 
-**Why:** On 2026-10-06 the user explicitly selected Shipox/3rd Mile for shipping. Do not let an older Mapit-first rule override that choice.
+**Why:** The user initially selected Shipox, then later asked for new delivery orders to be routed through Storage X after providing its merchant setup.
 
-**How to apply:** Keep Shipox first for automatic delivery orders, with Mapit as a continuity fallback until Shipox is configured.
+**How to apply:** Keep Storage X first in checkout while its readiness check passes. Orders explicitly placed with another provider must not be sent to Storage X.
 
 **Shipox readiness:** Do not treat non-empty credentials as proof that the carrier works. Require both sender details and a successful authenticated account check before exposing Shipox at checkout or accepting a Shipox order. Cache the check briefly and expose only a safe status code, not credentials or raw API response text.
 
@@ -61,11 +61,11 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Use the sheet, not the partner quote, for customer prices; the user accepts the store bearing any carrier-quote difference. Keep SMSA fuel conditional on SMSA service and apply return rates only in the return flow. The current Storage X API requires a Saudi National Address and has no recipient-country field, so keep GCC checkout disabled until the partner provides a country-aware API; manual-only orders must never trigger Storage X auto-shipment.
 
-**User decision while pricing is pending:** Keep Storage X available at checkout using the merchant's rate-card prices, even while the partner quote differs. The store may absorb a difference if the quote reflects the eventual bill.
+**User decision on Storage X checkout:** Use the merchant's rate-card prices and make Storage X the default when ready, even while the partner quote differs. The store may absorb a difference if the quote reflects the eventual bill.
 
-**Why:** The user chose to keep the shipping option enabled after being shown the possible price gap.
+**Why:** The user chose to keep Storage X available despite the possible price gap, then asked that new shipments be created through it.
 
-**How to apply:** Do not disable Storage X or replace the customer tariff with the API quote without a new instruction; keep the discrepancy visible until the provider confirms billing.
+**How to apply:** Keep Storage X first while ready, leave alternatives selectable, and do not replace the customer tariff with the API quote without a new instruction; keep the discrepancy visible until the provider confirms billing.
 
 **Storage X phone format:** Shipment creation expects Saudi mobile numbers in local `05XXXXXXXX` format. Normalize stored international forms such as `+9665...` or `9665...` before sending.
 

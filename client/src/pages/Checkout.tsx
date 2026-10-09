@@ -358,6 +358,19 @@ export default function Checkout() {
     const hasMapitConfigured = mapitStatus?.configured;
 
     let list: any[] = [];
+    // Storage X is the configured default; keep alternatives available below it.
+    if (storageXShipStatus?.checkoutReady) {
+      list.push({
+        id: "__storage_x_ship__",
+        name: "Storage X Ship",
+        logo: "",
+        price: 0,
+        estimatedDays: 1,
+        freeShippingThreshold: 0,
+        isActive: true,
+        isStorageXShip: true,
+      });
+    }
     if (shipoxStatus?.checkoutReady) {
       list.push({
         id: "__shipox__",
@@ -377,22 +390,12 @@ export default function Checkout() {
       );
     }
     // Add remaining database carriers, avoiding duplicate integrated entries.
-    const rest = dbOptions.filter((c: any) => c.id !== (dbMapit?.id));
+    const rest = dbOptions.filter((c: any) =>
+      c.id !== dbMapit?.id &&
+      !(storageXShipStatus?.checkoutReady &&
+        String(c.name || "").trim().toLowerCase() === "storage x ship")
+    );
     list = [...list, ...rest];
-    // Add Storage X last so enabling the integration doesn't change the
-    // customer's existing default carrier.
-    if (storageXShipStatus?.checkoutReady) {
-      list.push({
-        id: "__storage_x_ship__",
-        name: "Storage X Ship",
-        logo: "",
-        price: 0,
-        estimatedDays: 1,
-        freeShippingThreshold: 0,
-        isActive: true,
-        isStorageXShip: true,
-      });
-    }
     return list;
   })();
 
