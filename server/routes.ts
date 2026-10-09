@@ -14,7 +14,8 @@ import crypto from "crypto";
 import { UserModel, OrderModel, NotificationModel, PushSubscriptionModel, ActivityLogModel, StoreSettingsModel, MailAccountModel, MailMessageModel } from "./models";
 import { encryptSecret, PROVIDER_PRESETS, testConnection as testInboxConnection, syncAccount as syncInboxAccount, setMessageFlags as setInboxFlags, deleteMessage as deleteInboxMessage, sendFromAccount as sendInboxMessage } from "./inbox";
 import { paymentGateway } from "./payments";
-import { fireNotify, fireNotifyAdmins, VAPID_PUBLIC_KEY } from "./notifications";
+import { fireNotify, fireNotifyAdmins, sendWhatsAppOrderAlert, VAPID_PUBLIC_KEY } from "./notifications";
+import { getWaStatus, sendWhatsAppDocument, sendWhatsAppNotification } from "./whatsapp";
 import {
   initiateCardPayment, verify3DS, initiateSTPay, verifySTCPay,
   processApplePay,
@@ -42,6 +43,7 @@ import {
   sendWelcomeEmail, sendPaymentConfirmationEmail, sendAdminNewOrderEmail,
   sendEmail,
 } from "./email";
+import { isQiroxConfigured } from "./qirox";
 import {
   initiatePaymobPayment, verifyPaymobHmac, flattenPaymobCallback, isPaymobConfigured,
   paymobMode, initiatePaymobIntention
@@ -88,13 +90,25 @@ const upload = multer({
 
 import { registerEmployeeAssistant } from "./employee-assistant";
 import { CartSessionModel, CancellationPolicyModel } from "./models";
-import { cancelOrder, canCustomerCancel, getPolicy as getCancellationPolicy } from "./cancellation";
+import {
+  cancelOrder,
+  canCustomerCancel,
+  getActiveCarrierShipmentProviders,
+  getPolicy as getCancellationPolicy,
+} from "./cancellation";
 import { startAbandonedCartWorker, notifyCart, markCartConverted } from "./abandoned-carts";
 import { startPickupExpiryWorker } from "./pickup-expiry";
 import { startPendingPaymentExpiryWorker } from "./pending-payment-expiry";
 import { buildInvoiceHtml } from "./invoice-html";
+import { renderInvoiceHtmlToPdf } from "./invoice-pdf";
 import { buildZatcaQrDataUrl } from "./zatca";
 import rateLimit from "express-rate-limit";
+import {
+  calculateStorageStationRate,
+  getShippingPieceCount,
+  getShippingWeightGrams,
+  STORAGE_STATION_ITEM_WEIGHT_GRAMS,
+} from "@shared/storage-station-rates";
 import { enqueueJob, getQueueStats, resetQueueStats } from "./job-queue";
 import {
   cacheMiddleware, invalidateTags, getStats as getCacheStats, resetStats as resetCacheStats,
@@ -102,7 +116,7 @@ import {
 } from "./cache";
 import {
   pushOrderToStorageStation, updateStorageStationOrder,
-  getStorageStationOrder, isStorageStationConfigured,
+  getStorageStationOrder, isStorageStationConfigured, testStorageStationConnection,
   getShippingRateForCity,
 } from "./storagestation";
 import {
@@ -115,6 +129,305 @@ import {
   isMapitConfigured, createMapitOrder, getMapitOrder, listMapitOrders,
   updateMapitOrder, deleteMapitOrder, mapitTrackingUrl,
 } from "./mapit";
+import {
+  cancelStorageXShipment, createStorageXShipment, getStorageXCoverage,
+  getStorageXLabelUrl, getStorageXStatuses, isStorageXShipConfigured,
+  isValidStorageXMerchantRef, isValidStorageXNationalAddress, isValidStorageXPhone, normalizeStorageXNationalAddress,
+  quoteStorageX, StorageXShipApiError, trackStorageXShipment,
+  updateStorageXShipment,
+} from "./storageXShip";
+
+const storageXQuoteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+function storageXSettingsReadiness(settings: any) {
+  const pickupNationalAddress = normalizeStorageXNationalAddress(settings?.storageXPickupNationalAddress);
+  const pickupPhone = settings?.storageXPickupPhone || settings?.storePhone;
+  const pickupConfigured = Boolean(
+    isValidStorageXPhone(pickupPhone) &&
+    settings?.storageXPickupCity?.toString().trim() &&
+    settings?.storageXPickupAddressLine?.toString().trim() &&
+    isValidStorageXNationalAddress(pickupNationalAddress),
+  );
+  const weightConfigured = STORAGE_STATION_ITEM_WEIGHT_GRAMS === 1000;
+  const merchantRefConfigured = isValidStorageXMerchantRef(settings?.storageXMerchantRef);
+  return {
+    pickupConfigured,
+    weightConfigured,
+    merchantRefConfigured,
+    checkoutReady: isStorageXShipConfigured() && pickupConfigured && weightConfigured && merchantRefConfigured,
+  };
+}
+
+function shipoxSenderReadiness(settings: any) {
+  const senderPhone = String(settings?.storePhone || "").replace(/\D/g, "");
+  const senderConfigured = Boolean(
+    /^\d{9,15}$/.test(senderPhone) &&
+    String(settings?.storeAddress || "").trim() &&
+    String(settings?.storeCity || "").trim(),
+  );
+  return {
+    configured: isShipoxConfigured(),
+    senderConfigured,
+    checkoutReady: isShipoxConfigured() && senderConfigured,
+  };
+}
+
+let shipoxHealthCache: { connected: boolean; expiresAt: number; httpStatus?: number } | null = null;
+let shipoxHealthCheckInFlight: Promise<boolean> | null = null;
+const SHIPOX_HEALTH_CACHE_MS = 2 * 60 * 1000;
+
+async function verifyShipoxConnection(force = false): Promise<boolean> {
+  if (!isShipoxConfigured()) {
+    shipoxHealthCache = { connected: false, expiresAt: Date.now() + SHIPOX_HEALTH_CACHE_MS };
+    return false;
+  }
+
+  if (!force && shipoxHealthCache && Date.now() < shipoxHealthCache.expiresAt) {
+    return shipoxHealthCache.connected;
+  }
+  if (shipoxHealthCheckInFlight) return shipoxHealthCheckInFlight;
+
+  shipoxHealthCheckInFlight = (async () => {
+    try {
+      await getShipoxAccount();
+      shipoxHealthCache = {
+        connected: true,
+        expiresAt: Date.now() + SHIPOX_HEALTH_CACHE_MS,
+      };
+      return true;
+    } catch (error: any) {
+      const httpStatus = String(error?.message || "").match(/(?:Auth failed|HTTP)\s+\(?(\d{3})\)?/i)?.[1];
+      shipoxHealthCache = {
+        connected: false,
+        expiresAt: Date.now() + SHIPOX_HEALTH_CACHE_MS,
+        ...(httpStatus ? { httpStatus: Number(httpStatus) } : {}),
+      };
+      console.warn(`[Shipox] connectivity check failed${httpStatus ? ` (HTTP ${httpStatus})` : ""}`);
+      return false;
+    } finally {
+      shipoxHealthCheckInFlight = null;
+    }
+  })();
+
+  return shipoxHealthCheckInFlight;
+}
+
+function storageXCreateInput(order: any, settings: any) {
+  const address = order.shippingAddress || {};
+  const amountDue = Math.max(0, Number(order.total || 0) - Number(order.shippingCost || 0));
+  const isCod = ["cod", "cash"].includes(String(order.paymentMethod || "").toLowerCase());
+  const addressLine = [address.street, address.district].filter(Boolean).join("، ");
+  return {
+    externalOrderId: String(order.id || order._id || ""),
+    merchantRef: String(settings?.storageXMerchantRef || "").trim() || undefined,
+    recipient: {
+      name: String(address.name || order.customerName || "عميل").trim(),
+      phone: String(address.phone || order.customerPhone || "").trim(),
+      addressLine: addressLine || String(order.deliveryAddress || "").trim(),
+      nationalAddress: String(address.nationalAddress || "").trim(),
+      city: String(address.city || "").trim(),
+      district: String(address.district || "").trim() || undefined,
+    },
+    pickup: {
+      name: String(settings?.storageXPickupName || settings?.storeName || "").trim() || undefined,
+      phone: String(settings?.storageXPickupPhone || settings?.storePhone || "").trim(),
+      addressLine: String(settings?.storageXPickupAddressLine || "").trim(),
+      nationalAddress: String(settings?.storageXPickupNationalAddress || "").trim(),
+      city: String(settings?.storageXPickupCity || "").trim(),
+    },
+    weightGrams: getShippingWeightGrams(getShippingPieceCount(order.items || [])),
+    description: (order.items || [])
+      .map((item: any) => `${item.title || "منتج"} × ${Number(item.quantity) || 1}`)
+      .join("، ")
+      .slice(0, 500),
+    ...(isCod && amountDue > 0 ? { codAmount: amountDue, codMethod: "cash" as const } : {}),
+  };
+}
+
+function safeStorageXError(error: any): string {
+  if (error instanceof StorageXShipApiError) return `${error.code} (HTTP ${error.status})`;
+  return String(error?.message || "تعذر إنشاء شحنة Storage X Ship").slice(0, 240);
+}
+
+function enqueueStorageXShipment(order: any) {
+  const orderId = String(order?.id || order?._id || "");
+  if (!orderId) return;
+
+  enqueueJob("storage-x-ship-create", async () => {
+    const freshOrder: any = await storage.getOrder(orderId);
+    if (!freshOrder) throw new Error(`[StorageX] Order ${orderId} no longer exists`);
+    if (freshOrder.storageXShipTrackingNumber &&
+        !["failed", "cancelled"].includes(String(freshOrder.storageXShipStatus || ""))) return;
+    try {
+      const settings = await storage.getStoreSettings();
+      const readiness = storageXSettingsReadiness(settings);
+      if (!readiness.checkoutReady) throw new Error("[StorageX] API, sender location, or package weight is not configured");
+
+      const shipment = await createStorageXShipment(storageXCreateInput(freshOrder, settings));
+      await storage.updateOrder(orderId, {
+        storageXShipShipmentId: shipment.shipmentId || null,
+        storageXShipTrackingNumber: shipment.trackingNumber,
+        storageXShipStatus: shipment.status,
+        storageXShipCustody: null,
+        storageXShipCreatedAt: new Date(),
+        storageXShipError: null,
+        storageXShipLabelUrl: null,
+        shippingProvider: "Storage X Ship",
+        trackingNumber: shipment.trackingNumber,
+      } as any);
+      console.log(`[StorageX] order ${orderId} → ${shipment.trackingNumber}${shipment.duplicate ? " (idempotent retry)" : ""}`);
+    } catch (error: any) {
+      const safeError = safeStorageXError(error);
+      await storage.updateOrder(orderId, {
+        storageXShipStatus: "failed",
+        storageXShipError: safeError,
+      } as any);
+      console.error(`[StorageX] shipment creation failed for ${orderId}: ${safeError}`);
+      const retryable = error instanceof StorageXShipApiError
+        ? error.status === 429 || error.status >= 500
+        : /timeout|network error/i.test(String(error?.message || ""));
+      if (retryable) throw error;
+    }
+  }, { critical: false, maxAttempts: 3 });
+}
+
+function enqueueMapitShipment(order: any) {
+  const orderId = String(order?.id || order?._id || "");
+  if (!orderId) return;
+
+  enqueueJob("paid-mapit-create", async () => {
+    try {
+      const freshOrder: any = await storage.getOrder(orderId);
+      if (!freshOrder) throw new Error("الطلب غير موجود عند تجهيز شحنة Mapit");
+      if (freshOrder.mapitOrderNumber && freshOrder.mapitStatus !== "failed") return;
+      const settings = await storage.getStoreSettings().catch(() => null);
+      const result = await createMapitOrder(freshOrder, {
+        warehouseId: (settings as any)?.mapitWarehouseId || "",
+        pickupPointId: (settings as any)?.mapitPickupPointId || "",
+      });
+      await storage.updateOrder(orderId, {
+        mapitOrderNumber: result.orderNumber,
+        mapitStatus: result.status,
+        mapitCreatedAt: new Date(),
+        mapitError: null,
+        mapitTrackingUrl: result.trackingUrl,
+        shippingProvider: "Mapit",
+        trackingNumber: result.orderNumber,
+      } as any);
+      console.log(`[Mapit] order ${orderId} → shipment #${result.orderNumber}`);
+    } catch (err: any) {
+      await storage.updateOrder(orderId, {
+        mapitStatus: "failed",
+        mapitError: err?.message || "Unknown error",
+      } as any);
+      console.error(`[Mapit] create failed for ${orderId}:`, err?.message);
+      throw err;
+    }
+  }, { critical: false, maxAttempts: 3 });
+}
+
+function enqueueShipoxShipment(order: any) {
+  const orderId = String(order?.id || order?._id || "");
+  if (!orderId) return;
+
+  enqueueJob("paid-shipox-create", async () => {
+    try {
+      const freshOrder: any = await storage.getOrder(orderId);
+      if (!freshOrder) throw new Error("الطلب غير موجود عند تجهيز شحنة Shipox");
+      const existingShipoxId = freshOrder.shipoxOrderNumber
+        || freshOrder.shipoxTrackingNumber
+        || freshOrder.shipoxOrderId;
+      if (existingShipoxId && freshOrder.shipoxStatus !== "failed") return;
+
+      const settings = await storage.getStoreSettings().catch(() => null);
+      const shipoxResult = await createShipoxOrder(freshOrder, "STANDARD", {
+        senderName: (settings as any)?.storeName || "Myla",
+        senderPhone: (settings as any)?.storePhone || "",
+        senderAddress: (settings as any)?.storeAddress || "",
+        senderCity: (settings as any)?.storeCity || "",
+      });
+      await storage.updateOrder(orderId, {
+        shipoxOrderId: shipoxResult.orderId,
+        shipoxOrderNumber: shipoxResult.orderNumber,
+        shipoxTrackingNumber: shipoxResult.trackingNumber,
+        shipoxStatus: "created",
+        shipoxServiceType: "STANDARD",
+        shipoxCreatedAt: new Date(),
+        shipoxError: null,
+        shippingProvider: "Storage Station - 3rd Mile",
+        trackingNumber: shipoxResult.trackingNumber,
+      } as any);
+      console.log(`[Shipox] order ${orderId} → shipment #${shipoxResult.orderNumber} (${shipoxResult.trackingNumber})`);
+    } catch (err: any) {
+      await storage.updateOrder(orderId, {
+        shipoxStatus: "failed",
+        shipoxError: err?.message || "Unknown error",
+      } as any);
+      console.error(`[Shipox] create failed for ${orderId}:`, err?.message);
+      throw err;
+    }
+  }, { critical: false, maxAttempts: 3 });
+}
+
+function enqueueSelectedDeliveryShipment(order: any) {
+  if (order?.shippingMethod !== "delivery") return;
+  switch (String(order?.shippingProvider || "").toLowerCase()) {
+    case "storage-x-ship":
+      enqueueStorageXShipment(order);
+      break;
+    case "shipox":
+      enqueueShipoxShipment(order);
+      break;
+    case "mapit":
+      enqueueMapitShipment(order);
+      break;
+  }
+}
+
+function enqueueCustomerWhatsApp(order: any, message: string, jobName: string, attachInvoice = false) {
+  enqueueJob(jobName, async () => {
+    const waStatus = getWaStatus().state;
+    if (waStatus !== "connected") {
+      console.warn(`[WhatsApp] ${jobName} skipped for order ${String(order?.id || "").slice(-8)}: session ${waStatus}`);
+      return;
+    }
+
+    const customer = await storage.getUser(String(order?.userId || "")).catch(() => null);
+    const phone = String(
+      order?.customerPhone ||
+      order?.shippingAddress?.phone ||
+      customer?.phone ||
+      "",
+    ).trim();
+    if (!phone) {
+      console.warn(`[WhatsApp] ${jobName} skipped for order ${String(order?.id || "").slice(-8)}: no customer phone`);
+      return;
+    }
+
+    if (attachInvoice && order?.paymentStatus === "paid") {
+      try {
+        const invoiceHtml = await buildInvoiceHtml({
+          order,
+          customer: customer
+            ? { name: customer.name, email: customer.email, phone: customer.phone }
+            : undefined,
+        });
+        const invoicePdf = await renderInvoiceHtmlToPdf(invoiceHtml);
+        const orderRef = String(order.id || "").slice(-8).toUpperCase();
+        await sendWhatsAppDocument(phone, invoicePdf, `فاتورة-${orderRef}.pdf`, message);
+        return;
+      } catch (error: any) {
+        console.warn(`[WhatsApp] invoice attachment failed for order ${String(order?.id || "").slice(-8)}: ${error?.message || "unknown error"}`);
+      }
+    }
+    await sendWhatsAppNotification(phone, message);
+  }, { critical: false, maxAttempts: 1 });
+}
 
 function mapitStatusToLocalStatus(status: string): string | null {
   switch (status) {
@@ -299,6 +612,9 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
         { type: "success", link: "/admin", icon: "💳", webPush: true }
       );
     });
+    enqueueJob("paid-notify-admins-whatsapp", async () => {
+      await sendWhatsAppOrderAlert(order, true);
+    }, { critical: false, maxAttempts: 3 });
 
     enqueueJob("paid-admin-email-notification", async () => {
       const [customer, settings] = await Promise.all([
@@ -346,6 +662,12 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
         { type: "success", link: "/orders", icon: "✅", webPush: true }
       );
     });
+    enqueueCustomerWhatsApp(
+      order,
+      `✅ تم تأكيد الدفع لطلبك #${shortRef} بقيمة ${Number(order.total || 0).toFixed(2)} ر.س. يمكنك متابعة الطلب وحفظ الفاتورة PDF من صفحة «طلباتي».`,
+      "paid-notify-customer-whatsapp",
+      true,
+    );
 
     enqueueJob("paid-email-confirmation", async () => {
       const customer = await storage.getUser(order.userId);
@@ -414,6 +736,11 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
     if (order.shippingMethod === "delivery" && isStorageStationConfigured()) {
       enqueueJob("paid-storage-station-push", async () => {
         try {
+          const freshOrder: any = await storage.getOrder(String(order.id || orderId));
+          if (freshOrder?.storageStationOrderId) {
+            console.log(`[StorageStation] order ${orderId} already has WC#${freshOrder.storageStationOrderId} — skipping`);
+            return;
+          }
           const ssResult = await pushOrderToStorageStation(order);
           await storage.updateOrder(String(order.id || orderId), {
             storageStationOrderId: ssResult.wcOrderId,
@@ -434,76 +761,9 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
       }, { critical: true, maxAttempts: 5 });
     }
 
-    // ── Mapit: create courier shipment first when configured ──────────────────
-    if (order.shippingMethod === "delivery" && isMapitConfigured()) {
-      enqueueJob("paid-mapit-create", async () => {
-        try {
-          // Idempotency: skip if shipment was already successfully created
-          const fresh: any = await storage.getOrder(String(order.id || orderId));
-          if (fresh?.mapitOrderNumber && fresh?.mapitStatus !== "failed") {
-            console.log(`[Mapit] order ${orderId} already has shipment #${fresh.mapitOrderNumber} — skipping`);
-            return;
-          }
-          const mapitSettings = await storage.getStoreSettings().catch(() => null);
-          const result = await createMapitOrder(order, {
-            warehouseId:   (mapitSettings as any)?.mapitWarehouseId   || "",
-            pickupPointId: (mapitSettings as any)?.mapitPickupPointId || "",
-          });
-          await storage.updateOrder(String(order.id || orderId), {
-            mapitOrderNumber: result.orderNumber,
-            mapitStatus: result.status,
-            mapitCreatedAt: new Date(),
-            mapitError: null,
-            mapitTrackingUrl: result.trackingUrl,
-            shippingProvider: "Mapit",
-            trackingNumber: result.orderNumber,
-          } as any);
-          console.log(`[Mapit] order ${orderId} → shipment #${result.orderNumber}`);
-        } catch (err: any) {
-          await storage.updateOrder(String(order.id || orderId), {
-            mapitStatus: "failed",
-            mapitError: err?.message || "Unknown error",
-          } as any);
-          console.error(`[Mapit] create failed for ${orderId}:`, err?.message);
-          throw err;
-        }
-      }, { critical: false, maxAttempts: 3 });
-    // ── Shipox / 3rd Mile fallback (only when Mapit is not configured) ─────────
-    } else if (order.shippingMethod === "delivery" && isShipoxConfigured()) {
-      enqueueJob("paid-shipox-create", async () => {
-        try {
-          const settings = await storage.getStoreSettings().catch(() => null);
-          const senderName    = (settings as any)?.storeName    || "Myla";
-          const senderPhone   = (settings as any)?.storePhone   || "0500000000";
-          const senderAddress = (settings as any)?.storeAddress || "الرياض";
-
-          const shipoxResult = await createShipoxOrder(order, "STANDARD", {
-            senderName, senderPhone, senderAddress, senderCity: "Riyadh",
-          });
-
-          await storage.updateOrder(String(order.id || orderId), {
-            shipoxOrderId:       shipoxResult.orderId,
-            shipoxOrderNumber:   shipoxResult.orderNumber,
-            shipoxTrackingNumber: shipoxResult.trackingNumber,
-            shipoxStatus:        "created",
-            shipoxServiceType:   "STANDARD",
-            shipoxCreatedAt:     new Date(),
-            shipoxError:         null,
-            shippingProvider:    "Storage Station - 3rd Mile",
-            trackingNumber:      shipoxResult.trackingNumber,
-          } as any);
-
-          console.log(`[Shipox] order ${orderId} → shipment #${shipoxResult.orderNumber} (${shipoxResult.trackingNumber})`);
-        } catch (err: any) {
-          await storage.updateOrder(String(order.id || orderId), {
-            shipoxStatus: "failed",
-            shipoxError:  err?.message || "Unknown error",
-          } as any);
-          console.error(`[Shipox] create failed for ${orderId}:`, err?.message);
-          throw err;
-        }
-      }, { critical: false, maxAttempts: 3 });
-    }
+    // Create exactly the carrier selected at checkout. This shared dispatcher
+    // is also called at order creation for COD/wallet orders.
+    enqueueSelectedDeliveryShipment(order);
 
     // ── AI Self-Learning: track purchased products to improve recommendations ──
     enqueueJob("paid-ai-track", async () => {
@@ -518,6 +778,91 @@ async function dispatchOrderPaidSideEffects(orderId: string) {
   } catch (e: any) {
     console.error(`[PaidSideEffects] error for ${orderId}:`, e?.message);
   }
+}
+
+class CouponApplyError extends Error {
+  statusCode = 400;
+}
+
+async function evaluateCustomerCoupon(
+  rawCode: unknown,
+  userId: string,
+  subtotalInput: unknown,
+  itemsInput: unknown,
+) {
+  const code = String(rawCode || "").trim();
+  if (!code || code.length > 80) throw new CouponApplyError("أدخل كود خصم صحيحًا");
+
+  const coupon = await storage.getCouponByCode(code);
+  if (!coupon) throw new CouponApplyError("الكود غير صالح أو منتهي أو غير نشط");
+  if (coupon.type === "cashback") {
+    throw new CouponApplyError("هذا كود كاش باك، واستخدام الكاش باك في الدفع غير مفعّل حاليًا");
+  }
+
+  const subtotal = Number(subtotalInput);
+  if (!Number.isFinite(subtotal) || subtotal < 0) {
+    throw new CouponApplyError("إجمالي المنتجات غير صحيح");
+  }
+  if (coupon.minOrderAmount && subtotal < Number(coupon.minOrderAmount)) {
+    throw new CouponApplyError(`الحد الأدنى لاستخدام الكود هو ${coupon.minOrderAmount} ر.س`);
+  }
+
+  const priorOrders = await storage.getOrdersByUser(userId);
+  const priorUses = priorOrders.filter((order: any) =>
+    String(order.couponCode || "").trim().toUpperCase() === code.toUpperCase()
+  ).length;
+  const perUserLimit = Number(coupon.perUserLimit ?? 1);
+  if (perUserLimit > 0 && priorUses >= perUserLimit) {
+    throw new CouponApplyError("وصل هذا الحساب إلى الحد المسموح لاستخدام الكود");
+  }
+
+  const items = Array.isArray(itemsInput) ? itemsInput as any[] : [];
+  if (items.length === 0) throw new CouponApplyError("السلة فارغة");
+  const targetProductIds = (coupon.targetProductIds || []).map(String);
+  const targetCategoryIds = (coupon.targetCategoryIds || []).map(String);
+  let eligibleSubtotal = 0;
+
+  for (const item of items) {
+    const quantity = Number(item.quantity);
+    const price = Number(item.price);
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price < 0) {
+      throw new CouponApplyError("بيانات المنتجات في السلة غير صحيحة");
+    }
+
+    let eligible = targetProductIds.length === 0 && targetCategoryIds.length === 0;
+    const productId = String(item.productId || "");
+    if (targetProductIds.includes(productId)) eligible = true;
+    if (!eligible && targetCategoryIds.length > 0 && productId) {
+      const product: any = await storage.getProduct(productId).catch(() => undefined);
+      eligible = !!product && targetCategoryIds.includes(String(product.categoryId || ""));
+    }
+    if (eligible) eligibleSubtotal += price * quantity;
+  }
+
+  if (eligibleSubtotal <= 0) {
+    throw new CouponApplyError("هذا الكود لا ينطبق على المنتجات الموجودة في السلة");
+  }
+
+  const value = Number(coupon.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new CouponApplyError("قيمة كود الخصم غير صحيحة");
+  }
+  let discountAmount = 0;
+  if (coupon.type === "percentage") {
+    if (value > 100) throw new CouponApplyError("نسبة كود الخصم غير صحيحة");
+    discountAmount = eligibleSubtotal * value / 100;
+  } else if (coupon.type === "fixed") {
+    discountAmount = Math.min(eligibleSubtotal, value);
+  } else {
+    throw new CouponApplyError("نوع كود الخصم غير مدعوم");
+  }
+
+  return {
+    coupon,
+    eligibleSubtotal: Number(eligibleSubtotal.toFixed(2)),
+    discountAmount: Number(discountAmount.toFixed(2)),
+    cashbackAmount: 0,
+  };
 }
 
 export async function registerRoutes(
@@ -1466,9 +1811,9 @@ ${allUrls.map(u => `  <url>
         ...orderAny,
         tracking: {
           provider: orderAny.shippingProvider || orderAny.shippingCompany || null,
-          number: orderAny.trackingNumber || null,
+          number: orderAny.storageXShipTrackingNumber || orderAny.trackingNumber || null,
           url: orderAny.mapitTrackingUrl || null,
-          status: orderAny.mapitStatus || orderAny.shipoxStatus || null,
+          status: orderAny.storageXShipStatus || orderAny.mapitStatus || orderAny.shipoxStatus || null,
           history: Array.isArray(orderAny.statusHistory) ? orderAny.statusHistory : [],
         },
       });
@@ -1510,6 +1855,69 @@ ${allUrls.map(u => `  <url>
         return res.status(400).json({ message: "بيانات الطلب غير مكتملة أو غير صحيحة", details: parsed.error.issues });
       }
 
+      const actor = req.user as any;
+      const staffRoles = [
+        "admin", "assistant_manager", "cashier", "support", "tech_support",
+        "accountant", "legal_consultant", "employee", "branch_manager", "branch_assistant",
+      ];
+      const isCustomerCheckout = !staffRoles.includes(String(actor?.role || ""));
+      let couponEvaluation: any = null;
+      if (isCustomerCheckout) {
+        if (String(parsed.data.userId) !== String(actor?.id || "")) {
+          return res.status(403).json({ message: "لا يمكن إنشاء طلب لحساب مستخدم آخر" });
+        }
+        if (parsed.data.type !== "online") {
+          return res.status(403).json({ message: "نوع الطلب غير مسموح من واجهة المتجر" });
+        }
+
+        const settings = await storage.getStoreSettings();
+        const methods = (settings as any)?.paymentMethods || {};
+        if (parsed.data.paymentMethod === "tap") {
+          if (methods.tap !== true || !isPaymobConfigured()) {
+            return res.status(503).json({ message: "الدفع بالبطاقة غير متاح حتى تكتمل إعدادات Paymob" });
+          }
+        } else if (parsed.data.paymentMethod === "cod") {
+          if (methods.cod !== true) {
+            return res.status(503).json({ message: "الدفع عند الاستلام غير مفعّل حاليًا" });
+          }
+        } else if (parsed.data.paymentMethod === "wallet") {
+          if (methods.wallet === false) {
+            return res.status(503).json({ message: "الدفع بالمحفظة غير مفعّل حاليًا" });
+          }
+        } else {
+          return res.status(400).json({ message: "طريقة الدفع غير مدعومة في إتمام الطلب" });
+        }
+
+        const submittedDiscount = Math.max(0, Number(parsed.data.discountAmount) || 0);
+        const couponCode = String(parsed.data.couponCode || "").trim();
+        if (couponCode) {
+          try {
+            couponEvaluation = await evaluateCustomerCoupon(
+              couponCode,
+              String(actor.id),
+              parsed.data.subtotal,
+              parsed.data.items,
+            );
+          } catch (err: any) {
+            return res.status(err?.statusCode || 400).json({
+              message: err?.message || "تعذر التحقق من كود الخصم",
+            });
+          }
+          parsed.data.couponCode = couponEvaluation.coupon.code;
+          parsed.data.discountAmount = couponEvaluation.discountAmount.toFixed(2);
+          parsed.data.total = Math.max(
+            0,
+            Number(parsed.data.total) + submittedDiscount - couponEvaluation.discountAmount,
+          ).toFixed(2);
+        } else {
+          // Do not accept a discount amount supplied by the browser without a valid coupon.
+          parsed.data.discountAmount = "0";
+          parsed.data.couponCode = undefined;
+          parsed.data.total = Math.max(0, Number(parsed.data.total) + submittedDiscount).toFixed(2);
+        }
+        (parsed.data as any).cashbackAmount = "0";
+      }
+
       // ── Server-trusted bundle pricing: recompute savings from cart items
       let bundleApplications: any[] = [];
       try {
@@ -1533,48 +1941,182 @@ ${allUrls.map(u => `  <url>
         console.error("[API] bundle calc on order failed:", e?.message);
       }
 
+      // Re-price Storage X at the server boundary. The browser quote is only a
+      // preview; the stored shipping amount and COD amount come from this quote.
+      if (parsed.data.shippingProvider === "storage-x-ship") {
+        if (parsed.data.shippingMethod !== "delivery") {
+          return res.status(400).json({ message: "Storage X Ship متاح لطلبات التوصيل فقط" });
+        }
+        const deliveryAddress: any = parsed.data.shippingAddress || {};
+        if (!isValidStorageXNationalAddress(deliveryAddress.nationalAddress)) {
+          return res.status(400).json({ message: "أدخل العنوان الوطني المختصر الصحيح لاستكمال الشحن" });
+        }
+        const settings = await storage.getStoreSettings();
+        const readiness = storageXSettingsReadiness(settings);
+        if (!readiness.checkoutReady) {
+          return res.status(503).json({ message: "خيار Storage X Ship غير مهيأ حالياً" });
+        }
+        const oldShippingCost = Number(parsed.data.shippingCost) || 0;
+        const merchandiseDue = Math.max(0, Number(parsed.data.total) - oldShippingCost);
+        const pieces = getShippingPieceCount(parsed.data.items || []);
+        const weightGrams = getShippingWeightGrams(pieces);
+        let quote: any;
+        try {
+          quote = await quoteStorageX({
+            recipientCity: String(deliveryAddress.city || ""),
+            pickupCity: settings.storageXPickupCity,
+            merchantRef: settings.storageXMerchantRef,
+            weightGrams,
+            codAmount: parsed.data.paymentMethod === "cod" ? merchandiseDue : 0,
+            codMethod: "cash",
+          });
+        } catch (error: any) {
+          console.warn("[StorageX] order quote rejected:", safeStorageXError(error));
+          return res.status(502).json({ message: "تعذر تأكيد سعر Storage X Ship. حاول مرة أخرى." });
+        }
+        if (quote?.serviceable !== true) {
+          return res.status(422).json({ message: "Storage X Ship لا يخدم مدينة التوصيل المحددة" });
+        }
+        const carrierQuoteCost = Number(quote.totalMinor) / 100;
+        const freeShippingThreshold = settings?.freeShippingEnabled !== false
+          ? Number(settings?.freeShippingThreshold) || 0
+          : 0;
+        const policyRate = calculateStorageStationRate({
+          city: String(deliveryAddress.city || ""),
+          pieces,
+          cashOnDelivery: ["cod", "cash"].includes(String(parsed.data.paymentMethod || "").toLowerCase()),
+          orderTotal: Number(parsed.data.subtotal) || merchandiseDue,
+          freeShippingThreshold,
+        });
+        if (Number.isFinite(carrierQuoteCost) && Math.abs(carrierQuoteCost - policyRate.cost) > 0.01) {
+          console.warn(
+            `[StorageX] partner quote differs from Storage Station tariff for ${String(deliveryAddress.city || "")}: ` +
+            `partner=${carrierQuoteCost.toFixed(2)} SAR, customerTariff=${policyRate.cost.toFixed(2)} SAR`,
+          );
+        }
+        parsed.data.shippingCost = policyRate.cost.toFixed(2);
+        parsed.data.total = (merchandiseDue + policyRate.cost).toFixed(2);
+        parsed.data.shippingCompany = "Storage X Ship";
+      }
+
+      if (parsed.data.shippingMethod === "delivery") {
+        const provider = String(parsed.data.shippingProvider || "manual").toLowerCase();
+        if (!["manual", "shipox", "mapit", "storage-x-ship"].includes(provider)) {
+          return res.status(400).json({ message: "شركة الشحن المحددة غير مدعومة" });
+        }
+        if (provider !== "storage-x-ship") {
+          const settings = await storage.getStoreSettings();
+          const previousShippingCost = Number(parsed.data.shippingCost) || 0;
+          const merchandiseAndTax = Math.max(0, Number(parsed.data.total) - previousShippingCost);
+          const itemSubtotal = Number(parsed.data.subtotal) || merchandiseAndTax;
+          const selectedCompany = provider === "manual" && parsed.data.shippingCompany
+            ? (await storage.getShippingCompanies()).find((company: any) =>
+                company.isActive !== false && String(company.name) === String(parsed.data.shippingCompany))
+            : undefined;
+
+          let authoritativeShippingCost: number;
+          if (selectedCompany) {
+            const threshold = Number((selectedCompany as any).freeShippingThreshold) || 0;
+            authoritativeShippingCost = threshold > 0 && itemSubtotal >= threshold
+              ? 0
+              : Math.max(0, Number(selectedCompany.price) || 0);
+          } else {
+            const threshold = Number((settings as any)?.freeShippingThreshold) || 0;
+            const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
+            const pieces = getShippingPieceCount(parsed.data.items || []);
+            const rate = await getShippingRateForCity(
+              String((parsed.data.shippingAddress as any)?.city || ""),
+              itemSubtotal,
+              freeEnabled ? threshold : 0,
+              pieces,
+              ["cod", "cash"].includes(String(parsed.data.paymentMethod || "").toLowerCase()),
+            );
+            authoritativeShippingCost = Number(rate.cost) || 0;
+          }
+
+          parsed.data.shippingCost = authoritativeShippingCost.toFixed(2);
+          parsed.data.total = (merchandiseAndTax + authoritativeShippingCost).toFixed(2);
+        }
+        if (provider === "shipox") {
+          const settings = await storage.getStoreSettings();
+          const readiness = shipoxSenderReadiness(settings);
+          if (!readiness.senderConfigured || !(await verifyShipoxConnection())) {
+            return res.status(503).json({ message: "Shipox غير جاهز: تحقق من اتصال الحساب وأكمل بيانات المرسل أولًا" });
+          }
+        }
+        if (provider === "mapit") {
+          if (!isMapitConfigured()) {
+            return res.status(503).json({ message: "Mapit غير مهيأ حاليًا" });
+          }
+          if (!Number.isFinite(Number(parsed.data.latitude)) || !Number.isFinite(Number(parsed.data.longitude))) {
+            return res.status(400).json({ message: "حدد موقع التوصيل لإرسال الإحداثيات المطلوبة إلى Mapit" });
+          }
+        }
+      }
+
+      let walletDebit: { userId: string; amount: number } | null = null;
       if (parsed.data.paymentMethod === "wallet" && parsed.data.userId) {
         const user = await storage.getUser(parsed.data.userId);
-        if (user) {
-          const balance = Number(user.walletBalance || 0);
-          const orderTotal = Number(parsed.data.total);
-          if (balance < orderTotal) return res.status(400).json({ message: "رصيد المحفظة غير كافٍ" });
-          await storage.updateUserWallet(user.id, (balance - orderTotal).toString());
-          await storage.createWalletTransaction({
-            userId: user.id,
-            amount: orderTotal,
-            type: "withdrawal",
-            description: `دفع طلب POS #${new Date().getTime()}`,
-          });
-        }
+        if (!user) return res.status(404).json({ message: "حساب المحفظة غير موجود" });
+        const balance = Number(user.walletBalance || 0);
+        const orderTotal = Number(parsed.data.total);
+        if (balance < orderTotal) return res.status(400).json({ message: "رصيد المحفظة غير كافٍ" });
+        await storage.updateUserWallet(user.id, (balance - orderTotal).toString());
+        walletDebit = { userId: user.id, amount: orderTotal };
       }
       const user = req.user as any;
       let order;
       try {
         order = await storage.createOrder({
           ...parsed.data,
+          ...(isCustomerCheckout ? {
+            userId: String(actor.id),
+            status: parsed.data.paymentMethod === "tap" ? "pending_payment" : "new",
+            paymentStatus: parsed.data.paymentMethod === "wallet" ? "paid" : "pending",
+          } : {}),
           type: parsed.data.type || "online",
           branchId: parsed.data.branchId || user.branchId,
           cashierId: parsed.data.cashierId || user.id,
         });
       } catch (e: any) {
-        if (e?.code === "OUT_OF_STOCK") {
-          // Refund the wallet if we already debited it above
-          if (parsed.data.paymentMethod === "wallet" && parsed.data.userId) {
-            try {
-              const u = await storage.getUser(parsed.data.userId);
-              if (u) {
-                const restored = (Number(u.walletBalance || 0) + Number(parsed.data.total)).toString();
-                await storage.updateUserWallet(u.id, restored);
-              }
-            } catch {}
+        if (walletDebit) {
+          try {
+            const latestUser = await storage.getUser(walletDebit.userId);
+            if (latestUser) {
+              await storage.updateUserWallet(
+                walletDebit.userId,
+                (Number(latestUser.walletBalance || 0) + walletDebit.amount).toString(),
+              );
+            }
+          } catch (refundError: any) {
+            console.error("[API] wallet refund after order failure failed:", refundError?.message);
           }
+          walletDebit = null;
+        }
+        if (e?.code === "OUT_OF_STOCK") {
           const msg = e.branchStock
             ? "هذا المنتج غير متوفر في الفرع المختار — يرجى اختيار فرع آخر أو التوصيل"
             : "نفدت كمية أحد المنتجات قبل إتمام الطلب";
           return res.status(409).json({ message: msg, variantSku: e.variantSku, code: "OUT_OF_STOCK", branchStock: !!e.branchStock });
         }
         throw e;
+      }
+
+      if (couponEvaluation?.coupon?.id) {
+        await storage.incrementCouponUsage(String(couponEvaluation.coupon.id)).catch((err: any) => {
+          console.error("[API] coupon usage count update failed:", err?.message);
+        });
+      }
+
+      if (walletDebit) {
+        await storage.createWalletTransaction({
+          userId: walletDebit.userId,
+          amount: walletDebit.amount,
+          type: "withdrawal",
+          description: `دفع طلب #${String(order.id).slice(-8).toUpperCase()}`,
+        }).catch((err: any) => {
+          console.error("[API] wallet transaction log failed:", err?.message);
+        });
       }
 
       // ── Track bundle offer usage (one increment per applied tier)
@@ -1597,6 +2139,14 @@ ${allUrls.map(u => `  <url>
         order.status === "pending_payment" &&
         GATEWAY_METHODS.includes(order.paymentMethod);
 
+      if (
+        !isAwaitingGatewayPayment &&
+        order.shippingMethod === "delivery" &&
+        (order.paymentStatus === "paid" || order.paymentMethod === "cod")
+      ) {
+        enqueueSelectedDeliveryShipment(order);
+      }
+
       if (!isAwaitingGatewayPayment) {
         enqueueJob("notify-admins-new-order", async () => {
           await fireNotifyAdmins(
@@ -1605,6 +2155,9 @@ ${allUrls.map(u => `  <url>
             { type: "info", link: "/admin", icon: "🛒", webPush: true }
           );
         });
+        enqueueJob("notify-admins-new-order-whatsapp", async () => {
+          await sendWhatsAppOrderAlert(order);
+        }, { critical: false, maxAttempts: 3 });
 
         enqueueJob("admin-email-new-order", async () => {
           const [customer, settings] = await Promise.all([
@@ -1652,6 +2205,12 @@ ${allUrls.map(u => `  <url>
             { type: "success", link: "/orders", icon: "✅", webPush: true }
           );
         });
+        enqueueCustomerWhatsApp(
+          order,
+          `🛍️ تم استلام طلبك #${order.id.slice(-6).toUpperCase()} بقيمة ${Number(order.total || 0).toFixed(2)} ر.س. يمكنك متابعة الطلب وحفظ الفاتورة PDF من صفحة «طلباتي».`,
+          "customer-order-received-whatsapp",
+          order.paymentStatus === "paid",
+        );
 
         enqueueJob("email-order-confirmation", async () => {
           const customer = await storage.getUser(order.userId);
@@ -1730,6 +2289,11 @@ ${allUrls.map(u => `  <url>
       if (!status) {
         return res.status(400).json({ message: "حالة الطلب غير معروفة أو غير مدعومة" });
       }
+      if (status === "cancelled") {
+        return res.status(409).json({
+          message: "استخدم إجراء «إلغاء الطلب» حتى تُطبّق سياسة الاسترداد والمخزون وتُراجع الشحنة المرتبطة.",
+        });
+      }
       const existingOrder: any = await storage.getOrder(req.params.id);
       if (!existingOrder) return res.status(404).json({ message: "الطلب غير موجود" });
       const currentStatus = normalizeOrderStatus(existingOrder.status);
@@ -1768,7 +2332,12 @@ ${allUrls.map(u => `  <url>
         cancelled: { title: "❌ تم إلغاء طلبك", body: `تم إلغاء طلبك #${order.id.slice(-6).toUpperCase()}.`, icon: "❌", type: "error" },
       };
       const label = statusLabels[status];
-      if (label) {
+      if (label && status !== currentStatus) {
+        enqueueCustomerWhatsApp(
+          order,
+          `${label.title}\n${label.body}\nيمكنك متابعة الطلب وحفظ الفاتورة PDF من صفحة «طلباتي».`,
+          "customer-order-status-whatsapp",
+        );
         try {
           await fireNotify(order.userId, label.title, label.body, {
             type: label.type, link: "/orders", icon: label.icon, webPush: true,
@@ -1884,6 +2453,11 @@ ${allUrls.map(u => `  <url>
       if (action === "confirm") {
         updatedOrder = await storage.updateOrderPaymentStatus(req.params.id, "paid");
         // updateOrderPaymentStatus already sets status = "processing" when paid
+        // Bank-transfer orders are intentionally not dispatched at creation time.
+        // Queue the selected carrier once the admin confirms payment.
+        if (order.paymentStatus !== "paid" && updatedOrder?.shippingMethod === "delivery") {
+          enqueueSelectedDeliveryShipment(updatedOrder);
+        }
         try {
           await fireNotify(
             order.userId,
@@ -1904,24 +2478,14 @@ ${allUrls.map(u => `  <url>
       } else {
         // reject → cancel order and mark payment failed
         await storage.updateOrderPaymentStatus(req.params.id, "failed");
-        updatedOrder = await storage.updateOrderStatus(req.params.id, "cancelled");
-        try {
-          await fireNotify(
-            order.userId,
-            "❌ تعذّر تأكيد الدفع",
-            `لم يتم التحقق من إيصال التحويل البنكي لطلبك #${order.id.slice(-6).toUpperCase()}. يرجى التواصل معنا.`,
-            { type: "error", link: "/orders", icon: "❌", webPush: true }
-          );
-          const customer = await storage.getUser(order.userId);
-          if (customer?.email) {
-            await sendOrderStatusEmail({
-              to: customer.email,
-              customerName: customer.name || "عزيزي العميل",
-              orderRef: order.id.slice(-8).toUpperCase(),
-              status: "cancelled",
-            });
-          }
-        } catch {}
+        const cancellation = await cancelOrder({
+          orderId: req.params.id,
+          reason: "لم يتم التحقق من الدفع",
+          initiatedBy: "admin",
+          actorName: user.name,
+          bypassPolicy: true,
+        });
+        updatedOrder = cancellation.order;
       }
 
       res.json(updatedOrder);
@@ -2169,11 +2733,15 @@ ${allUrls.map(u => `  <url>
 
   // ─── Admin Email Testing ────────────────────────────────────────────────
   app.get("/api/admin/email/status", checkPermission("settings.manage"), (_req, res) => {
+    const qiroxConfigured = isQiroxConfigured("email");
+    const smtpConfigured = !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS);
     res.json({
-      configured: !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS),
-      sender: process.env.CPANEL_SMTP_USER || process.env.INBOX_MAIL_EMAIL || "myla@qirox.online",
+      configured: qiroxConfigured || smtpConfigured,
+      sender: qiroxConfigured
+        ? "QIROX project sender"
+        : process.env.CPANEL_SMTP_USER || process.env.INBOX_MAIL_EMAIL || "myla@qirox.online",
       senderName: "Myla | ميلا",
-      provider: "cPanel SMTP",
+      provider: qiroxConfigured ? "QIROX" : smtpConfigured ? "cPanel SMTP" : "غير مهيأ",
     });
   });
 
@@ -2226,11 +2794,9 @@ ${allUrls.map(u => `  <url>
       if (!to || !/^\S+@\S+\.\S+$/.test(to)) {
         return res.status(400).json({ success: false, message: "البريد الإلكتروني غير صالح" });
       }
-      // Email service uses cPanel SMTP only (server/email.ts).
-      // The old check rejected valid cPanel configuration before attempting
-      // the actual send.
-      if (!process.env.INBOX_MAIL_PASSWORD && !process.env.CPANEL_SMTP_PASS && !process.env.SMTP_PASS) {
-        return res.status(503).json({ success: false, message: "كلمة مرور SMTP غير مُعدة في متغيّرات البيئة" });
+      const smtpConfigured = !!(process.env.INBOX_MAIL_PASSWORD || process.env.CPANEL_SMTP_PASS || process.env.SMTP_PASS);
+      if (!isQiroxConfigured("email") && !smtpConfigured) {
+        return res.status(503).json({ success: false, message: "لم يتم إعداد مزود البريد. أضف مفتاح QIROX أو بيانات SMTP." });
       }
 
       const customerName = name || "عميل تجريبي";
@@ -2993,6 +3559,32 @@ ${allUrls.map(u => `  <url>
     }
   });
 
+  app.post("/api/coupons/validate", couponLimiter, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as any;
+      const result = await evaluateCustomerCoupon(
+        req.body?.code,
+        String(user.id),
+        req.body?.subtotal,
+        req.body?.items,
+      );
+      res.json({
+        coupon: {
+          code: result.coupon.code,
+          type: result.coupon.type,
+          value: result.coupon.value,
+          minOrderAmount: result.coupon.minOrderAmount,
+        },
+        eligibleSubtotal: result.eligibleSubtotal,
+        discountAmount: result.discountAmount,
+        cashbackAmount: result.cashbackAmount,
+      });
+    } catch (err: any) {
+      res.status(err?.statusCode || 400).json({ message: err?.message || "تعذر التحقق من الكود" });
+    }
+  });
+
   app.post("/api/coupons", checkPermission("settings.manage"), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -3508,30 +4100,65 @@ ${allUrls.map(u => `  <url>
     }
   });
 
-  // ── Shipping rate (fixed cost from store settings) ───────────────────────────
+  // ── Shipping rate (Storage Station zones with store-settings fallback) ───────
   app.get("/api/shipping/rate", async (req, res) => {
     try {
       const orderTotal = parseFloat(String(req.query.total || "0")) || 0;
+      const city = String(req.query.city || "").trim();
+      if (!city) return res.status(400).json({ message: "حدد مدينة التوصيل أولاً" });
+      const pieces = Number(req.query.pieces ?? 1);
+      if (!Number.isSafeInteger(pieces) || pieces < 1 || pieces > 1000) {
+        return res.status(400).json({ message: "عدد القطع غير صالح" });
+      }
 
       const settings = await storage.getStoreSettings();
-      const threshold   = (settings as any)?.freeShippingThreshold || 0;
+      const threshold   = Number((settings as any)?.freeShippingThreshold) || 0;
       const freeEnabled = (settings as any)?.freeShippingEnabled !== false;
-      const fixedCost   = Number((settings as any)?.fixedShippingCost ?? 30);
 
-      const isFree = freeEnabled && threshold > 0 && orderTotal >= threshold;
-      if (isFree) {
-        return res.json({ cost: 0, zoneName: "شحن مجاني", methodTitle: "شحن مجاني", isFree: true });
-      }
-      res.json({ cost: fixedCost, zoneName: "توصيل", methodTitle: "توصيل", isFree: false });
+      const rate = await getShippingRateForCity(
+        city,
+        orderTotal,
+        freeEnabled ? threshold : 0,
+        pieces,
+        String(req.query.cashOnDelivery || "").toLowerCase() === "true",
+      );
+      res.json(rate);
     } catch (err: any) {
       console.error("[API] shipping/rate error:", err?.message);
-      res.json({ cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false });
+      res.json(calculateStorageStationRate({
+        city: String(req.query.city || ""),
+        pieces: Number(req.query.pieces) || 1,
+        cashOnDelivery: String(req.query.cashOnDelivery || "").toLowerCase() === "true",
+        orderTotal: Number(req.query.total) || 0,
+      }));
     }
   });
 
   // Public: Mapit availability status (used by checkout)
   app.get("/api/mapit/status", (_req, res) => {
     res.json({ configured: isMapitConfigured() });
+  });
+
+  app.get("/api/shipox/status", async (_req, res) => {
+    try {
+      const settings = await storage.getStoreSettings();
+      const readiness = shipoxSenderReadiness(settings);
+      const connectionReady = readiness.senderConfigured
+        ? await verifyShipoxConnection()
+        : false;
+      res.json({
+        ...readiness,
+        connectionReady,
+        checkoutReady: readiness.senderConfigured && connectionReady,
+      });
+    } catch {
+      res.json({
+        configured: isShipoxConfigured(),
+        senderConfigured: false,
+        connectionReady: false,
+        checkoutReady: false,
+      });
+    }
   });
 
   // Shipping Companies
@@ -5460,11 +6087,236 @@ ${allUrls.map(u => `  <url>
 
   // ─── Store Settings ──────────────────────────────────────────
 
+  // Publicly safe Storage X status for checkout (never returns the API key or pickup details).
+  app.get("/api/storage-x-ship/status", async (_req, res) => {
+    try {
+      const settings = await storage.getStoreSettings();
+      res.json({
+        configured: isStorageXShipConfigured(),
+        ...storageXSettingsReadiness(settings),
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message || "تعذر قراءة حالة الشحن" });
+    }
+  });
+
+  app.post("/api/storage-x-ship/quote", storageXQuoteLimiter, async (req, res) => {
+    try {
+      if (!isStorageXShipConfigured()) {
+        return res.status(503).json({ serviceable: false, code: "not_configured" });
+      }
+      const settings = await storage.getStoreSettings();
+      const readiness = storageXSettingsReadiness(settings);
+      if (!readiness.checkoutReady) {
+        return res.status(503).json({ serviceable: false, code: "sender_not_configured" });
+      }
+      const city = String(req.body?.city || "").trim();
+      if (!city) return res.status(400).json({ serviceable: false, code: "city_required" });
+      const pieces = Number(req.body?.pieces ?? 1);
+      if (!Number.isSafeInteger(pieces) || pieces < 1 || pieces > 1000) {
+        return res.status(400).json({ serviceable: false, code: "invalid_piece_count" });
+      }
+      const rawCodAmount = Number(req.body?.codAmount || 0);
+      if (!Number.isFinite(rawCodAmount) || rawCodAmount < 0 || rawCodAmount > 1_000_000) {
+        return res.status(400).json({ serviceable: false, code: "invalid_cod_amount" });
+      }
+
+      const result = await quoteStorageX({
+        recipientCity: city,
+        pickupCity: settings.storageXPickupCity,
+        merchantRef: settings.storageXMerchantRef,
+        weightGrams: getShippingWeightGrams(pieces),
+        codAmount: rawCodAmount,
+        codMethod: req.body?.codMethod === "pos" ? "pos" : "cash",
+      });
+      const cashOnDelivery = req.body?.cashOnDelivery === true || rawCodAmount > 0;
+      const freeShippingThreshold = settings?.freeShippingEnabled !== false
+        ? Number(settings?.freeShippingThreshold) || 0
+        : 0;
+      const policyRate = calculateStorageStationRate({
+        city,
+        pieces,
+        cashOnDelivery,
+        orderTotal: Number(req.body?.orderTotal) || 0,
+        freeShippingThreshold,
+      });
+      const carrierQuoteCost = Number(result?.totalMinor) / 100;
+      if (result?.serviceable === true &&
+          Number.isFinite(carrierQuoteCost) &&
+          Math.abs(carrierQuoteCost - policyRate.cost) > 0.01) {
+        console.warn(
+          `[StorageX] partner quote differs from Storage Station tariff for ${city}: ` +
+          `partner=${carrierQuoteCost.toFixed(2)} SAR, customerTariff=${policyRate.cost.toFixed(2)} SAR`,
+        );
+      }
+      res.json({
+        serviceable: result?.serviceable === true,
+        cost: result?.serviceable === true ? policyRate.cost : null,
+        pieces,
+        weightGrams: getShippingWeightGrams(pieces),
+        baseCost: policyRate.baseCost,
+        extraWeightCost: policyRate.extraWeightCost,
+        codFee: policyRate.codFee,
+        zoneName: policyRate.zoneName,
+      });
+    } catch (err: any) {
+      const status = err instanceof StorageXShipApiError && err.status >= 400 && err.status < 500 ? 422 : 502;
+      res.status(status).json({
+        serviceable: false,
+        code: err instanceof StorageXShipApiError ? err.code : "quote_failed",
+        message: err instanceof StorageXShipApiError ? err.message : "تعذر حساب تكلفة الشحن حالياً",
+      });
+    }
+  });
+
+  app.get("/api/storage-x-ship/coverage", storageXQuoteLimiter, async (req, res) => {
+    try {
+      if (!isStorageXShipConfigured()) return res.status(503).json({ message: "الشحن غير مهيأ" });
+      res.json(await getStorageXCoverage(typeof req.query.city === "string" ? req.query.city : undefined));
+    } catch (err: any) {
+      res.status(502).json({ message: err instanceof StorageXShipApiError ? err.message : "تعذر جلب المدن المدعومة" });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    const settings: any = await storage.getStoreSettings();
+    res.json({
+      pickupName: settings?.storageXPickupName || "",
+      pickupPhone: settings?.storageXPickupPhone || "",
+      pickupCity: settings?.storageXPickupCity || "",
+      pickupAddressLine: settings?.storageXPickupAddressLine || "",
+      pickupNationalAddress: settings?.storageXPickupNationalAddress || "",
+      merchantRef: settings?.storageXMerchantRef || "",
+    });
+  });
+
+  app.patch("/api/admin/storage-x-ship/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    try {
+      const body = req.body || {};
+      const stringFields: Record<string, string> = {
+        pickupName: "storageXPickupName",
+        pickupPhone: "storageXPickupPhone",
+        pickupCity: "storageXPickupCity",
+        pickupAddressLine: "storageXPickupAddressLine",
+        pickupNationalAddress: "storageXPickupNationalAddress",
+        merchantRef: "storageXMerchantRef",
+      };
+      const update: Record<string, any> = {};
+      for (const [inputKey, settingKey] of Object.entries(stringFields)) {
+        if (body[inputKey] !== undefined) {
+          if (typeof body[inputKey] !== "string" || body[inputKey].length > 300) {
+            return res.status(400).json({ message: `حقل ${inputKey} غير صالح` });
+          }
+          update[settingKey] = body[inputKey].trim();
+        }
+      }
+      if (update.storageXPickupNationalAddress &&
+          !isValidStorageXNationalAddress(update.storageXPickupNationalAddress)) {
+        return res.status(400).json({ message: "العنوان الوطني للمرسل يجب أن يتكون من 4 أحرف و4 أرقام" });
+      }
+      if (update.storageXMerchantRef && !isValidStorageXMerchantRef(update.storageXMerchantRef)) {
+        return res.status(400).json({ message: "رمز merchantRef يجب أن يكون رمز ربط تاجر من Storage X بصيغة SXH-…" });
+      }
+      if (!Object.keys(update).length) return res.status(400).json({ message: "لا توجد إعدادات للتحديث" });
+      await storage.updateStoreSettings(update);
+      res.json({
+        pickupName: update.storageXPickupName ?? body.pickupName,
+        pickupPhone: update.storageXPickupPhone ?? body.pickupPhone,
+        pickupCity: update.storageXPickupCity ?? body.pickupCity,
+        pickupAddressLine: update.storageXPickupAddressLine ?? body.pickupAddressLine,
+        pickupNationalAddress: update.storageXPickupNationalAddress ?? body.pickupNationalAddress,
+        merchantRef: update.storageXMerchantRef ?? body.merchantRef,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message || "تعذر حفظ إعدادات الشحن" });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    if (!isStorageXShipConfigured()) {
+      return res.status(503).json({ success: false, message: "مفتاح Storage X Ship غير مضاف" });
+    }
+    try {
+      const settings: any = await storage.getStoreSettings();
+      const readiness = storageXSettingsReadiness(settings);
+      if (!readiness.pickupConfigured || !readiness.merchantRefConfigured) {
+        return res.status(400).json({
+          success: false,
+          message: "أكمل عنوان الاستلام واحفظ merchantRef قبل اختبار ربط حساب التاجر",
+        });
+      }
+      await getStorageXStatuses();
+      const quote = await quoteStorageX({
+        recipientCity: String(settings.storageXPickupCity),
+        pickupCity: String(settings.storageXPickupCity),
+        merchantRef: String(settings.storageXMerchantRef),
+        weightGrams: getShippingWeightGrams(1),
+      });
+      res.json({
+        success: true,
+        message: quote?.serviceable
+          ? "الاتصال ورمز merchantRef يعملان؛ اختبار السعر لم ينشئ شحنة"
+          : "الاتصال ورمز merchantRef مقبولان، لكن Storage X لا يخدم مدينة الاستلام",
+      });
+    } catch (err: any) {
+      res.status(502).json({
+        success: false,
+        message: err instanceof StorageXShipApiError ? `${err.code} (HTTP ${err.status})` : "تعذر الاتصال بـ Storage X Ship",
+      });
+    }
+  });
+
+  app.post("/api/admin/storage-x-ship/lookup", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    const trackingNumber = String(req.body?.trackingNumber || "").trim();
+    if (!trackingNumber || trackingNumber.length > 120 || /[\u0000-\u001f]/.test(trackingNumber)) {
+      return res.status(400).json({ message: "أدخل رقم تتبع صحيحًا" });
+    }
+    if (!isStorageXShipConfigured()) {
+      return res.status(503).json({ message: "مفتاح Storage X Ship غير مضاف" });
+    }
+    try {
+      const remote: any = await trackStorageXShipment(trackingNumber);
+      const shipment = remote?.shipment || remote?.data || remote;
+      res.json({
+        trackingNumber: String(shipment?.trackingNumber || shipment?.tracking_number || trackingNumber),
+        status: String(shipment?.status || ""),
+        custody: shipment?.custody ? String(shipment.custody) : null,
+        updatedAt: shipment?.updatedAt || shipment?.updated_at || null,
+      });
+    } catch (error: any) {
+      const notFound = error instanceof StorageXShipApiError && error.status === 404;
+      res.status(notFound ? 404 : 502).json({
+        message: notFound
+          ? "لم يتم العثور على الشحنة، أو لا يتيح حساب API الوصول إليها"
+          : safeStorageXError(error),
+      });
+    }
+  });
+
   app.get("/api/store/settings", async (_req, res) => {
     try {
       const settings = await storage.getStoreSettings();
-      res.set("Cache-Control", "public, max-age=600, stale-while-revalidate=1200");
-      res.json(settings);
+      // Payment and shipping settings can change from the admin panel; avoid
+      // serving stale checkout methods after an admin enables or disables one.
+      res.set("Cache-Control", "no-store");
+      const {
+        storageXPickupName: _pickupName,
+        storageXPickupPhone: _pickupPhone,
+        storageXPickupCity: _pickupCity,
+        storageXPickupAddressLine: _pickupAddressLine,
+        storageXPickupNationalAddress: _pickupNationalAddress,
+        storageXDefaultWeightGrams: _defaultWeightGrams,
+        ...publicSettings
+      } = settings as any;
+      res.json(publicSettings);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -5501,6 +6353,127 @@ ${allUrls.map(u => `  <url>
 
   // ─────────────────────────────────────────────────────────────
 
+  // ─── Storage X Ship: shipment operations (admin) ─────────────────────────
+  app.post("/api/admin/storage-x-ship/create/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      if (!isStorageXShipConfigured()) return res.status(503).json({ message: "مفتاح Storage X Ship غير مضاف" });
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      if (order.shippingMethod !== "delivery") return res.status(400).json({ message: "يُنشأ شحن Storage X للطلبات المخصصة للتوصيل فقط" });
+      if (order.paymentStatus !== "paid" && order.paymentMethod !== "cod") {
+        return res.status(409).json({ message: "لا يمكن إنشاء شحنة لطلب غير مدفوع" });
+      }
+      if (order.storageXShipTrackingNumber &&
+          !["failed", "cancelled"].includes(String(order.storageXShipStatus || ""))) {
+        return res.status(409).json({ message: "توجد شحنة Storage X لهذا الطلب مسبقاً" });
+      }
+      const selectedProvider = String(order.shippingProvider || order.shippingCompany || "");
+      if (!["storage-x-ship", "Storage X Ship"].includes(selectedProvider)) {
+        return res.status(409).json({ message: "الطلب مخصص لمزود شحن آخر" });
+      }
+      const settings = await storage.getStoreSettings();
+      if (!storageXSettingsReadiness(settings).checkoutReady) {
+        return res.status(503).json({ message: "أكمل إعداد عنوان الاستلام والوزن الافتراضي أولاً" });
+      }
+      const shipment = await createStorageXShipment(storageXCreateInput(order, settings));
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipShipmentId: shipment.shipmentId || null,
+        storageXShipTrackingNumber: shipment.trackingNumber,
+        storageXShipStatus: shipment.status,
+        storageXShipCustody: null,
+        storageXShipCreatedAt: new Date(),
+        storageXShipError: null,
+        storageXShipLabelUrl: null,
+        shippingProvider: "Storage X Ship",
+        trackingNumber: shipment.trackingNumber,
+      } as any);
+      res.json({ success: true, ...shipment });
+    } catch (error: any) {
+      const message = safeStorageXError(error);
+      console.error("[StorageX] manual shipment creation failed:", message);
+      res.status(error instanceof StorageXShipApiError && error.status < 500 ? 422 : 502)
+        .json({ success: false, message });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/track/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const remote = await trackStorageXShipment(trackingNumber);
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipStatus: remote?.status || order.storageXShipStatus,
+        storageXShipCustody: remote?.custody || order.storageXShipCustody,
+        storageXShipError: null,
+      } as any);
+      res.json(remote);
+    } catch (error: any) {
+      res.status(502).json({ message: safeStorageXError(error) });
+    }
+  });
+
+  app.post("/api/admin/storage-x-ship/cancel/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const result = await cancelStorageXShipment(trackingNumber, String(req.body?.reason || ""));
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipStatus: result?.status || order.storageXShipStatus,
+        storageXShipCustody: result?.custody || order.storageXShipCustody,
+        storageXShipError: null,
+      } as any);
+      res.json(result);
+    } catch (error: any) {
+      res.status(502).json({ message: safeStorageXError(error) });
+    }
+  });
+
+  app.get("/api/admin/storage-x-ship/label/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const url = await getStorageXLabelUrl(trackingNumber);
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        storageXShipLabelUrl: url,
+        storageXShipError: null,
+      } as any);
+      res.json({ url });
+    } catch (error: any) {
+      res.status(502).json({ message: safeStorageXError(error) });
+    }
+  });
+
+  app.patch("/api/admin/storage-x-ship/update/:orderId", checkPermission("orders.edit"), async (req, res) => {
+    try {
+      const order: any = await storage.getOrder(req.params.orderId);
+      if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const trackingNumber = String(order.storageXShipTrackingNumber || "");
+      if (!trackingNumber) return res.status(409).json({ message: "لا يوجد رقم تتبع Storage X لهذا الطلب" });
+      const allowed = [
+        "recipientName", "recipientPhone", "addressLine", "nationalAddress", "city",
+        "district", "description", "weightGrams", "codAmount", "codMethod", "reason",
+      ];
+      const changes: Record<string, unknown> = {};
+      for (const key of allowed) if (req.body?.[key] !== undefined) changes[key] = req.body[key];
+      const remote = await updateStorageXShipment(trackingNumber, changes);
+      await storage.updateOrder(String(order.id || req.params.orderId), {
+        ...(changes.nationalAddress ? { "shippingAddress.nationalAddress": normalizeStorageXNationalAddress(changes.nationalAddress) } : {}),
+        storageXShipStatus: remote?.status || order.storageXShipStatus,
+        storageXShipError: null,
+      } as any);
+      res.json(remote);
+    } catch (error: any) {
+      const status = error instanceof StorageXShipApiError && error.status < 500 ? 422 : 502;
+      res.status(status).json({ message: safeStorageXError(error) });
+    }
+  });
+
   // ─── Storage Station: manual push (admin) ───────────────────────────────
   app.post("/api/shipping/storage-station/create-order", checkPermission("orders.edit"), async (req, res) => {
     try {
@@ -5515,6 +6488,12 @@ ${allUrls.map(u => `  <url>
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
       if ((order as any).shippingMethod !== "delivery") {
         return res.status(400).json({ message: "يُرسل الطلب فقط لطلبات التوصيل" });
+      }
+      if ((order as any).paymentStatus !== "paid") {
+        return res.status(409).json({ message: "لا يمكن إرسال طلب غير مدفوع إلى Storage Station" });
+      }
+      if ((order as any).storageStationOrderId) {
+        return res.status(409).json({ message: "تم إرسال هذا الطلب إلى Storage Station مسبقاً" });
       }
 
       const ssResult = await pushOrderToStorageStation(order);
@@ -5548,6 +6527,12 @@ ${allUrls.map(u => `  <url>
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
       if ((order as any).shippingMethod !== "delivery") {
         return res.status(400).json({ message: "يُرسل الطلب فقط لطلبات التوصيل" });
+      }
+      if ((order as any).paymentStatus !== "paid") {
+        return res.status(409).json({ message: "لا يمكن إرسال طلب غير مدفوع إلى Storage Station" });
+      }
+      if ((order as any).storageStationOrderId) {
+        return res.status(409).json({ message: "تم إرسال هذا الطلب إلى Storage Station مسبقاً" });
       }
       if (!isStorageStationConfigured()) {
         return res.status(503).json({ message: "لم يتم تهيئة بيانات اعتماد Storage Station" });
@@ -5656,6 +6641,32 @@ ${allUrls.map(u => `  <url>
       baseUrl: "https://storagestation.app",
       store: "myla",
     });
+  });
+
+  app.get("/api/admin/storage-station/test-connection", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    if (user.role !== "admin") return res.sendStatus(403);
+    if (!isStorageStationConfigured()) {
+      return res.status(503).json({
+        success: false,
+        message: "أضف مفتاح API وSecret في Replit Secrets أولاً",
+      });
+    }
+
+    try {
+      await testStorageStationConnection();
+      res.json({
+        success: true,
+        message: "تم الاتصال بنجاح وإمكانية قراءة كتالوج المنتجات متاحة",
+      });
+    } catch (err: any) {
+      console.error("[StorageStation] connection test failed:", err?.message);
+      res.status(502).json({
+        success: false,
+        message: err?.message || "تعذر الاتصال بـ Storage Station",
+      });
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -5904,6 +6915,23 @@ ${allUrls.map(u => `  <url>
     });
   });
 
+  app.get("/api/admin/shipox/test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if ((req.user as any)?.role !== "admin") return res.sendStatus(403);
+    if (!isShipoxConfigured()) {
+      return res.status(503).json({ success: false, message: "بيانات دخول Shipox غير مُعدّة في أسرار المشروع" });
+    }
+    const connected = await verifyShipoxConnection(true);
+    if (!connected) {
+      const httpStatus = shipoxHealthCache?.httpStatus;
+      return res.status(502).json({
+        success: false,
+        message: `تعذر تسجيل الدخول إلى Shipox${httpStatus ? ` (HTTP ${httpStatus})` : ""}؛ تحقق من بيانات الحساب ومتطلبات واجهة 3rd Mile`,
+      });
+    }
+    res.json({ success: true, message: "اتصال Shipox يعمل" });
+  });
+
   // Create Shipox shipment for a given order
   app.post("/api/admin/shipox/create/:orderId", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -5915,15 +6943,30 @@ ${allUrls.map(u => `  <url>
       }
       const order = await storage.getOrder(req.params.orderId);
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const existingShipoxId = (order as any).shipoxOrderNumber
+        || (order as any).shipoxTrackingNumber
+        || (order as any).shipoxOrderId;
+      if (
+        existingShipoxId &&
+        !["failed", "cancelled"].includes(String((order as any).shipoxStatus || "").toLowerCase())
+      ) {
+        return res.json({
+          success: true,
+          existing: true,
+          orderNumber: (order as any).shipoxOrderNumber,
+          trackingNumber: (order as any).shipoxTrackingNumber,
+          status: (order as any).shipoxStatus,
+        });
+      }
 
       const serviceType: ShipoxServiceType = (req.body.serviceType || "STANDARD") as ShipoxServiceType;
       const settings = await storage.getStoreSettings().catch(() => null);
 
       const result = await createShipoxOrder(order, serviceType, {
         senderName:    req.body.senderName    || (settings as any)?.storeName    || "Myla",
-        senderPhone:   req.body.senderPhone   || (settings as any)?.storePhone   || "0500000000",
-        senderAddress: req.body.senderAddress || (settings as any)?.storeAddress || "الرياض",
-        senderCity:    req.body.senderCity    || "Riyadh",
+        senderPhone:   req.body.senderPhone   || (settings as any)?.storePhone   || "",
+        senderAddress: req.body.senderAddress || (settings as any)?.storeAddress || "",
+        senderCity:    req.body.senderCity    || (settings as any)?.storeCity    || "",
       });
 
       await storage.updateOrder(req.params.orderId, {
@@ -5964,9 +7007,9 @@ ${allUrls.map(u => `  <url>
       const settings = await storage.getStoreSettings().catch(() => null);
       const result = await createShipoxReturn(order, {
         senderName:    (settings as any)?.storeName    || "Myla",
-        senderPhone:   (settings as any)?.storePhone   || "0500000000",
-        senderAddress: (settings as any)?.storeAddress || "الرياض",
-        senderCity:    "Riyadh",
+        senderPhone:   (settings as any)?.storePhone   || "",
+        senderAddress: (settings as any)?.storeAddress || "",
+        senderCity:    (settings as any)?.storeCity    || "",
       });
 
       res.json({ success: true, ...result });
@@ -6048,13 +7091,22 @@ ${allUrls.map(u => `  <url>
       }
       const order = await storage.getOrder(req.params.orderId);
       if (!order) return res.status(404).json({ message: "الطلب غير موجود" });
+      const existingShipoxId = (order as any).shipoxOrderNumber
+        || (order as any).shipoxTrackingNumber
+        || (order as any).shipoxOrderId;
+      if (
+        existingShipoxId &&
+        !["failed", "cancelled"].includes(String((order as any).shipoxStatus || "").toLowerCase())
+      ) {
+        return res.status(409).json({ message: "ألغِ شحنة Shipox الحالية قبل تغيير نوع الخدمة" });
+      }
 
       const settings = await storage.getStoreSettings().catch(() => null);
       const result = await createShipoxOrder(order, serviceType as ShipoxServiceType, {
         senderName:    (settings as any)?.storeName    || "Myla",
-        senderPhone:   (settings as any)?.storePhone   || "0500000000",
-        senderAddress: (settings as any)?.storeAddress || "الرياض",
-        senderCity:    "Riyadh",
+        senderPhone:   (settings as any)?.storePhone   || "",
+        senderAddress: (settings as any)?.storeAddress || "",
+        senderCity:    (settings as any)?.storeCity    || "",
       });
 
       await storage.updateOrder(req.params.orderId, {
@@ -7009,6 +8061,13 @@ ${allUrls.map(u => `  <url>
         return res.status(403).json({ allowed: false });
       }
       const result = await canCustomerCancel(order);
+      const activeCarrierShipments = getActiveCarrierShipmentProviders(order);
+      if (result.allowed && activeCarrierShipments.length > 0) {
+        return res.json({
+          allowed: false,
+          reason: `للشحنة رقم تتبع لدى ${activeCarrierShipments.join(" و ")}. تواصل مع خدمة العملاء لإلغاء الشحنة بأمان.`,
+        });
+      }
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ allowed: false, reason: err?.message });
@@ -7025,6 +8084,15 @@ ${allUrls.map(u => `  <url>
       const isOwner = String(order.userId) === String(user.id);
       const isStaff = ["admin", "assistant_manager", "employee", "support"].includes(user.role);
       if (!isOwner && !isStaff) return res.sendStatus(403);
+
+      const activeCarrierShipments = getActiveCarrierShipmentProviders(order);
+      if (activeCarrierShipments.length > 0) {
+        return res.status(409).json({
+          code: "active_carrier_shipment",
+          providers: activeCarrierShipments,
+          message: `ألغِ الشحنة لدى ${activeCarrierShipments.join(" و ")} أولًا، ثم أعد إلغاء الطلب. قد تترتب رسوم من شركة الشحن.`,
+        });
+      }
 
       const result = await cancelOrder({
         orderId: req.params.id,
@@ -7171,6 +8239,43 @@ ${allUrls.map(u => `  <url>
     } catch (err: any) {
       console.error("[Invoice] error:", err?.message);
       res.status(500).send("تعذر إنشاء الفاتورة");
+    }
+  });
+
+  app.get("/api/orders/:id/invoice.pdf", async (req, res) => {
+    try {
+      const order: any = await OrderModel.findById(req.params.id).lean();
+      if (!order) return res.status(404).send("الطلب غير موجود");
+
+      const user: any = req.user;
+      const isOwner = req.isAuthenticated() && user &&
+        String(order.userId) === String(user._id || user.id);
+      const isStaff = req.isAuthenticated() && user &&
+        ["admin", "cashier", "owner"].includes(String(user.role));
+      if (!isOwner && !isStaff) return res.status(403).send("غير مصرح بتحميل الفاتورة");
+
+      const customer = order.userId
+        ? await storage.getUser(String(order.userId)).catch(() => null)
+        : null;
+      const html = await buildInvoiceHtml({
+        order,
+        customer: customer
+          ? { name: customer.name, email: customer.email, phone: customer.phone }
+          : undefined,
+      });
+      const pdf = await renderInvoiceHtmlToPdf(html);
+      const orderRef = String(order._id || order.id).slice(-8).toUpperCase();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="Myla-invoice-${orderRef}.pdf"`);
+      res.setHeader("Content-Length", pdf.length);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.send(pdf);
+    } catch (err: any) {
+      console.error("[Invoice PDF] render failed:", err?.message || "unknown error");
+      const unavailable = err?.message === "PDF_RENDER_UNAVAILABLE";
+      res.status(unavailable ? 503 : 500).send(
+        unavailable ? "تحميل PDF غير متاح على هذا الخادم؛ استخدم صفحة الفاتورة ثم طباعة / PDF" : "تعذر إنشاء ملف PDF",
+      );
     }
   });
 
@@ -7670,6 +8775,7 @@ ${allUrls.map(u => `  <url>
         google: { clientId: !!process.env.GOOGLE_CLIENT_ID, clientSecret: !!process.env.GOOGLE_CLIENT_SECRET },
         apple: { clientId: !!process.env.APPLE_CLIENT_ID, redirectUri: !!process.env.APPLE_REDIRECT_URI },
         storageStation: { apiKey: !!process.env.STORAGE_STATION_API_KEY, apiSecret: !!process.env.STORAGE_STATION_API_SECRET },
+        storageXShip: { apiKey: isStorageXShipConfigured() },
         shipox: { username: !!process.env.SHIPOX_USERNAME, password: !!process.env.SHIPOX_PASSWORD },
         mapit: { apiToken: !!process.env.MAPIT_API_TOKEN },
         mongo: { uri: !!process.env.MONGODB_URI },

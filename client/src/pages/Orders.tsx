@@ -248,25 +248,33 @@ const OrderCard = ({ order }: { order: any }) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const cancelMutation = useMutation({
-    mutationFn: async (reason: string) =>
-      apiRequest("POST", `/api/orders/${order.id}/cancel`, { reason }),
+    mutationFn: async (reason: string) => {
+      const response = await apiRequest("POST", `/api/orders/${order.id}/cancel`, { reason });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "تعذر إلغاء الطلب");
+      return data;
+    },
     onSuccess: async (res: any) => {
-      const data = await res.json();
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "تم إلغاء الطلب ✅",
-        description: data?.refundAmount > 0
-          ? `تم استرداد ${Number(data.refundAmount).toFixed(2)} ر.س لمحفظتك`
-          : "تم إلغاء طلبك بنجاح",
+        description: res?.refundError
+          ? res.refundError
+          : Number(res?.refundAmount || 0) > 0
+            ? `تم استرداد ${Number(res.refundAmount).toFixed(2)} ر.س لمحفظتك`
+            : "تم تطبيق سياسة الإلغاء على طلبك",
+        variant: res?.refundError ? "destructive" : "default",
       });
       setShowCancelDialog(false);
       setCancelReason("");
     },
-    onError: async (e: any) => {
-      let msg = "تعذر إلغاء الطلب";
-      try { const d = await e?.response?.json(); msg = d?.message || msg; } catch {}
-      toast({ title: "تعذر الإلغاء", description: msg, variant: "destructive" });
+    onError: (error: any) => {
+      toast({
+        title: "تعذر الإلغاء",
+        description: error?.message || "تعذر إلغاء الطلب",
+        variant: "destructive",
+      });
     },
   });
   const returnReasons = [

@@ -13,6 +13,8 @@
  */
 import { buildZatcaQrDataUrl } from "./zatca";
 import { storage } from "./storage";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 export interface InvoiceData {
   order: any;
@@ -53,6 +55,22 @@ function fmtDate(d: Date): string {
   });
 }
 
+async function loadLocalBrandLogo(): Promise<string> {
+  const candidates = [
+    resolve(process.cwd(), "dist/public/myla-logo-header.png"),
+    resolve(process.cwd(), "client/public/myla-logo-header.png"),
+  ];
+  for (const logoPath of candidates) {
+    try {
+      const bytes = await readFile(logoPath);
+      return `data:image/png;base64,${bytes.toString("base64")}`;
+    } catch {
+      // Try the source asset path if the built static directory is unavailable.
+    }
+  }
+  return "";
+}
+
 export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promise<string> {
   const settings: any = (await storage.getStoreSettings?.().catch(() => null)) || {};
   const sellerName = settings.storeNameAr || "Myla";
@@ -62,7 +80,14 @@ export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promis
   const nationalUnifiedNumber = settings.nationalUnifiedNumber || settings.crNumber || "7042488606";
   const crLink = settings.crLink || "https://qr.saudibusiness.gov.sa/viewcr?nCrNumber=HdI7BQp2aUmM4b9xJYrbnA==";
   const sellerAddress = settings.companyAddress || settings.address || "المملكة العربية السعودية";
-  const storeLogo = settings.logo || "https://myla-abayas.store/myla-logo-artboard.png";
+  const configuredLogo = String(settings.logo || "").trim();
+  const localBrandLogo = await loadLocalBrandLogo();
+  const storeLogo = configuredLogo || localBrandLogo;
+  const logoMarkup = storeLogo
+    ? `<img src="${esc(storeLogo)}" alt="${esc(sellerNameEn)}" class="${configuredLogo ? "brand-logo-primary" : "brand-logo-local"}" onerror="this.onerror=null;this.style.display='none';var fallback=this.nextElementSibling;if(fallback)fallback.style.display='block'"/>${localBrandLogo
+      ? `<img src="${localBrandLogo}" alt="" class="brand-logo-fallback" style="display:none"/>`
+      : `<span class="brand-logo-fallback-text" style="display:none">Myla</span>`}`
+    : `<span class="brand-logo-fallback-text">Myla</span>`;
 
   const issueDate = new Date(order.paidAt || order.createdAt || Date.now());
   const orderRef = String(order._id || order.id).slice(-8).toUpperCase();
@@ -160,6 +185,9 @@ export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promis
     margin-bottom: 8px;
   }
   .brand-logo img { height: 52px; width: 52px; object-fit: contain; border-radius: 8px; background: rgba(255,255,255,0.1); padding: 4px; }
+  .brand-logo img.brand-logo-local,
+  .brand-logo img.brand-logo-fallback { width: 112px; object-fit: cover; object-position: center; }
+  .brand-logo-fallback-text { width: 72px; color: #DFB369; font-family: Georgia,serif; font-size: 23px; font-weight: 700; }
   .brand-name { font-size: 22px; font-weight: 900; color: #DFB369; letter-spacing: -0.02em; }
   .brand-name-en { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 600; letter-spacing: 0.08em; margin-top: 1px; }
   .brand-address { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 8px; line-height: 1.7; }
@@ -334,10 +362,12 @@ export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promis
   }
   .print-btn:hover { background: #c99e57; transform: translateY(-1px); }
 
+  @page { size: A4; margin: 10mm; }
   @media print {
     body { background: #fff; padding: 0; }
     .page { box-shadow: none; border-radius: 0; }
     .print-btn { display: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -351,7 +381,7 @@ export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promis
     <div class="inv-header">
       <div class="inv-header-brand">
         <div class="brand-logo">
-          ${storeLogo ? `<img src="${esc(storeLogo)}" alt="${esc(sellerNameEn)}" />` : `<div style="width:52px;height:52px;border-radius:8px;background:rgba(223,179,105,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#DFB369;">Myla</div>`}
+          ${logoMarkup}
           <div>
             <div class="brand-name">${esc(sellerName)}</div>
             <div class="brand-name-en">${esc(sellerNameEn)}</div>
@@ -442,6 +472,13 @@ export async function buildInvoiceHtml({ order, customer }: InvoiceData): Promis
     <!-- Thank-you strip -->
     <div class="thankyou">شكراً لاختياركم <span>${esc(sellerName)}</span> — Thank you for choosing <span>${esc(sellerNameEn)}</span></div>
   </div>
+  <script>
+    window.addEventListener("load", function () {
+      if (new URLSearchParams(window.location.search).get("print") === "1") {
+        setTimeout(function () { window.print(); }, 250);
+      }
+    });
+  </script>
 </body>
 </html>`;
 }

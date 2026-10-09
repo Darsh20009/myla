@@ -1743,6 +1743,45 @@ const OrdersTable = memo(() => {
     onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
   });
 
+  const storageXShipCreateMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("POST", `/api/admin/storage-x-ship/create/${orderId}`, {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل إنشاء شحنة Storage X"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: `✅ تم إنشاء شحنة Storage X — ${data.trackingNumber || ""}` });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
+  const storageXShipTrackMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("GET", `/api/admin/storage-x-ship/track/${orderId}`);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل تتبع شحنة Storage X"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "تم تحديث حالة شحنة Storage X" });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
+  const storageXShipCancelMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("POST", `/api/admin/storage-x-ship/cancel/${orderId}`, {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "فشل إلغاء شحنة Storage X"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "تم إلغاء شحنة Storage X" });
+    },
+    onError: (e: any) => toast({ title: `❌ ${e.message}`, variant: "destructive" }),
+  });
+
   const mapitCreateMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const res = await apiRequest("POST", `/api/admin/mapit/create/${orderId}`, {});
@@ -1947,7 +1986,7 @@ const OrdersTable = memo(() => {
                           </p>
                         ) : (
                           <div className="grid grid-cols-3 gap-2">
-                            {(["new", "processing", "shipped", "completed", "cancelled"] as const).map(s => (
+                            {(["new", "processing", "shipped", "completed"] as const).map(s => (
                               <Button 
                                 key={s} 
                                 variant={order.status === s ? 'default' : 'outline'}
@@ -2080,6 +2119,71 @@ const OrdersTable = memo(() => {
                               )}
                             </div>
                           </div>
+
+                          {/* ── Storage X Ship Panel ── */}
+                          {(order.shippingProvider === "storage-x-ship" ||
+                            order.shippingProvider === "Storage X Ship" ||
+                            order.shippingCompany === "Storage X Ship" ||
+                            order.storageXShipTrackingNumber) && (
+                          <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-blue-800">Storage X Ship</Label>
+                              {order.storageXShipStatus
+                                ? <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">{order.storageXShipStatus}</span>
+                                : <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-50 text-amber-600 border border-amber-200">لم تُنشأ بعد</span>}
+                            </div>
+                            {order.storageXShipTrackingNumber && (
+                              <div className="bg-white border border-blue-100 rounded-xl p-3 space-y-1">
+                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">رقم التتبع</p>
+                                <p className="text-sm font-black text-blue-800 font-mono tracking-wide" dir="ltr">{order.storageXShipTrackingNumber}</p>
+                                {order.storageXShipCustody && <p className="text-[10px] text-slate-500 font-bold">الحيازة: {order.storageXShipCustody}</p>}
+                              </div>
+                            )}
+                            {order.storageXShipError && (
+                              <div className="bg-red-50 border border-red-100 rounded-xl p-2">
+                                <p className="text-[9px] text-red-600 font-bold">{order.storageXShipError}</p>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-2">
+                              {(!order.storageXShipTrackingNumber || order.storageXShipStatus === "failed" || order.storageXShipStatus === "cancelled") && (
+                                <Button size="sm" className="rounded-xl text-[10px] font-black bg-blue-700 hover:bg-blue-800 text-white col-span-2"
+                                  disabled={storageXShipCreateMutation.isPending || order.status === "pending_payment"}
+                                  onClick={() => storageXShipCreateMutation.mutate(order.id)}>
+                                  {storageXShipCreateMutation.isPending ? "جاري الإنشاء..." : "🚚 إنشاء شحنة Storage X"}
+                                </Button>
+                              )}
+                              {order.storageXShipTrackingNumber && order.storageXShipStatus !== "cancelled" && (
+                                <>
+                                  <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-blue-300 text-blue-700"
+                                    disabled={storageXShipTrackMutation.isPending} onClick={() => storageXShipTrackMutation.mutate(order.id)}>
+                                    {storageXShipTrackMutation.isPending ? "جاري التحديث..." : "🔄 تحديث التتبع"}
+                                  </Button>
+                                  {order.storageXShipLabelUrl && (
+                                    <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-blue-300 text-blue-700"
+                                      onClick={() => window.open(order.storageXShipLabelUrl, "_blank")}>🖨 البوليصة</Button>
+                                  )}
+                                  {!order.storageXShipLabelUrl && (
+                                    <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-blue-300 text-blue-700"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await fetch(`/api/admin/storage-x-ship/label/${order.id}`);
+                                          const data = await res.json();
+                                          if (!res.ok || !data.url) throw new Error(data.message || "لا يوجد رابط بوليصة");
+                                          window.open(data.url, "_blank");
+                                          queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+                                        } catch (e: any) { toast({ title: e.message || "خطأ في جلب البوليصة", variant: "destructive" }); }
+                                      }}>🖨 البوليصة</Button>
+                                  )}
+                                  <Button size="sm" variant="outline" className="rounded-xl text-[10px] font-black border-red-300 text-red-600 col-span-2"
+                                    disabled={storageXShipCancelMutation.isPending}
+                                    onClick={() => { if (confirm("تأكيد إلغاء شحنة Storage X؟")) storageXShipCancelMutation.mutate(order.id); }}>
+                                    ✕ إلغاء الشحنة
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          )}
 
                           <div className="flex items-center justify-between">
                             <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Shipox — 3rd Mile</Label>
@@ -2667,6 +2771,14 @@ const statusLabels: Record<string, string> = {
   returned: "مُرتجع",
 };
 
+const statusOptionDotColors: Record<string, string> = {
+  new: "bg-sky-500",
+  processing: "bg-violet-500",
+  shipped: "bg-cyan-600",
+  completed: "bg-emerald-600",
+  cancelled: "bg-rose-600",
+};
+
 const OrdersManagement = memo(() => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ["/api/orders"],
@@ -2677,21 +2789,120 @@ const OrdersManagement = memo(() => {
   });
 
   const { toast } = useToast();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const deepLinkOrderId = typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.search).get("orderId");
+  const [expandedId, setExpandedId] = useState<string | null>(deepLinkOrderId);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (!deepLinkOrderId || !Array.isArray(orders)) return;
+    const target = orders.find((order: any) => String(order.id) === deepLinkOrderId);
+    if (target) setExpandedId(String(target.id));
+  }, [deepLinkOrderId, orders]);
 
   const [driverDialog, setDriverDialog] = useState<{ orderId: string } | null>(null);
   const [driverName, setDriverName] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
 
+  const activeCarrierNames = (order: any): string[] => {
+    const terminalStatuses = new Set([
+      "cancelled", "canceled", "failed", "returned", "completed", "delivered",
+      "order_cancelled", "order_canceled", "order_failed", "order_completed", "order_returned",
+    ]);
+    const isActive = (status: unknown) => {
+      const normalized = String(status || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      return !terminalStatuses.has(normalized);
+    };
+    const active: string[] = [];
+    if (order?.storageXShipTrackingNumber && isActive(order.storageXShipStatus)) active.push("Storage X");
+    if ((order?.shipoxTrackingNumber || order?.shipoxOrderId) && isActive(order.shipoxStatus)) active.push("Shipox");
+    if (order?.mapitOrderNumber && isActive(order.mapitStatus)) active.push("Mapit");
+    return active;
+  };
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, deliveryDriverName, deliveryDriverPhone }: { id: string; status: string; deliveryDriverName?: string; deliveryDriverPhone?: string }) => {
-      await apiRequest("PATCH", `/api/orders/${id}/status`, { status, deliveryDriverName, deliveryDriverPhone });
+      const response = await apiRequest("PATCH", `/api/orders/${id}/status`, { status, deliveryDriverName, deliveryDriverPhone });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "تعذر تحديث حالة الطلب");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       toast({ title: "تم تحديث حالة الطلب بنجاح" });
-    }
+    },
+    onError: (error: any) => toast({
+      title: "تعذر تحديث الطلب",
+      description: error.message,
+      variant: "destructive",
+    }),
+  });
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (order: any) => {
+      const orderId = String(order.id);
+      const activeCarriers = activeCarrierNames(order);
+      const ensureSuccess = async (response: Response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.message || "تعذر إلغاء الشحنة");
+        }
+        return response.json().catch(() => ({}));
+      };
+
+      for (const carrier of activeCarriers) {
+        if (carrier === "Storage X") {
+          await ensureSuccess(await apiRequest(
+            "POST",
+            `/api/admin/storage-x-ship/cancel/${orderId}`,
+            { reason: "إلغاء الطلب من لوحة الإدارة" },
+          ));
+        } else if (carrier === "Shipox") {
+          await ensureSuccess(await apiRequest(
+            "PUT",
+            `/api/admin/shipox/cancel/${orderId}`,
+            { reason: "إلغاء الطلب من لوحة الإدارة" },
+          ));
+        } else if (carrier === "Mapit") {
+          await ensureSuccess(await apiRequest("DELETE", `/api/admin/mapit/delete/${orderId}`));
+        }
+      }
+
+      let cancellation: any = {};
+      if (order.status !== "cancelled") {
+        cancellation = await ensureSuccess(await apiRequest(
+          "POST",
+          `/api/orders/${orderId}/cancel`,
+          { reason: "إلغاء من لوحة الإدارة" },
+        ));
+      }
+      return {
+        alreadyCancelled: order.status === "cancelled",
+        refundAmount: Number(cancellation.refundAmount || 0),
+        refundError: cancellation.refundError ? String(cancellation.refundError) : null,
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({
+        title: result.alreadyCancelled ? "تم طلب إلغاء الشحنة" : "تم إلغاء الطلب",
+        description: result.alreadyCancelled
+          ? "الطلب كان ملغيًا بالفعل؛ لم يتغير المبلغ المدفوع."
+          : result.refundError
+            ? result.refundError
+            : result.refundAmount > 0
+            ? `تم إرجاع ${result.refundAmount.toFixed(2)} ر.س إلى محفظة العميل حسب سياسة الإلغاء.`
+            : "تم تطبيق سياسة إلغاء الطلب والمخزون.",
+        variant: result.refundError ? "destructive" : "default",
+      });
+    },
+    onError: (error: any) => toast({
+      title: "لم يكتمل الإلغاء",
+      description: error.message,
+      variant: "destructive",
+    }),
   });
 
   const handleStatusChange = (orderId: string, status: string) => {
@@ -2702,6 +2913,18 @@ const OrdersManagement = memo(() => {
     } else {
       updateStatusMutation.mutate({ id: orderId, status });
     }
+  };
+
+  const handleCancelOrder = (order: any) => {
+    const activeCarriers = activeCarrierNames(order);
+    if (order.status === "cancelled" && activeCarriers.length === 0) return;
+
+    const confirmation = order.status === "cancelled"
+      ? `الطلب مسجل كملغي بالفعل. سيتم طلب إلغاء الشحنة لدى ${activeCarriers.join(" و ")} فقط؛ قد تترتب رسوم، ولن يتغير المبلغ المدفوع. هل تريد المتابعة؟`
+      : activeCarriers.length > 0
+        ? `سيتم طلب إلغاء الشحنة لدى ${activeCarriers.join(" و ")} أولًا، ثم إلغاء الطلب وتطبيق سياسة الاسترداد والمخزون. قد تترتب رسوم من شركة الشحن. هل تريد المتابعة؟`
+        : "سيتم إلغاء الطلب وتطبيق سياسة الاسترداد والمخزون. هل تريد المتابعة؟";
+    if (window.confirm(confirmation)) cancelOrderMutation.mutate(order);
   };
 
   const confirmDelivery = () => {
@@ -2911,9 +3134,12 @@ const OrdersManagement = memo(() => {
                             <MoreVertical className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl font-bold text-xs min-w-[180px] bg-white border-gray-100 text-gray-900">
+                        <DropdownMenuContent
+                          align="end"
+                          className="min-w-[210px] rounded-xl border border-slate-200 bg-white p-1.5 text-slate-800 shadow-xl"
+                        >
                           {order.status === "pending_payment" ? (
-                            <DropdownMenuItem disabled className="text-right text-amber-400 text-[10px]">
+                            <DropdownMenuItem disabled className="min-h-9 justify-start rounded-lg bg-amber-50 text-right text-[11px] font-bold text-amber-800">
                               ⚠ أكد أو ارفض الدفع أولاً
                             </DropdownMenuItem>
                           ) : (
@@ -2922,38 +3148,51 @@ const OrdersManagement = memo(() => {
                                 <DropdownMenuItem
                                   key={status}
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, status); }}
-                                  className="text-right gap-2 text-white/70 hover:text-white"
+                                  className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-950 data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-950"
                                 >
-                                  <span className={`w-2 h-2 rounded-full inline-block ${statusColors[status]?.split(" ")[0]}`}></span>
+                                  <span className={`h-2 w-2 shrink-0 rounded-full ${statusOptionDotColors[status]}`} />
                                   {statusLabels[status] || status}
                                 </DropdownMenuItem>
                               ))}
                               <DropdownMenuItem
                                 onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, "out_for_delivery"); }}
-                                className="text-right gap-2 text-violet-400"
+                                className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-violet-800 focus:bg-violet-50 focus:text-violet-900 data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-900"
                               >
-                                <Bike className="w-3 h-3" />
-                                🛵 خرج للتوصيل (داخلي)
+                                <Bike className="h-4 w-4 shrink-0 text-violet-600" />
+                                خرج للتوصيل (داخلي)
                               </DropdownMenuItem>
                               {(order as any).shippingMethod === "pickup" && (
                                 <DropdownMenuItem
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, "ready_for_pickup"); }}
-                                  className="text-right gap-2 text-emerald-400"
+                                  className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-emerald-800 focus:bg-emerald-50 focus:text-emerald-900 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-900"
                                 >
-                                  <span className="text-sm">📦</span>
+                                  <Package className="h-4 w-4 shrink-0 text-emerald-600" />
                                   جاهز للاستلام من الفرع
                                 </DropdownMenuItem>
                               )}
-                              {(["shipped", "completed", "cancelled"] as const).map((status) => (
+                              {(["shipped", "completed"] as const).map((status) => (
                                 <DropdownMenuItem
                                   key={status}
                                   onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, status); }}
-                                  className="text-right gap-2 text-white/70 hover:text-white"
+                                  className={`min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold
+                                    ${status === "completed"
+                                      ? "text-emerald-800 focus:bg-emerald-50 focus:text-emerald-900 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-900"
+                                      : "text-cyan-800 focus:bg-cyan-50 focus:text-cyan-900 data-[highlighted]:bg-cyan-50 data-[highlighted]:text-cyan-900"
+                                    }`}
                                 >
-                                  <span className={`w-2 h-2 rounded-full inline-block ${statusColors[status]?.split(" ")[0]}`}></span>
+                                  <span className={`h-2 w-2 shrink-0 rounded-full ${statusOptionDotColors[status]}`} />
                                   {statusLabels[status] || status}
                                 </DropdownMenuItem>
                               ))}
+                              {order.status !== "completed" && order.status !== "returned" &&
+                                (order.status !== "cancelled" || activeCarrierNames(order).length > 0) && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => { e.stopPropagation(); handleCancelOrder(order); }}
+                                    className="min-h-10 justify-start gap-2.5 rounded-lg px-3 py-2 text-right text-sm font-bold text-rose-800 focus:bg-rose-50 focus:text-rose-900 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-900"
+                                  >
+                                    {order.status === "cancelled" ? "إلغاء الشحنة المرتبطة" : "إلغاء الطلب والشحنة"}
+                                  </DropdownMenuItem>
+                                )}
                             </>
                           )}
                         </DropdownMenuContent>
@@ -3182,8 +3421,14 @@ const CustomersTable = memo(() => {
 
   const updateWalletMutation = useMutation({
     mutationFn: async ({ id, amount, type }: { id: string, amount: string, type: 'deposit' | 'set' }) => {
-      const endpoint = type === 'deposit' ? `/api/admin/users/${id}/deposit` : `/api/admin/users/${id}`;
-      const payload = type === 'deposit' ? { amount: Number(amount) } : { walletBalance: amount };
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || (type === "deposit" && numericAmount <= 0) || (type === "set" && numericAmount < 0)) {
+        throw new Error(type === "deposit" ? "أدخل مبلغًا أكبر من صفر" : "أدخل رصيدًا صحيحًا لا يقل عن صفر");
+      }
+      const endpoint = type === 'deposit' ? "/api/admin/wallet/deposit" : `/api/admin/users/${id}`;
+      const payload = type === 'deposit'
+        ? { userId: id, amount: numericAmount, description: "إيداع رصيد من لوحة الإدارة" }
+        : { walletBalance: amount };
       await apiRequest(type === 'deposit' ? "POST" : "PATCH", endpoint, payload);
     },
     onSuccess: () => {
@@ -3191,6 +3436,13 @@ const CustomersTable = memo(() => {
       toast({ title: "تم تحديث المحفظة بنجاح" });
       setSelectedUser(null);
       setWalletAmount("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "تعذر تحديث المحفظة",
+        description: error?.message || "تحقق من المبلغ وصلاحية الحساب ثم حاول مرة أخرى",
+        variant: "destructive",
+      });
     }
   });
 
@@ -3232,6 +3484,8 @@ const CustomersTable = memo(() => {
                         <Label className="text-xs font-bold uppercase">المبلغ المراد إيداعه</Label>
                         <Input 
                           type="number" 
+                          min="0.01"
+                          step="0.01"
                           value={walletAmount} 
                           onChange={(e) => setWalletAmount(e.target.value)} 
                           placeholder="0"
@@ -4812,6 +5066,7 @@ const StoreSettingsPanel = () => {
   const [storePhone, setStorePhone] = useState("");
   const [storeEmail, setStoreEmail] = useState("");
   const [storeAddress, setStoreAddress] = useState("");
+  const [storeCity, setStoreCity] = useState("");
   const [crNumber, setCrNumber] = useState("");
   const [nationalUnifiedNumber, setNationalUnifiedNumber] = useState("");
   const [crLink, setCrLink] = useState("");
@@ -4826,7 +5081,6 @@ const StoreSettingsPanel = () => {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(0);
   const [freeShippingMessageAr, setFreeShippingMessageAr] = useState("");
   const [freeShippingMessageEn, setFreeShippingMessageEn] = useState("");
-  const [fixedShippingCost, setFixedShippingCost] = useState<number>(30);
   const [storeLat, setStoreLat] = useState<number | null>(null);
   const [storeLng, setStoreLng] = useState<number | null>(null);
   const [seoTitle, setSeoTitle] = useState("");
@@ -4850,6 +5104,7 @@ const StoreSettingsPanel = () => {
       setStorePhone(settings.storePhone ?? "");
       setStoreEmail(settings.storeEmail ?? "");
       setStoreAddress(settings.storeAddress ?? "");
+      setStoreCity(settings.storeCity ?? "");
       setCrNumber(settings.crNumber ?? "");
       setNationalUnifiedNumber(settings.nationalUnifiedNumber ?? "");
       setCrLink(settings.crLink ?? "");
@@ -4864,7 +5119,6 @@ const StoreSettingsPanel = () => {
       setFreeShippingThreshold(Number(settings.freeShippingThreshold ?? 0));
       setFreeShippingMessageAr(settings.freeShippingMessageAr ?? "");
       setFreeShippingMessageEn(settings.freeShippingMessageEn ?? "");
-      setFixedShippingCost(Number((settings as any).fixedShippingCost ?? 30));
       setStoreLat((settings as any).storeLat ?? null);
       setStoreLng((settings as any).storeLng ?? null);
       setSeoTitle(settings.seoTitle ?? "");
@@ -4946,14 +5200,13 @@ const StoreSettingsPanel = () => {
       socialAccounts: socials.map((s, i) => ({ ...s, sortOrder: s.sortOrder ?? i })),
       pickupEnabled, pickupInstructionsAr, pickupInstructionsEn,
       // identity / legal
-      storeName, storePhone, storeEmail, storeAddress, crNumber, nationalUnifiedNumber, crLink, vatNumber,
+      storeName, storePhone, storeEmail, storeAddress, storeCity, crNumber, nationalUnifiedNumber, crLink, vatNumber,
       vatRate: Number(vatRate) || 0, maroofUrl,
       // contact
       whatsappNumber, supportPhone, supportEmail, supportHours,
       // shipping rules
       freeShippingEnabled, freeShippingThreshold: Number(freeShippingThreshold) || 0,
       freeShippingMessageAr, freeShippingMessageEn,
-      fixedShippingCost: Number(fixedShippingCost) || 30,
       storeLat: storeLat ?? null, storeLng: storeLng ?? null,
       // SEO
       seoTitle, seoTitleEn, seoDescription, seoDescriptionEn, seoKeywords, ogImage,
@@ -5003,6 +5256,10 @@ const StoreSettingsPanel = () => {
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase">عنوان المتجر</Label>
             <Input value={storeAddress} onChange={e => setStoreAddress(e.target.value)} className="font-bold" placeholder="الرياض، حي..." data-testid="input-store-address" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase">مدينة انطلاق الشحن</Label>
+            <Input value={storeCity} onChange={e => setStoreCity(e.target.value)} className="font-bold" placeholder="الرياض" data-testid="input-store-city" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase">السجل التجاري / الرقم الوطني الموحد (CR)</Label>
@@ -5075,21 +5332,17 @@ const StoreSettingsPanel = () => {
             <Truck className="h-5 w-5 text-primary" />
             إعدادات الشحن
           </CardTitle>
-          <p className="text-xs text-muted-foreground font-bold">سعر التوصيل الثابت وقاعدة الشحن المجاني</p>
+          <p className="text-xs text-muted-foreground font-bold">تعرفة Storage Station حسب المدينة ووزن الطلب</p>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
-          {/* Fixed shipping cost */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-            <Label className="text-xs font-black uppercase text-blue-900">سعر الشحن الثابت (<RiyalSign />)</Label>
-            <Input
-              type="number"
-              value={fixedShippingCost}
-              onChange={e => setFixedShippingCost(Number(e.target.value))}
-              className="font-bold"
-              min={0}
-              placeholder="30"
-            />
-            <p className="text-[10px] text-blue-700 font-bold">يُطبَّق على جميع الطلبات بغض النظر عن المدينة</p>
+            <p className="text-xs font-black text-blue-900">أسعار التوصيل المحلية المعتمدة</p>
+            <p className="text-[11px] text-blue-800 font-bold">
+              14 ر.س للرياض والدمام والخبر وسيهات والقطيف والظهران وتاروت، و18 ر.س لبقية مدن المملكة حتى 15 كجم.
+            </p>
+            <p className="text-[10px] text-blue-700 font-bold">
+              بعد 15 كجم: 1 ر.س لكل كجم إضافي. الدفع عند الاستلام: 5 ر.س لكل طلب. وزن كل قطعة يُحسب 1 كجم تلقائيًا.
+            </p>
           </div>
           {/* Free shipping toggle */}
           <div className="flex items-center justify-between bg-secondary/10 rounded p-3">
@@ -5517,6 +5770,10 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
   const { user, logout: handleLogout } = useAuth();
   const [, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    "الرئيسية": true,
+    "الشحن": true,
+  });
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -5531,82 +5788,88 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
   const groups = [
     {
       label: "الرئيسية",
+      icon: Home,
       items: [
-        { id: "overview", label: "نظرة عامة", icon: BarChart3 },
+        { id: "overview", label: "نظرة عامة", icon: Home },
         { id: "orders", label: "الطلبات", icon: ShoppingCart, badge: pendingOrders },
-      ]
+      ],
     },
     {
-      label: "المخزون",
+      label: "المنتجات والمخزون",
+      icon: Package,
       items: [
         { id: "products", label: "المنتجات", icon: PackageCheck },
         { id: "categories", label: "الفئات / الأقسام", icon: LayoutGrid },
         { id: "inventory", label: "جرد الفروع", icon: Package },
-      ]
+        { id: "bundles", label: "عروض الباقات", icon: Package },
+      ],
     },
     {
-      label: "العمليات",
+      label: "الشحن",
+      icon: Truck,
       items: [
-        { id: "shifts", label: "إدارة الورديات", icon: Clock },
-        { id: "staff", label: "الموظفون", icon: Users },
-        { id: "branches", label: "الفروع", icon: Building },
         { id: "shipping", label: "شركات الشحن", icon: Truck },
-      ]
+        ...(user?.role === "admin" ? [
+          { id: "storage-x", label: "Storage X Ship", icon: PackageCheck },
+        ] : []),
+        { id: "returns", label: "المرتجعات والاسترداد", icon: RotateCcw },
+      ],
     },
     {
       label: "العملاء",
+      icon: Users,
       items: [
         { id: "customers", label: "قاعدة العملاء", icon: UserIcon, badge: newUsers },
         { id: "reviews", label: "تقييمات العملاء", icon: Star },
         { id: "vendors", label: "البائعون", icon: Store },
-        { id: "coupons", label: "أكواد الخصم", icon: Tag },
-        { id: "broadcast", label: "إشعارات جماعية", icon: Megaphone },
-      ]
-    },
-    {
-      label: "المحتوى",
-      items: [
-        { id: "media-library", label: "مكتبة الصور", icon: ImageIcon },
-      ]
+      ],
     },
     {
       label: "التسويق",
+      icon: Megaphone,
       items: [
         { id: "marketing", label: "الحملات التسويقية", icon: Activity },
-        { id: "pixels", label: "البيكسل التسويقي", icon: Activity },
+        { id: "coupons", label: "أكواد الخصم", icon: Tag },
+        { id: "broadcast", label: "إشعارات جماعية", icon: Megaphone },
         { id: "flash-deals", label: "عروض فلاش", icon: Zap },
-        { id: "bundles", label: "عروض الباقات", icon: Package },
-        { id: "returns", label: "المرتجعات", icon: RotateCcw },
         { id: "promo-strip", label: "شريط المميّزات", icon: Sparkles },
-        { id: "stats", label: "إحصائيات الرئيسية", icon: BarChart3 },
-        { id: "pages", label: "صفحات المتجر", icon: FileText },
-      ]
+        { id: "pixels", label: "البيكسل التسويقي", icon: Activity },
+      ],
     },
     {
-      label: "المالية والـ ERP",
+      label: "الفروع والموظفون",
+      icon: Building,
       items: [
+        { id: "branches", label: "الفروع", icon: Building },
+        { id: "staff", label: "الموظفون", icon: Users },
+        { id: "shifts", label: "إدارة الورديات", icon: Clock },
+      ],
+    },
+    {
+      label: "التقارير والمالية",
+      icon: BarChart3,
+      items: [
+        { id: "stats", label: "الإحصائيات", icon: BarChart3 },
         { id: "erp", label: "نظام ERP المالي", icon: Landmark },
-      ]
+      ],
     },
-    ...(user?.role === "admin" ? [{
-      label: "ذكاء اصطناعي",
-      items: [
-        { id: "ai-insights", label: "تحليلات المخزون AI", icon: Brain },
-      ]
-    }] : []),
     {
-      label: "النظام",
+      label: "المزيد",
+      icon: MoreVertical,
       items: [
+        { id: "pages", label: "صفحات المتجر", icon: FileText },
+        { id: "media-library", label: "مكتبة الصور", icon: ImageIcon },
         { id: "inbox", label: "صندوق البريد", icon: Bell, badge: unreadNotifications },
         { id: "email", label: "البريد الإلكتروني", icon: Send },
         { id: "logs", label: "سجل العمليات", icon: History },
         { id: "settings", label: "إعدادات المتجر", icon: Settings2 },
         ...(user?.role === "admin" ? [
+          { id: "ai-insights", label: "تحليلات المخزون AI", icon: Brain },
           { id: "health", label: "صحة النظام", icon: Activity },
-          { id: "integrations", label: "ربط الخدمات", icon: Shield },
+          { id: "integrations", label: "ربط الخدمات والمفاتيح", icon: Shield },
           { id: "whatsapp", label: "ربط واتس‌آب", icon: Phone },
         ] : []),
-      ]
+      ],
     },
   ];
 
@@ -5627,6 +5890,10 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
 
   // On mobile, every nav click should also close the drawer
   const handleTabChange = (tab: string) => {
+    const parentGroup = groups.find(group => group.items.some(item => item.id === tab));
+    if (parentGroup) {
+      setOpenGroups(current => ({ ...current, [parentGroup.label]: true }));
+    }
     onTabChange(tab);
     if (onMobileClose) onMobileClose();
   };
@@ -5698,75 +5965,92 @@ const AdminSidebar = ({ activeTab, onTabChange, pendingOrders, newUsers, unreadN
 
       {/* Navigation */}
       <nav className="relative z-10 flex-1 overflow-y-auto py-3 px-2 space-y-0.5 no-scrollbar">
-        {groups.map((group) => (
-          <div key={group.label}>
-            {!collapsed && (
-              <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">{group.label}</p>
-            )}
-            {group.items.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabChange(item.id)}
-                  title={collapsed ? item.label : undefined}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group
-                    ${isActive
-                      ? "bg-[#C9A882]/15 text-[#C9A882] border border-[#C9A882]/25"
-                      : "text-white/50 hover:text-white hover:bg-white/5"
-                    }`}
-                >
-                  {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A882] rounded-l-full" />}
-                  <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-white/70"}`} />
-                  {!collapsed && <span className="text-xs font-bold truncate">{item.label}</span>}
-                  {!collapsed && (item as any).badge > 0 && (
-                    <span className="mr-auto px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
-                      {(item as any).badge}
-                    </span>
+        {groups.map((group) => {
+          const expanded = collapsed || Boolean(openGroups[group.label]);
+          const hasActiveItem = group.items.some(item => item.id === activeTab);
+          return (
+            <div key={group.label} className="mb-1">
+              <button
+                type="button"
+                aria-expanded={expanded}
+                title={collapsed ? group.label : undefined}
+                onClick={() => {
+                  if (collapsed) return;
+                  setOpenGroups(current => ({ ...current, [group.label]: !current[group.label] }));
+                }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-right transition-colors
+                  ${hasActiveItem ? "text-[#C9A882] bg-white/5" : "text-white/70 hover:text-white hover:bg-white/5"}`}
+              >
+                <group.icon className="w-4 h-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="text-xs font-black truncate">{group.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 mr-auto transition-transform ${expanded ? "" : "-rotate-90"}`} />
+                  </>
+                )}
+              </button>
+              {expanded && (
+                <div className={`mt-1 space-y-0.5 ${collapsed ? "" : "mr-2 pr-2 border-r border-white/10"}`}>
+                  {group.items.map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        aria-current={isActive ? "page" : undefined}
+                        onClick={() => handleTabChange(item.id)}
+                        title={collapsed ? item.label : undefined}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all relative group
+                          ${isActive
+                            ? "bg-[#C9A882]/15 text-[#C9A882] border border-[#C9A882]/25"
+                            : "text-white/50 hover:text-white hover:bg-white/5"
+                          }`}
+                      >
+                        {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A882] rounded-l-full" />}
+                        <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#C9A882]" : "group-hover:text-white/70"}`} />
+                        {!collapsed && <span className="text-[11px] font-bold truncate">{item.label}</span>}
+                        {!collapsed && Number((item as any).badge) > 0 && (
+                          <span className="mr-auto px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
+                            {(item as any).badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {group.label === "المزيد" && (
+                    <>
+                      {!collapsed && <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1">الموارد البشرية</p>}
+                      {cafeOperationsLinks.map((link) => (
+                        <Link key={link.url} href={link.url}>
+                          <div
+                            title={collapsed ? link.label : undefined}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/5 transition-all cursor-pointer group"
+                          >
+                            <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/70" />
+                            {!collapsed && <span className="text-[11px] font-bold">{link.label}</span>}
+                            {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-20 group-hover:opacity-50" />}
+                          </div>
+                        </Link>
+                      ))}
+                      {!collapsed && <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1">روابط سريعة</p>}
+                      {externalLinks.map((link) => (
+                        <Link key={link.url} href={link.url}>
+                          <div
+                            title={collapsed ? link.label : undefined}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-all cursor-pointer group"
+                          >
+                            <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/60" />
+                            {!collapsed && <span className="text-[11px] font-bold">{link.label}</span>}
+                            {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-30 group-hover:opacity-70" />}
+                          </div>
+                        </Link>
+                      ))}
+                    </>
                   )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-
-        {/* HR & Operations links */}
-        {!collapsed && (
-          <div>
-            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">الموارد البشرية</p>
-          </div>
-        )}
-        {cafeOperationsLinks.map((link) => (
-          <Link key={link.url} href={link.url}>
-            <div
-              title={collapsed ? link.label : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/40 hover:text-white/80 hover:bg-white/5 transition-all cursor-pointer group"
-            >
-              <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/70" />
-              {!collapsed && <span className="text-xs font-bold">{link.label}</span>}
-              {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-20 group-hover:opacity-50" />}
+                </div>
+              )}
             </div>
-          </Link>
-        ))}
-
-        {/* External links */}
-        {!collapsed && (
-          <div>
-            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 pt-3 pb-1.5">روابط سريعة</p>
-          </div>
-        )}
-        {externalLinks.map((link) => (
-          <Link key={link.url} href={link.url}>
-            <div
-              title={collapsed ? link.label : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all cursor-pointer group"
-            >
-              <link.icon className="w-4 h-4 shrink-0 group-hover:text-white/60" />
-              {!collapsed && <span className="text-xs font-bold">{link.label}</span>}
-              {!collapsed && <ChevronRight className="w-3 h-3 mr-auto opacity-30 group-hover:opacity-70" />}
-            </div>
-          </Link>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Logout */}
@@ -5799,6 +6083,7 @@ const pageTitles: Record<string, string> = {
   coupons:      "أكواد الخصم",
   broadcast:    "إشعارات جماعية",
   shipping:     "شركات الشحن",
+  "storage-x":  "Storage X Ship",
   marketing:    "الحملات التسويقية",
   "flash-deals": "عروض فلاش",
   returns:      "المرتجعات والاسترداد",
@@ -5815,7 +6100,12 @@ const pageTitles: Record<string, string> = {
 export default function Admin() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "overview";
+    return new URLSearchParams(window.location.search).get("tab") === "orders"
+      ? "orders"
+      : "overview";
+  });
   const [time, setTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const adminRoles = ['admin', 'assistant_manager', 'tech_support', 'accountant', 'legal_consultant'];
@@ -5979,6 +6269,7 @@ export default function Admin() {
                 {activeTab === "settings"  && <StoreSettingsPanel />}
                 {activeTab === "health"    && user?.role === "admin" && <AdminSystemHealth />}
                 {activeTab === "integrations" && user?.role === "admin" && <AdminIntegrations />}
+                {activeTab === "storage-x" && user?.role === "admin" && <AdminIntegrations integrationIds={["storageXShip"]} />}
                 {activeTab === "whatsapp"     && user?.role === "admin" && <AdminWhatsApp />}
                {activeTab === "media-library" && <AdminMediaLibrary />}
               </motion.div>

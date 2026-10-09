@@ -1,0 +1,880 @@
+{
+  "info": {
+    "name": "Storage X Ship — Partner API",
+    "description": "Create, track, edit, cancel and label shipments through Storage X Ship — plus checking coverage and getting a price quote before you commit to an order. Works the same way for every partner we integrate with — nothing here is specific to any one merchant.\n\nBefore you run anything: set `baseUrl` and `apiKey` in this collection's Variables tab (or in your own Postman Environment). The correct `baseUrl` for your integration is shown at the top of the full API reference we gave you, under \"Base URL\" — copy it from there rather than guessing.\n\nEvery shipment requires a Saudi National Address short code (four letters + four digits, e.g. RRRD6636) on both the pickup and recipient side — see `recipient.nationalAddress` / `pickup.nationalAddress` on Create.\n\nMoney fields: send amounts in riyals (e.g. `amount: 150`) — that's the default. A halala (SAR's minor unit, 1 SAR = 100 halalas) alternative is always accepted too (`amountMinor: 15000`) if you prefer an integer on your end; sending both, the halala value wins. Everything we send back is always halalas, as a string (e.g. `\"totalMinor\": \"3120\"` = 31.20 SAR) — never a float.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://shipping.3rdmile.net/api/public/partner/v1",
+      "description": "Your live production base URL, confirmed reachable."
+    },
+    {
+      "key": "apiKey",
+      "value": "REPLACE_WITH_YOUR_API_KEY",
+      "description": "The partner API key issued to you by Storage X Ship. Sent as Authorization: Bearer <apiKey> on every request. Keep it out of anything you commit or share."
+    },
+    {
+      "key": "trackingNumber",
+      "value": "SXS10394822",
+      "description": "Set this from a real Create response, then Track/Update/Cancel/Label all reuse it."
+    }
+  ],
+  "item": [
+    {
+      "name": "Coverage",
+      "item": [
+        {
+          "name": "List all covered cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/coverage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coverage"
+              ]
+            },
+            "description": "Every currently serviceable city, all at once. No query parameters means no pagination — `pagination` comes back null."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/coverage",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "coverage"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"cities\": [\n    { \"city\": \"Riyadh\", \"cityAr\": \"الرياض\", \"pickupAvailable\": true, \"deliveryAvailable\": true, \"viaOwnFleet\": true },\n    { \"city\": \"Jeddah\", \"cityAr\": \"جدة\", \"pickupAvailable\": true, \"deliveryAvailable\": true, \"viaOwnFleet\": false }\n  ],\n  \"pagination\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Search + paginate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/coverage?q=jed&page=1&pageSize=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coverage"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "jed",
+                  "description": "Matches city name, English or Arabic script. Optional."
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "1-based. Requires pageSize to also be set."
+                },
+                {
+                  "key": "pageSize",
+                  "value": "25",
+                  "description": "Rows per page, capped at 200. Setting this turns paging on."
+                }
+              ]
+            },
+            "description": "Filtered and paginated. Omit q to list every covered city; omit page/pageSize to get everything unpaginated."
+          },
+          "response": [
+            {
+              "name": "200 OK - paginated",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/coverage?q=jed&page=1&pageSize=25",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "coverage"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "jed"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "25"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"cities\": [\n    { \"city\": \"Jeddah\", \"cityAr\": \"جدة\", \"pickupAvailable\": true, \"deliveryAvailable\": true, \"viaOwnFleet\": false }\n  ],\n  \"pagination\": { \"page\": 1, \"pageSize\": 25, \"total\": 1, \"totalPages\": 1 }\n}"
+            },
+            {
+              "name": "400 Bad Request - page without pageSize",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/coverage?page=2",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "coverage"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "2"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"error\": \"missing_page_size\", \"message\": \"page requires pageSize to also be set\" }"
+            }
+          ]
+        },
+        {
+          "name": "One city's detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/coverage?city=Riyadh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coverage"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Riyadh",
+                  "description": "Loosely matched — common aliases resolve to the right city."
+                }
+              ]
+            },
+            "description": "One city plus any district breakdown on file for it. Takes priority over q/page/pageSize if both are somehow sent."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/coverage?city=Riyadh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "coverage"
+                  ],
+                  "query": [
+                    {
+                      "key": "city",
+                      "value": "Riyadh"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"city\": \"Riyadh\",\n  \"cityAr\": \"الرياض\",\n  \"pickupAvailable\": true,\n  \"deliveryAvailable\": true,\n  \"viaOwnFleet\": true,\n  \"districts\": []\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/coverage?city=Nowhereville",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "coverage"
+                  ],
+                  "query": [
+                    {
+                      "key": "city",
+                      "value": "Nowhereville"
+                    }
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"error\": \"city_not_found\", \"message\": \"no coverage data for \\\"Nowhereville\\\"\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pricing",
+      "item": [
+        {
+          "name": "Get a quote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient\": { \"city\": \"Riyadh\" },\n  \"pickup\": { \"city\": \"Jeddah\" },\n  \"package\": { \"weightGrams\": 900 },\n  \"cod\": { \"amount\": 150, \"method\": \"cash\" }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Same nested shape as Create, minus the fields pricing has no use for. Uses the exact pricing engine Create itself uses — never a separate estimate that could drift from what you're actually charged. cod.amount is in riyals; cod.amountMinor (halalas) is also accepted if you prefer an integer."
+          },
+          "response": [
+            {
+              "name": "200 OK - serviceable",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/quote",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "quote"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"serviceable\": true,\n  \"baseMinor\": \"2500\",\n  \"additionalUnits\": 0,\n  \"weightMinor\": \"0\",\n  \"fuelBp\": 250,\n  \"fuelMinor\": \"63\",\n  \"codFeeMinor\": \"150\",\n  \"netMinor\": \"2713\",\n  \"vatMinor\": \"407\",\n  \"totalMinor\": \"3120\",\n  \"returnFeeMinor\": \"500\",\n  \"notes\": []\n}"
+            },
+            {
+              "name": "200 OK - not serviceable",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/quote",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "quote"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"serviceable\": false }"
+            },
+            {
+              "name": "400 Bad Request - missing weight",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/quote",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "quote"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"error\": \"missing_weight\", \"message\": \"package.weightGrams is required and must be positive\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shipments",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalOrderId\": \"ORD-48213\",\n  \"recipient\": {\n    \"name\": \"Sara Al-Otaibi\",\n    \"phone\": \"0551234567\",\n    \"addressLine\": \"Prince Sultan Rd, Bldg 12\",\n    \"nationalAddress\": \"RRRD6636\",\n    \"city\": \"Riyadh\",\n    \"district\": \"Al Olaya\"\n  },\n  \"pickup\": {\n    \"phone\": \"0559876543\",\n    \"addressLine\": \"King Fahd Rd, Warehouse 3\",\n    \"nationalAddress\": \"ABCD1234\",\n    \"city\": \"Riyadh\"\n  },\n  \"package\": {\n    \"weightGrams\": 900,\n    \"pieces\": 1,\n    \"description\": \"Shoes\"\n  },\n  \"cod\": { \"amount\": 150, \"method\": \"cash\" }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "externalOrderId is your idempotency key — retry the same call safely and you get the same shipment back with duplicate: true instead of a second parcel. recipient/pickup nationalAddress are required: four letters + four digits, e.g. RRRD6636. cod.amount is in riyals; cod.amountMinor (halalas) also accepted."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"shipmentId\": \"b6e2c9d4-1a2b-4c3d-9e8f-0123456789ab\",\n  \"trackingNumber\": \"SXS10394822\",\n  \"status\": \"awaiting_pickup\",\n  \"externalOrderId\": \"ORD-48213\",\n  \"duplicate\": false\n}"
+            },
+            {
+              "name": "200 OK - retried (duplicate)",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"shipmentId\": \"b6e2c9d4-1a2b-4c3d-9e8f-0123456789ab\",\n  \"trackingNumber\": \"SXS10394822\",\n  \"status\": \"awaiting_pickup\",\n  \"externalOrderId\": \"ORD-48213\",\n  \"duplicate\": true\n}"
+            },
+            {
+              "name": "400 Bad Request - bad national address",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"error\": \"invalid_national_address\", \"message\": \"recipient.nationalAddress is required and must be a Saudi National Address short address, e.g. RRRD6636\" }"
+            }
+          ]
+        },
+        {
+          "name": "Track",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{trackingNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{trackingNumber}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"trackingNumber\": \"SXS10394822\",\n  \"status\": \"awaiting_pickup\",\n  \"custody\": \"with_merchant\",\n  \"events\": [\n    {\n      \"occurredAt\": \"2026-09-24T09:12:00Z\",\n      \"label\": \"Pickup requested\",\n      \"labelAr\": \"تم طلب الاستلام\",\n      \"location\": \"Riyadh\",\n      \"kind\": \"pickup_requested\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"error\": \"shipment_not_found\", \"message\": \"No shipment with that tracking number\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{trackingNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{trackingNumber}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weightGrams\": 1200,\n  \"codAmount\": 200,\n  \"reason\": \"Customer added a second item\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Send only the fields changing. Only works before the shipment reaches a hub (draft through picked_up) — 409 after that. Changing weight/city/COD reprices an already-charged shipment and posts the difference. codAmount is in riyals; codAmountMinor (halalas) also accepted."
+          },
+          "response": [
+            {
+              "name": "200 OK - repriced",
+              "originalRequest": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"trackingNumber\": \"SXS10394822\",\n  \"changed\": [\"weight_grams\", \"cod_amount_minor\"],\n  \"repriced\": true,\n  \"oldTotalMinor\": \"1800\",\n  \"newTotalMinor\": \"2300\",\n  \"adjustmentMinor\": \"500\"\n}"
+            },
+            {
+              "name": "409 Conflict - already at a hub",
+              "originalRequest": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"error\": \"update_failed\", \"message\": \"this shipment has already reached a hub and can no longer be edited by API\" }"
+            }
+          ]
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{trackingNumber}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{trackingNumber}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer changed their mind\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Body is optional. Cancels outright if not yet picked up; flags for automatic return if already moving — one call either way."
+          },
+          "response": [
+            {
+              "name": "200 OK - cancelled",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"trackingNumber\": \"SXS10394822\", \"outcome\": \"cancelled\", \"status\": \"cancelled\", \"custody\": \"with_merchant\" }"
+            },
+            {
+              "name": "200 OK - return requested (already moving)",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{ \"trackingNumber\": \"SXS10394822\", \"outcome\": \"return_requested\", \"status\": \"picked_up\", \"custody\": \"with_driver\" }"
+            }
+          ]
+        },
+        {
+          "name": "Label (PDF bytes)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{trackingNumber}}/label",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{trackingNumber}}",
+                "label"
+              ]
+            },
+            "description": "Returns the actual PDF bytes (Content-Type: application/pdf) — use Postman's Send and Download, or view under the response's Preview tab. 409 shipment_closed if the shipment is cancelled/lost/damaged/returned."
+          },
+          "response": []
+        },
+        {
+          "name": "Label (permanent URL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{trackingNumber}}/label?format=url",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{trackingNumber}}",
+                "label"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "url"
+                }
+              ]
+            },
+            "description": "Returns a link instead of bytes. The URL never changes once issued, even if the label is regenerated later — safe to store once against your own order."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{trackingNumber}}/label?format=url",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{trackingNumber}}",
+                    "label"
+                  ],
+                  "query": [
+                    {
+                      "key": "format",
+                      "value": "url"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"trackingNumber\": \"SXS10394822\",\n  \"url\": \"https://.../partner-labels/b6e2c9d4-....pdf?token=...\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reference",
+      "item": [
+        {
+          "name": "List tracking statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statuses"
+              ]
+            },
+            "description": "Every value you can ever see in a shipment's status or custody field, with a description. Static reference data — safe to cache on your side; call it once and keep the list."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/statuses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "statuses"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statuses\": [\n    {\n      \"code\": \"draft\",\n      \"label\": \"Draft\",\n      \"labelAr\": \"مسودة\",\n      \"description\": \"Created but not yet submitted into the fulfilment flow.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"created\",\n      \"label\": \"Created\",\n      \"labelAr\": \"تم الإنشاء\",\n      \"description\": \"Submitted and accepted. Not yet packed or picked up.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"awaiting_pickup\",\n      \"label\": \"Awaiting pickup\",\n      \"labelAr\": \"بانتظار الاستلام\",\n      \"description\": \"Waiting for a driver to collect it from the merchant or pickup address.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"awaiting_pack\",\n      \"label\": \"Awaiting pack\",\n      \"labelAr\": \"بانتظار التغليف\",\n      \"description\": \"At a fulfilment centre, waiting to be packed.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"packed\",\n      \"label\": \"Packed\",\n      \"labelAr\": \"تم التغليف\",\n      \"description\": \"Packed at the fulfilment centre and ready to leave.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"picked_up\",\n      \"label\": \"Picked up\",\n      \"labelAr\": \"تم الاستلام\",\n      \"description\": \"Collected by a driver and on its way to a hub.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"at_hub\",\n      \"label\": \"At hub\",\n      \"labelAr\": \"في المستودع\",\n      \"description\": \"Received and sorted at one of our hubs.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"in_transfer\",\n      \"label\": \"In transfer\",\n      \"labelAr\": \"قيد النقل\",\n      \"description\": \"Moving between two hubs — not yet at its final one.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"out_for_delivery\",\n      \"label\": \"Out for delivery\",\n      \"labelAr\": \"خرجت للتوصيل\",\n      \"description\": \"With a driver, on its way to the recipient.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"failed_attempt\",\n      \"label\": \"Failed attempt\",\n      \"labelAr\": \"محاولة فاشلة\",\n      \"description\": \"A delivery attempt was made and did not succeed. It will be retried or returned.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"delivered\",\n      \"label\": \"Delivered\",\n      \"labelAr\": \"تم التسليم\",\n      \"description\": \"Delivered to the recipient.\",\n      \"terminal\": true\n    },\n    {\n      \"code\": \"return_initiated\",\n      \"label\": \"Return initiated\",\n      \"labelAr\": \"بدء الإرجاع\",\n      \"description\": \"Flagged to be returned to the merchant. Not yet moving.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"return_in_transfer\",\n      \"label\": \"Return in transfer\",\n      \"labelAr\": \"الإرجاع قيد النقل\",\n      \"description\": \"The return is moving between hubs.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"out_for_return\",\n      \"label\": \"Out for return\",\n      \"labelAr\": \"خرجت للإرجاع\",\n      \"description\": \"With a driver, on its way back to the merchant.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"return_in_progress\",\n      \"label\": \"Return in progress\",\n      \"labelAr\": \"الإرجاع قيد المعالجة\",\n      \"description\": \"The return is being processed, generally at a hub.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"returned\",\n      \"label\": \"Returned\",\n      \"labelAr\": \"تم الإرجاع\",\n      \"description\": \"Returned to the merchant.\",\n      \"terminal\": true\n    },\n    {\n      \"code\": \"cancelled\",\n      \"label\": \"Cancelled\",\n      \"labelAr\": \"ملغى\",\n      \"description\": \"Cancelled before delivery.\",\n      \"terminal\": true\n    },\n    {\n      \"code\": \"lost\",\n      \"label\": \"Lost\",\n      \"labelAr\": \"مفقودة\",\n      \"description\": \"Lost in the network.\",\n      \"terminal\": true\n    },\n    {\n      \"code\": \"damaged\",\n      \"label\": \"Damaged\",\n      \"labelAr\": \"تالفة\",\n      \"description\": \"Damaged beyond delivery.\",\n      \"terminal\": true\n    }\n  ],\n  \"custodyStates\": [\n    {\n      \"code\": \"with_merchant\",\n      \"label\": \"With merchant\",\n      \"labelAr\": \"لدى التاجر\",\n      \"description\": \"Physically still with the sender/merchant.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"at_fc\",\n      \"label\": \"At fulfilment centre\",\n      \"labelAr\": \"في مركز التجهيز\",\n      \"description\": \"Physically at a fulfilment centre.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"with_driver\",\n      \"label\": \"With driver\",\n      \"labelAr\": \"لدى السائق\",\n      \"description\": \"Physically with a driver, on a pickup or delivery run.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"at_hub\",\n      \"label\": \"At hub\",\n      \"labelAr\": \"في المستودع\",\n      \"description\": \"Physically at a sorting or hand-off hub.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"in_transfer\",\n      \"label\": \"In transfer\",\n      \"labelAr\": \"قيد النقل\",\n      \"description\": \"Physically moving between two hubs.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"with_partner\",\n      \"label\": \"With carrier partner\",\n      \"labelAr\": \"لدى شريك الشحن\",\n      \"description\": \"Physically handed off to a carrier partner for this leg.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"with_customer\",\n      \"label\": \"With customer\",\n      \"labelAr\": \"لدى العميل\",\n      \"description\": \"Physically with the end customer — an exchange or return pickup that starts at the customer's address rather than the merchant's.\",\n      \"terminal\": false\n    },\n    {\n      \"code\": \"delivered\",\n      \"label\": \"Delivered\",\n      \"labelAr\": \"تم التسليم\",\n      \"description\": \"Physically with the recipient.\",\n      \"terminal\": true\n    },\n    {\n      \"code\": \"returned\",\n      \"label\": \"Returned\",\n      \"labelAr\": \"تم الإرجاع\",\n      \"description\": \"Physically back with the merchant, as a return.\",\n      \"terminal\": true\n    },\n    {\n      \"code\": \"unknown\",\n      \"label\": \"Unknown\",\n      \"labelAr\": \"غير معروف\",\n      \"description\": \"Physical location isn't currently known — a data gap, not a state to plan around.\",\n      \"terminal\": false\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

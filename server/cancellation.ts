@@ -10,6 +10,24 @@ import {
 import { sendEmail } from "./email";
 import { pushToUser, fireNotify } from "./notifications";
 
+const TERMINAL_SHIPMENT_STATUSES = new Set([
+  "cancelled", "canceled", "failed", "returned", "completed", "delivered",
+  "order_cancelled", "order_canceled", "order_failed", "order_completed", "order_returned",
+]);
+
+export function getActiveCarrierShipmentProviders(order: any): string[] {
+  const providers: string[] = [];
+  const isActive = (rawStatus: unknown) => {
+    const status = String(rawStatus || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+    return !TERMINAL_SHIPMENT_STATUSES.has(status);
+  };
+
+  if (order?.storageXShipTrackingNumber && isActive(order.storageXShipStatus)) providers.push("Storage X");
+  if ((order?.shipoxTrackingNumber || order?.shipoxOrderId) && isActive(order.shipoxStatus)) providers.push("Shipox");
+  if (order?.mapitOrderNumber && isActive(order.mapitStatus)) providers.push("Mapit");
+  return providers;
+}
+
 export async function getPolicy() {
   let policy: any = await CancellationPolicyModel.findOne({ key: "main" }).lean();
   if (!policy) {
@@ -81,28 +99,43 @@ export async function cancelOrder(opts: CancelOptions) {
 
   // 2) Refund (wallet credit) when paid and amount > 0
   let refundAmount = 0;
+  let refundError: string | null = null;
   if (wasPaid) {
-    refundAmount = Math.max(0, parseFloat(order.total) - fee);
-    if (refundAmount > 0 && order.userId) {
+    const requestedRefund = Math.max(0, parseFloat(order.total) - fee);
+    if (requestedRefund > 0) {
       try {
-        const user: any = await UserModel.findById(order.userId);
-        if (user) {
+        if (!order.userId) throw new Error("الطلب المدفوع لا يحتوي على حساب عميل للاسترداد");
+        const refundReference = String(order._id);
+        const existingRefund: any = await WalletTransactionModel.findOne({
+          userId: String(order.userId),
+          type: "refund",
+          reference: refundReference,
+          status: "completed",
+        }).lean();
+        if (existingRefund) {
+          refundAmount = Number(existingRefund.amount) || requestedRefund;
+          order.paymentStatus = "refunded";
+        } else {
+          const user: any = await UserModel.findById(order.userId);
+          if (!user) throw new Error("تعذر العثور على حساب العميل للاسترداد");
           const currentBalance = parseFloat(String(user.walletBalance || "0"));
-          const newBalance = (currentBalance + refundAmount).toFixed(2);
+          const newBalance = (currentBalance + requestedRefund).toFixed(2);
           user.walletBalance = newBalance;
           await user.save();
           await WalletTransactionModel.create({
             userId: String(order.userId),
-            amount: refundAmount,
+            amount: requestedRefund,
             type: "refund",
             description: `استرداد طلب #${String(order._id).slice(-6).toUpperCase()}${fee > 0 ? ` (بعد رسوم إلغاء ${fee.toFixed(2)} ر.س)` : ""}`,
-            reference: String(order._id),
+            reference: refundReference,
             status: "completed",
           });
+          refundAmount = requestedRefund;
           order.paymentStatus = "refunded";
         }
       } catch (e: any) {
         console.error(`[Cancel] Refund failed:`, e?.message);
+        refundError = "تعذر تأكيد الاسترداد تلقائيًا. يلزم مراجعة سجل المحفظة قبل إضافة أي مبلغ يدويًا.";
       }
     }
   }
@@ -126,10 +159,12 @@ export async function cancelOrder(opts: CancelOptions) {
       await fireNotify(
         String(order.userId),
         "❌ تم إلغاء طلبك",
-        refundAmount > 0
-          ? `طلبك #${ref} أُلغي. تم استرداد ${refundAmount.toFixed(2)} ر.س لمحفظتك.`
+        refundError
+          ? `طلبك #${ref} أُلغي، لكن استرداد المبلغ يحتاج مراجعة من خدمة العملاء.`
+          : refundAmount > 0
+            ? `طلبك #${ref} أُلغي. تم استرداد ${refundAmount.toFixed(2)} ر.س لمحفظتك.`
           : `طلبك #${ref} أُلغي.${opts.reason ? ` السبب: ${opts.reason}` : ""}`,
-        { type: refundAmount > 0 ? "success" : "info", link: "/orders", icon: "❌" }
+        { type: refundError ? "error" : refundAmount > 0 ? "success" : "info", link: "/orders", icon: "❌" }
       );
       // Extra real-time payload (so the orders page can update the row instantly)
       pushToUser(String(order.userId), {
@@ -146,6 +181,7 @@ export async function cancelOrder(opts: CancelOptions) {
           <h2 style="color:#2d1a14;margin:0 0 12px">تم إلغاء طلبك #${ref}</h2>
           <p style="color:#1a1a1a;line-height:1.8">مرحباً ${user.name || ""}،<br/>تم إلغاء طلبك بنجاح${opts.reason ? ` — السبب: <b>${opts.reason}</b>` : ""}.</p>
           ${refundAmount > 0 ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0"><b style="color:#166534">تم استرداد ${refundAmount.toFixed(2)} ر.س</b> إلى محفظتك.${fee > 0 ? `<br/><small>تم خصم ${fee.toFixed(2)} ر.س كرسوم إلغاء.</small>` : ""}</div>` : ""}
+          ${refundError ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px;margin:16px 0;color:#9a3412"><b>استرداد المبلغ قيد المراجعة.</b> لا تحاول طلب استرداد آخر؛ تواصل مع خدمة العملاء.</div>` : ""}
           <p style="color:#555;font-size:13px">إن كان لديك أي استفسار، تواصل معنا في أي وقت.</p>
         `;
         await sendEmail({
@@ -164,6 +200,7 @@ export async function cancelOrder(opts: CancelOptions) {
     ok: true,
     order,
     refundAmount,
+    refundError,
     fee,
     restocked: policy.autoRestoreStock !== false,
     previousStatus,

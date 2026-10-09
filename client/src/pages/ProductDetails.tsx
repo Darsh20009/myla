@@ -21,6 +21,7 @@ import { Ruler } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SizeAdvisor } from "@/components/ai/SizeAdvisor";
+import { optimizeCloudinaryImageUrl } from "@/lib/image-utils";
 
 const ABAYA_LENGTHS = ["52", "54", "56", "58", "60", "62"];
 
@@ -428,7 +429,7 @@ export default function ProductDetails() {
                 <AnimatePresence mode="wait" custom={slideDirection}>
                   <motion.img 
                     key={currentImageIndex}
-                    src={allImages[currentImageIndex] || "/myla-logo-header.png"} 
+                    src={optimizeCloudinaryImageUrl(allImages[currentImageIndex] || "/myla-logo-header.png", 1400)}
                     alt={product.name}
                     custom={slideDirection}
                     initial={{ x: slideDirection > 0 ? 400 : -400, opacity: 0, scale: 0.85, rotate: slideDirection > 0 ? 5 : -5 }}
@@ -437,7 +438,15 @@ export default function ProductDetails() {
                     transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
                     className="max-w-full max-h-full object-contain transition-transform duration-1000"
                     data-testid={`img-product-${currentImageIndex}`}
-                    onError={(e) => { const t = e.target as HTMLImageElement; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = "/myla-logo-header.png"; } }}
+                    onError={(e) => {
+                      const image = e.currentTarget;
+                      if (!image.dataset.fallback) {
+                        image.dataset.fallback = "1";
+                        image.src = "/myla-logo.png";
+                      } else {
+                        image.style.display = "none";
+                      }
+                    }}
                   />
                 </AnimatePresence>
 
@@ -501,7 +510,12 @@ export default function ProductDetails() {
                       `}
                       data-testid={`button-thumbnail-${idx}`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={optimizeCloudinaryImageUrl(img, 200)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}
+                      />
                       {currentImageIndex === idx && (
                         <motion.div
                           layoutId="thumb-indicator"
@@ -595,7 +609,21 @@ export default function ProductDetails() {
                         data-testid={`button-color-${color}`}
                       >
                         {colorImages[color] ? (
-                          <img src={colorImages[color]} alt={color} className="w-full h-full object-cover" />
+                          <img
+                            src={optimizeCloudinaryImageUrl(colorImages[color], 240)}
+                            alt={color}
+                            className="w-full h-full object-cover"
+                            onError={(event) => {
+                              const image = event.currentTarget;
+                              const fallbackImage = allImages[0];
+                              if (fallbackImage && image.dataset.fallbackUsed !== "true") {
+                                image.dataset.fallbackUsed = "true";
+                                image.src = optimizeCloudinaryImageUrl(fallbackImage, 240);
+                              } else {
+                                image.style.display = "none";
+                              }
+                            }}
+                          />
                         ) : (
                           <div className="w-full h-full bg-black/5 flex items-center justify-center text-[9px] font-black uppercase text-center px-1 leading-none">
                             {color}
@@ -753,7 +781,20 @@ export default function ProductDetails() {
                     className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
                   >
                     <div className="w-16 h-16 bg-white shadow-2xl p-1 border border-black/5">
-                      <img src={selectedVariant?.image || product.images[0]} alt="" className="w-full h-full object-contain" />
+                      <img
+                        src={optimizeCloudinaryImageUrl(selectedVariant?.image || product.images[0], 1000)}
+                        alt=""
+                        className="w-full h-full object-contain"
+                        onError={(event) => {
+                          const image = event.currentTarget;
+                          if (!image.dataset.fallback) {
+                            image.dataset.fallback = "1";
+                            image.src = "/myla-logo.png";
+                          } else {
+                            image.style.display = "none";
+                          }
+                        }}
+                      />
                     </div>
                   </motion.div>
                 )}

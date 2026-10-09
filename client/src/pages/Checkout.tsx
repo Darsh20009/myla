@@ -25,6 +25,11 @@ import {
 } from "@/components/payment/PaymentBrands";
 import { RiyalSign } from "@/components/RiyalSign";
 import { Badge } from "@/components/ui/badge";
+import {
+  calculateStorageStationRate,
+  getShippingPieceCount,
+} from "@shared/storage-station-rates";
+import { optimizeCloudinaryImageUrl } from "@/lib/image-utils";
 
 const SAUDI_CITIES = [
   "الرياض","جدة","مكة المكرمة","المدينة المنورة","الدمام","الخبر","الطائف","تبوك",
@@ -37,12 +42,15 @@ const SAUDI_CITIES = [
 
 export default function Checkout() {
   const { items, total, clearCart, removeItem } = useCart();
-  const { appliedCoupon } = useCoupon();
+  const { appliedCoupon, setCoupon, clearCoupon } = useCoupon();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [couponInput, setCouponInput] = useState(appliedCoupon?.code || "");
+  const [couponLoading, setCouponLoading] = useState(false);
 
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "tap" | "cod">("tap");
+  type CheckoutPaymentMethod = "wallet" | "tap" | "cod";
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod | "">("");
 
   const isAppleDevice = useMemo(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") return false;
@@ -66,9 +74,27 @@ export default function Checkout() {
   const [deliveryDistrict, setDeliveryDistrict] = useState("");
   const [deliveryName, setDeliveryName] = useState("");
   const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryLatitude, setDeliveryLatitude] = useState<number | undefined>();
+  const [deliveryLongitude, setDeliveryLongitude] = useState<number | undefined>();
+  const [nationalAddress, setNationalAddress] = useState("");
+  const nationalAddressSessionKey = user?.id
+    ? `myla:checkout:storage-x-national-address:${user.id}`
+    : null;
   const [citySearch, setCitySearch] = useState("");
   const [cityDropOpen, setCityDropOpen] = useState(false);
   const [geoLocating, setGeoLocating] = useState(false);
+
+  useEffect(() => {
+    if (!nationalAddressSessionKey) {
+      setNationalAddress("");
+      return;
+    }
+    try {
+      setNationalAddress(window.sessionStorage.getItem(nationalAddressSessionKey) || "");
+    } catch {
+      setNationalAddress("");
+    }
+  }, [nationalAddressSessionKey]);
 
   const detectLocation = async () => {
     if (!navigator.geolocation) {
@@ -81,6 +107,8 @@ export default function Checkout() {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 12000, maximumAge: 60000 })
       );
       const { latitude, longitude } = pos.coords;
+      setDeliveryLatitude(latitude);
+      setDeliveryLongitude(longitude);
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ar`,
         { headers: { "User-Agent": "Myla/1.0" } }
@@ -195,7 +223,29 @@ export default function Checkout() {
       const res = await fetch("/api/store/settings");
       return res.json();
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 30_000,
+  });
+
+  const { data: paymobStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/paymob/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/paymob/status");
+      if (!res.ok) return { configured: false };
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const { data: walletData, isFetching: isFetchingWallet } = useQuery<{ balance?: string | number }>({
+    queryKey: ["/api/wallet"],
+    queryFn: async () => {
+      const res = await fetch("/api/wallet", { credentials: "include" });
+      if (!res.ok) throw new Error("تعذر تحميل رصيد المحفظة");
+      return res.json();
+    },
+    enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: loyaltyData } = useQuery<any>({
@@ -213,12 +263,36 @@ export default function Checkout() {
   const availableLoyaltyPoints = loyaltyData?.points || 0;
   const loyaltyDiscount = useLoyaltyPoints ? Math.min(availableLoyaltyPoints / 100, 50) : 0;
 
-  const enabledMethods = storeSettings?.paymentMethods || {
-    wallet: true, tap: true, apple_pay: true, cod: false,
-  };
+  const enabledMethods = storeSettings?.paymentMethods || {};
+  const walletBalanceRaw = Number(walletData?.balance ?? user?.walletBalance ?? 0);
+  const walletBalance = Number.isFinite(walletBalanceRaw) ? Math.max(0, walletBalanceRaw) : 0;
+  const canPayWithCard = enabledMethods.tap === true && paymobStatus?.configured === true;
+  const canPayByCod = enabledMethods.cod === true;
+  const walletPaymentEnabled = enabledMethods.wallet !== false;
+  const canPayWithWallet = walletPaymentEnabled && !!user && walletBalance > 0;
+  const availablePaymentMethods = useMemo<CheckoutPaymentMethod[]>(() => [
+    ...(canPayWithCard ? ["tap" as const] : []),
+    ...(canPayByCod ? ["cod" as const] : []),
+    ...(canPayWithWallet ? ["wallet" as const] : []),
+  ], [canPayWithCard, canPayByCod, canPayWithWallet]);
 
-  // ── Shipping companies + Mapit status ───────────────────────────────────────
+  useEffect(() => {
+    if (availablePaymentMethods.includes(paymentMethod as CheckoutPaymentMethod)) return;
+    setPaymentMethod(availablePaymentMethods[0] || "");
+  }, [availablePaymentMethods, paymentMethod]);
+
+  // ── Shipping companies + carrier readiness ───────────────────────────────────
   const subtotal = total();
+  const shippingPieces = getShippingPieceCount(items);
+  const defaultPolicyRate = calculateStorageStationRate({
+    city: deliveryCity,
+    pieces: shippingPieces,
+    cashOnDelivery: paymentMethod === "cod",
+    orderTotal: subtotal,
+    freeShippingThreshold: storeSettings?.freeShippingEnabled !== false
+      ? Number(storeSettings?.freeShippingThreshold) || 0
+      : 0,
+  });
 
   const { data: shippingCompaniesRaw = [] } = useQuery<any[]>({
     queryKey: ["/api/shipping-companies"],
@@ -240,7 +314,31 @@ export default function Checkout() {
     staleTime: 10 * 60 * 1000,
   });
 
-  // Build merged shipping options: Mapit first (if configured), then DB companies
+  const { data: shipoxStatus } = useQuery<{ configured: boolean; senderConfigured: boolean; checkoutReady: boolean }>({
+    queryKey: ["/api/shipox/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/shipox/status");
+      if (!res.ok) return { configured: false, senderConfigured: false, checkoutReady: false };
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const { data: storageXShipStatus } = useQuery<{
+    configured: boolean;
+    checkoutReady: boolean;
+    merchantRefConfigured?: boolean;
+  }>({
+    queryKey: ["/api/storage-x-ship/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/storage-x-ship/status");
+      if (!res.ok) return { configured: false, checkoutReady: false };
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Prefer the carrier the store selected, then configured fallback providers.
   const MAPIT_OPTION = {
     id: "__mapit__",
     name: "Mapit — مابت",
@@ -260,15 +358,41 @@ export default function Checkout() {
     const hasMapitConfigured = mapitStatus?.configured;
 
     let list: any[] = [];
+    if (shipoxStatus?.checkoutReady) {
+      list.push({
+        id: "__shipox__",
+        name: "Shipox — 3rd Mile",
+        logo: "",
+        price: defaultPolicyRate.cost,
+        estimatedDays: 1,
+        freeShippingThreshold: 0,
+        isActive: true,
+        isShipox: true,
+      });
+    }
     if (hasMapitConfigured) {
       list.push(dbMapit
         ? { ...dbMapit, id: "__mapit__", isMapit: true, logo: dbMapit.logo || "/mapit-logo.png" }
         : { ...MAPIT_OPTION, price: 30 }
       );
     }
-    // Add remaining DB companies (excluding the one already shown as Mapit)
+    // Add remaining database carriers, avoiding duplicate integrated entries.
     const rest = dbOptions.filter((c: any) => c.id !== (dbMapit?.id));
     list = [...list, ...rest];
+    // Add Storage X last so enabling the integration doesn't change the
+    // customer's existing default carrier.
+    if (storageXShipStatus?.checkoutReady) {
+      list.push({
+        id: "__storage_x_ship__",
+        name: "Storage X Ship",
+        logo: "",
+        price: 0,
+        estimatedDays: 1,
+        freeShippingThreshold: 0,
+        isActive: true,
+        isStorageXShip: true,
+      });
+    }
     return list;
   })();
 
@@ -278,31 +402,29 @@ export default function Checkout() {
   const firstOptionId = shippingOptions[0]?.id ?? "";
   const effectiveSelectedId = selectedShippingId || firstOptionId;
   const selectedShipping = shippingOptions.find(o => o.id === effectiveSelectedId) ?? shippingOptions[0];
+  const isStorageXShipSelected = selectedShipping?.isStorageXShip === true;
+  const isShipoxSelected = selectedShipping?.isShipox === true;
+  const isMapitSelected = selectedShipping?.isMapit === true;
 
   // ── Fallback shipping rate (when no companies configured) ────────────────────
   const { data: shippingRateData, isFetching: isLoadingRate } = useQuery<{
     cost: number; zoneName: string; methodTitle: string; isFree: boolean;
+    pieces?: number; weightGrams?: number; baseCost?: number; extraWeightCost?: number; codFee?: number;
   }>({
-    queryKey: ["/api/shipping/rate", deliveryCity, subtotal],
+    queryKey: ["/api/shipping/rate", deliveryCity, subtotal, shippingPieces, paymentMethod],
     queryFn: async () => {
-      if (!deliveryCity) return { cost: 0, zoneName: "", methodTitle: "", isFree: true };
-      const res = await fetch(`/api/shipping/rate?city=${encodeURIComponent(deliveryCity)}&total=${subtotal}`);
-      if (!res.ok) return { cost: 30, zoneName: "افتراضي", methodTitle: "توصيل", isFree: false };
+      if (!deliveryCity) return defaultPolicyRate;
+      const res = await fetch(
+        `/api/shipping/rate?city=${encodeURIComponent(deliveryCity)}` +
+        `&total=${subtotal}&pieces=${shippingPieces}&cashOnDelivery=${paymentMethod === "cod"}`,
+      );
+      if (!res.ok) return defaultPolicyRate;
       return res.json();
     },
-    enabled: shippingMode === "delivery" && !!deliveryCity && shippingOptions.length === 0,
+    enabled: shippingMode === "delivery" && !!deliveryCity &&
+      (shippingOptions.length === 0 || isShipoxSelected),
     staleTime: 5 * 60 * 1000,
   });
-
-  const shippingCostValue = (() => {
-    if (shippingMode !== "delivery" || !deliveryCity) return 0;
-    if (shippingOptions.length > 0 && selectedShipping) {
-      const threshold = Number(selectedShipping.freeShippingThreshold || 0);
-      const price = Number(selectedShipping.price || 0);
-      return threshold > 0 && subtotal >= threshold ? 0 : price;
-    }
-    return shippingRateData?.cost ?? 0;
-  })();
 
   // ── Bundle offer savings ─────────────────────────────────────────────────────
   const bundleCalcKey = items.map(i => `${i.productId}:${i.quantity}:${i.price}`).join("|");
@@ -336,25 +458,121 @@ export default function Checkout() {
     }
   }, [items.length, paymobSheetOpen, redirectingTo, setLocation]);
 
+  const appliedCouponMatchesCart = !!appliedCoupon &&
+    appliedCoupon.validatedSubtotal != null &&
+    Math.abs(appliedCoupon.validatedSubtotal - subtotal) < 0.01;
+
   const calculateDiscount = () => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.minOrderAmount && subtotal < appliedCoupon.minOrderAmount) return 0;
-    if (appliedCoupon.type === "percentage") return (subtotal * appliedCoupon.value) / 100;
-    if (appliedCoupon.type === "cashback") return 0;
-    return appliedCoupon.value;
+    if (!appliedCouponMatchesCart) return 0;
+    return Math.max(0, Number(appliedCoupon.discountAmount) || 0);
   };
 
   const calculateCashback = () => {
     if (!appliedCoupon || appliedCoupon.type !== "cashback") return 0;
-    const cashbackAmount = (subtotal * appliedCoupon.value) / 100;
-    if (appliedCoupon.maxCashback && cashbackAmount > appliedCoupon.maxCashback)
-      return appliedCoupon.maxCashback;
-    return cashbackAmount;
+    if (!appliedCouponMatchesCart) return 0;
+    return Math.max(0, Number(appliedCoupon.cashbackAmount) || 0);
   };
 
   const discountAmount = calculateDiscount();
   const cashbackAmount = calculateCashback();
   const vatIncluded = Math.round(subtotal * 15 / 115 * 100) / 100;
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      toast({ title: "أدخل كود الخصم أولاً", variant: "destructive" });
+      return;
+    }
+    if (!user) {
+      toast({ title: "سجّل الدخول لتطبيق كود الخصم", variant: "destructive" });
+      return;
+    }
+    setCouponLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/coupons/validate", {
+        code,
+        subtotal,
+        items: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      });
+      const result = await res.json();
+      setCoupon({
+        ...result.coupon,
+        discountAmount: Number(result.discountAmount) || 0,
+        cashbackAmount: Number(result.cashbackAmount) || 0,
+        eligibleSubtotal: Number(result.eligibleSubtotal) || 0,
+        validatedSubtotal: subtotal,
+      });
+      setCouponInput(result.coupon?.code || code);
+      toast({ title: "تم تطبيق كود الخصم" });
+    } catch (error: any) {
+      clearCoupon();
+      toast({
+        title: "لم يتم تطبيق الكود",
+        description: error?.message || "تحقق من الكود وشروطه",
+        variant: "destructive",
+      });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const merchandiseDueBeforeShipping = Math.max(0, subtotal - discountAmount - loyaltyDiscount - (bundleResult?.savings || 0));
+  const storageXShipCodAmount = paymentMethod === "cod" ? merchandiseDueBeforeShipping : 0;
+  const {
+    data: storageXShipQuote,
+    isFetching: isLoadingStorageXShipQuote,
+    isError: isStorageXShipQuoteError,
+  } = useQuery<{
+    serviceable: boolean; cost: number | null; weightGrams: number; pieces: number;
+    baseCost: number; extraWeightCost: number; codFee: number; zoneName: string;
+  }>({
+    queryKey: ["/api/storage-x-ship/quote", deliveryCity, storageXShipCodAmount, shippingPieces, paymentMethod, subtotal],
+    queryFn: async () => {
+      const res = await fetch("/api/storage-x-ship/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          city: deliveryCity,
+          codAmount: storageXShipCodAmount,
+          cashOnDelivery: paymentMethod === "cod",
+          pieces: shippingPieces,
+          orderTotal: subtotal,
+          ...(paymentMethod === "cod" ? { codMethod: "cash" } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "تعذّر حساب سعر Storage X Ship");
+      return data;
+    },
+    enabled: shippingMode === "delivery" && isStorageXShipSelected && !!deliveryCity,
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+
+  const shippingCostValue = (() => {
+    if (shippingMode !== "delivery" || !deliveryCity) return 0;
+    if (isStorageXShipSelected) {
+      return storageXShipQuote?.serviceable
+        ? Number(storageXShipQuote.cost ?? defaultPolicyRate.cost) || 0
+        : 0;
+    }
+    if (isShipoxSelected) {
+      return Number(shippingRateData?.cost ?? defaultPolicyRate.cost) || 0;
+    }
+    if (shippingOptions.length > 0 && selectedShipping) {
+      const threshold = Number(selectedShipping.freeShippingThreshold || 0);
+      const price = Number(selectedShipping.price || 0);
+      return threshold > 0 && subtotal >= threshold ? 0 : price;
+    }
+    return shippingRateData?.cost ?? defaultPolicyRate.cost;
+  })();
+
   const finalTotal = Math.max(0, subtotal - discountAmount - loyaltyDiscount - bundleSavings + shippingCostValue);
 
   // Branch stock check — only flag items where the branch has a dedicated row
@@ -378,6 +596,20 @@ export default function Checkout() {
     return issues;
   })();
 
+  const normalizedNationalAddress = nationalAddress.replace(/\s+/g, "").toUpperCase();
+  const validNationalAddress = /^[A-Z]{4}\d{4}$/.test(normalizedNationalAddress);
+  const handleNationalAddressChange = (value: string) => {
+    const normalized = value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8);
+    setNationalAddress(normalized);
+    if (!nationalAddressSessionKey) return;
+    try {
+      if (normalized) window.sessionStorage.setItem(nationalAddressSessionKey, normalized);
+      else window.sessionStorage.removeItem(nationalAddressSessionKey);
+    } catch {
+      // The field remains usable when browser storage is disabled.
+    }
+  };
+
   const handleCheckout = async () => {
     if (!user) { setAuthOpen(true); return; }
     if (userMissingPhone) { setPhoneDialogOpen(true); return; }
@@ -399,11 +631,44 @@ export default function Checkout() {
         toast({ title: "أدخل العنوان", description: "يرجى إدخال اسم الشارع", variant: "destructive" });
         return;
       }
+      if (isStorageXShipSelected) {
+        if (!validNationalAddress) {
+          toast({ title: "العنوان الوطني غير صالح", description: "أدخل أربعة أحرف لاتينية وأربعة أرقام", variant: "destructive" });
+          return;
+        }
+        if (isLoadingStorageXShipQuote || !storageXShipQuote?.serviceable) {
+          toast({ title: "سعر التوصيل غير متاح", description: "انتظر اكتمال حساب السعر أو اختر شركة توصيل أخرى", variant: "destructive" });
+          return;
+        }
+      }
+      if (isMapitSelected && (!deliveryLatitude || !deliveryLongitude)) {
+        toast({
+          title: "حدد موقع الاستلام",
+          description: "شركة Mapit تحتاج إحداثيات موقعك. استخدم زر تحديد الموقع ثم أعد المحاولة.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
-    if (paymentMethod === "wallet" && Number(user?.walletBalance || 0) < finalTotal) {
+    if (!availablePaymentMethods.includes(paymentMethod as CheckoutPaymentMethod)) {
+      toast({
+        title: "طريقة الدفع غير متاحة",
+        description: "لا توجد طريقة دفع مفعّلة لهذا الطلب حاليًا.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (shippingMode === "delivery" && isLoadingRate) {
+      toast({
+        title: "جارٍ تأكيد رسوم التوصيل",
+        description: "انتظر حتى تظهر رسوم التوصيل النهائية قبل إرسال الطلب.",
+      });
+      return;
+    }
+    if (paymentMethod === "wallet" && walletBalance < finalTotal) {
       toast({
         title: "رصيد المحفظة غير كافٍ",
-        description: `رصيدك: ${user.walletBalance} ر.س، المطلوب: ${finalTotal.toFixed(2)} ر.س`,
+        description: `رصيدك: ${walletBalance.toFixed(2)} ر.س، المطلوب: ${finalTotal.toFixed(2)} ر.س`,
         variant: "destructive",
       });
       return;
@@ -423,7 +688,7 @@ export default function Checkout() {
         });
       } catch {}
 
-      const NEEDS_GATEWAY = ["tap", "apple_pay"];
+      const NEEDS_GATEWAY = ["tap"];
       const requiresGateway = NEEDS_GATEWAY.includes(paymentMethod);
 
       const isDelivery = shippingMode === "delivery";
@@ -438,17 +703,25 @@ export default function Checkout() {
         vatAmount: vatIncluded.toFixed(2),
         shippingCost: shippingCostValue.toFixed(2),
         shippingCompany: isDelivery
-          ? (shippingOptions.length > 0 && selectedShipping
+          ? isStorageXShipSelected
+            ? "Storage X Ship"
+            : (shippingOptions.length > 0 && selectedShipping
               ? selectedShipping.name
               : (shippingRateData?.methodTitle || "توصيل"))
           : "",
+        shippingProvider: isStorageXShipSelected ? "storage-x-ship" : undefined,
+        ...(isDelivery && isShipoxSelected ? { shippingProvider: "shipox" } : {}),
+        ...(isDelivery && isMapitSelected ? { shippingProvider: "mapit" } : {}),
+        ...(isDelivery && !isStorageXShipSelected && !isShipoxSelected && !isMapitSelected
+          ? { shippingProvider: "manual" }
+          : {}),
         deliveryAddress: deliveryAddrStr,
         customerName: user?.name || "",
         customerPhone: (user as any)?.phone || "",
         notes: orderNotes || undefined,
         discountAmount: discountAmount.toFixed(2),
         cashbackAmount: cashbackAmount.toFixed(2),
-        couponCode: appliedCoupon?.code || undefined,
+        couponCode: appliedCouponMatchesCart ? appliedCoupon?.code : undefined,
         tapCommission: "0",
         netProfit: (finalTotal - items.reduce((acc, i) => acc + (i.cost || 0) * i.quantity, 0)).toFixed(2),
         items: items.map((item) => ({
@@ -462,6 +735,7 @@ export default function Checkout() {
           size: item.size,
           length: item.length,
           notes: item.notes,
+          image: item.image,
         })),
         shippingMethod: isDelivery ? "delivery" : "pickup",
         pickupBranch: isDelivery ? undefined : pickupBranchId,
@@ -469,8 +743,12 @@ export default function Checkout() {
           city: deliveryCity,
           street: deliveryStreet,
           district: deliveryDistrict,
+          ...(isStorageXShipSelected ? { nationalAddress: normalizedNationalAddress } : {}),
           country: "SA",
         } : undefined,
+        ...(isDelivery && deliveryLatitude !== undefined && deliveryLongitude !== undefined
+          ? { latitude: deliveryLatitude, longitude: deliveryLongitude }
+          : {}),
         paymentMethod,
         status: requiresGateway ? "pending_payment" : "new",
         paymentStatus: paymentMethod === "wallet" ? "paid" : "pending",
@@ -478,6 +756,8 @@ export default function Checkout() {
 
       const res = await apiRequest("POST", "/api/orders", orderData);
       const order = await res.json();
+      const confirmedTotal = Number(order?.total);
+      const amountDue = Number.isFinite(confirmedTotal) ? confirmedTotal : finalTotal;
 
       const cancelPendingOrder = async (reason: string) => {
         try {
@@ -495,7 +775,7 @@ export default function Checkout() {
             credentials: "include",
             body: JSON.stringify({
               orderId: order.id || order._id,
-              amount: finalTotal,
+              amount: amountDue,
               items: items.map(i => ({ title: i.title, price: i.price, quantity: i.quantity })),
               address: isDelivery ? deliveryAddrStr : `استلام من فرع: ${selectedBranch?.name || ""}`,
               city: isDelivery ? deliveryCity : (selectedBranch?.city || "الرياض"),
@@ -615,7 +895,8 @@ export default function Checkout() {
   const CtaButton = () => (
     <Button
       onClick={handleCheckout}
-      disabled={isSubmitting}
+      disabled={isSubmitting || shippingMode === "delivery" && isLoadingRate ||
+        !availablePaymentMethods.includes(paymentMethod as CheckoutPaymentMethod)}
       data-testid="button-confirm-order"
       className="w-full h-14 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 disabled:opacity-50 active:scale-95 transition-all"
     >
@@ -671,7 +952,20 @@ export default function Checkout() {
             {items.map((item) => (
               <div key={item.variantSku} className="flex gap-3 items-center">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                  <img
+                    src={optimizeCloudinaryImageUrl(item.image, 360)}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    onError={(event) => {
+                      const image = event.currentTarget;
+                      if (!image.dataset.fallback) {
+                        image.dataset.fallback = "1";
+                        image.src = "/myla-logo.png";
+                      } else {
+                        image.style.display = "none";
+                      }
+                    }}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-xs truncate">{item.title}</p>
@@ -1014,6 +1308,27 @@ export default function Checkout() {
                     />
                   </div>
 
+                  {isStorageXShipSelected && (
+                    <div>
+                      <label className="text-[11px] font-black text-gray-500 mb-1.5 block">
+                        العنوان الوطني المختصر للمستلم *
+                      </label>
+                      <Input
+                        placeholder="مثال: RRRD6636"
+                        value={nationalAddress}
+                        onChange={(e) => handleNationalAddressChange(e.target.value)}
+                        className="h-12 border-2 border-gray-200 rounded-xl focus-visible:ring-primary/30 focus-visible:border-primary/40 shadow-sm uppercase"
+                        dir="ltr"
+                        maxLength={8}
+                        inputMode="text"
+                        data-testid="input-national-address"
+                      />
+                      <p className="text-[10px] text-gray-500 leading-relaxed mt-1.5">
+                        تجده في تطبيق سبل ضمن «العنوان الوطني ← العنوان المختصر». يجب أن يكون خاصًا بعنوان المستلم، ولا يُستخرج من GPS أو تحديث الصفحة. بعد إدخاله سيبقى في هذه الجلسة إذا حدّثت الصفحة.
+                      </p>
+                    </div>
+                  )}
+
                   {/* ── Shipping company selector ──────────────────────────── */}
                   {deliveryCity && shippingOptions.length > 0 && (
                     <div className="space-y-2">
@@ -1025,8 +1340,12 @@ export default function Checkout() {
                         {shippingOptions.map((company: any) => {
                           const isSelected = effectiveSelectedId === company.id;
                           const threshold = Number(company.freeShippingThreshold || 0);
-                          const price = Number(company.price || 0);
-                          const isFree = threshold > 0 && subtotal >= threshold;
+                          const price = company.isShipox
+                            ? Number(shippingRateData?.cost ?? company.price) || 0
+                            : Number(company.price || 0);
+                          const isFree = company.isShipox
+                            ? Boolean(shippingRateData?.isFree)
+                            : threshold > 0 && subtotal >= threshold;
                           const displayPrice = isFree ? "🎉 مجاني" : price > 0 ? `${price.toLocaleString()} ر.س` : "مجاني";
                           return (
                             <button
@@ -1055,7 +1374,23 @@ export default function Checkout() {
                                 )}
                                 <div className="text-right">
                                   <p className="text-xs font-black text-gray-800">{company.name}</p>
-                                  {company.estimatedDays > 0 && (
+                                  {company.isStorageXShip ? (
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      {isLoadingStorageXShipQuote && isSelected
+                                        ? "جاري حساب السعر..."
+                                        : isSelected && isStorageXShipQuoteError
+                                          ? "تعذّر حساب السعر"
+                                        : isSelected && storageXShipQuote && !storageXShipQuote.serviceable
+                                          ? "غير متاح لهذه المدينة"
+                                          : isSelected && storageXShipQuote?.serviceable
+                                            ? `${Number(storageXShipQuote.cost).toLocaleString()} ر.س`
+                                            : "يُحسب حسب المدينة"}
+                                    </p>
+                                  ) : company.isShipox ? (
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      الرسوم حسب إعداد المتجر، والحجز يتم بعد الطلب
+                                    </p>
+                                  ) : company.estimatedDays > 0 && (
                                     <p className="text-[10px] text-gray-400 font-medium">
                                       {company.estimatedDays === 1 ? "يوم واحد" : `${company.estimatedDays} أيام`}
                                     </p>
@@ -1064,7 +1399,17 @@ export default function Checkout() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`font-black text-sm ${isFree ? "text-emerald-600" : "text-primary"}`}>
-                                  {displayPrice}
+                                  {company.isStorageXShip
+                                    ? isSelected && isLoadingStorageXShipQuote
+                                      ? "جاري الحساب..."
+                                      : isSelected && isStorageXShipQuoteError
+                                        ? "تعذّر الحساب"
+                                      : isSelected && storageXShipQuote && !storageXShipQuote.serviceable
+                                        ? "غير متاح"
+                                        : isSelected && storageXShipQuote?.serviceable
+                                          ? `${Number(storageXShipQuote.cost).toLocaleString()} ر.س`
+                                          : "يُحسب حسب المدينة"
+                                    : displayPrice}
                                 </span>
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                                   isSelected ? "border-primary bg-primary" : "border-gray-300"
@@ -1095,6 +1440,16 @@ export default function Checkout() {
                           {shippingRateData?.zoneName && (
                             <p className="text-[10px] text-gray-400 font-bold">{shippingRateData.zoneName}</p>
                           )}
+                          <p className="text-[10px] text-gray-400 font-bold">
+                            وزن الشحنة: {shippingPieces} كجم ({shippingPieces} قطعة × 1 كجم)
+                            {(shippingRateData?.extraWeightCost ?? defaultPolicyRate.extraWeightCost) > 0 &&
+                              ` — وزن زائد ${shippingRateData?.extraWeightCost ?? defaultPolicyRate.extraWeightCost} ر.س`}
+                          </p>
+                          {(shippingRateData?.codFee ?? defaultPolicyRate.codFee) > 0 && (
+                            <p className="text-[10px] text-gray-400 font-bold">
+                              تشمل 5 ر.س رسوم الدفع عند الاستلام
+                            </p>
+                          )}
                         </div>
                       </div>
                       {isLoadingRate ? (
@@ -1105,6 +1460,16 @@ export default function Checkout() {
                         </span>
                       )}
                     </div>
+                  )}
+                  {deliveryCity && shippingOptions.length === 0 && (
+                    <p role="status" className="text-[11px] leading-5 text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      لا توجد شركة شحن مربوطة آليًا حاليًا؛ سيحتاج المتجر إلى تأكيد التوصيل وحجز الشحنة يدويًا.
+                    </p>
+                  )}
+                  {deliveryCity && storageXShipStatus?.configured && storageXShipStatus.merchantRefConfigured === false && (
+                    <p role="status" className="text-[11px] leading-5 text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      شحن Storage X غير متاح مؤقتًا حتى يُحفظ رمز merchantRef في إعدادات التكامل؛ هذا يمنع إرسال الشحنات إلى حساب غير حساب المتجر.
+                    </p>
                   )}
                 </div>
               )}
@@ -1136,6 +1501,58 @@ export default function Checkout() {
                 </span>
               </h2>
 
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+                <h3 className="mb-2 text-xs font-black text-gray-800">كود ترويجي أو خصم</h3>
+                {appliedCoupon && discountAmount + cashbackAmount > 0 ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black text-emerald-800">{appliedCoupon.code}</p>
+                      <p className="text-xs text-emerald-700">
+                        {discountAmount > 0
+                          ? `تم خصم ${discountAmount.toFixed(2)} ر.س`
+                          : `كاش باك ${cashbackAmount.toFixed(2)} ر.س`}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { clearCoupon(); setCouponInput(""); }}
+                      className="text-gray-500 hover:text-red-600"
+                    >
+                      إزالة
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponInput}
+                      onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
+                      placeholder="أدخل الكود هنا"
+                      aria-label="كود ترويجي أو خصم"
+                      className="h-11 rounded-xl bg-white"
+                      dir="ltr"
+                      data-testid="input-coupon-code"
+                    />
+                    <Button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={couponLoading || !couponInput.trim()}
+                      className="h-11 shrink-0 rounded-xl px-5"
+                      data-testid="button-apply-coupon"
+                    >
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "تطبيق"}
+                    </Button>
+                  </div>
+                )}
+                {appliedCoupon && discountAmount + cashbackAmount === 0 && (
+                  <p className="mt-2 text-xs text-amber-700" role="status">
+                    تغيّر إجمالي السلة؛ أعد تطبيق الكود للتحقق منه.
+                  </p>
+                )}
+              </div>
+
               <RadioGroup
                 value={paymentMethod}
                 onValueChange={(v) => { setPaymentMethod(v as any); }}
@@ -1159,31 +1576,73 @@ export default function Checkout() {
                 )}
 
                 {/* ── Wallet ── */}
-                {enabledMethods.wallet !== false && user && Number(user.walletBalance || 0) > 0 && (
-                  <label htmlFor="pay-wallet" data-testid="option-payment-wallet" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "wallet" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
-                    <RadioGroupItem value="wallet" id="pay-wallet" className="shrink-0" />
+                <label
+                  htmlFor="pay-wallet"
+                  data-testid="option-payment-wallet"
+                  className={`flex items-center gap-3 p-3.5 border-2 rounded-xl transition-all ${
+                    !canPayWithWallet ? "cursor-not-allowed border-gray-200 bg-gray-50 opacity-75" :
+                    paymentMethod === "wallet" ? "cursor-pointer border-primary bg-primary/5" :
+                    "cursor-pointer border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                    <RadioGroupItem value="wallet" id="pay-wallet" className="shrink-0" disabled={!canPayWithWallet} />
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${paymentMethod === "wallet" ? "bg-primary/10" : "bg-gray-100"}`}>
                       <Wallet className={`h-5 w-5 ${paymentMethod === "wallet" ? "text-primary" : "text-gray-500"}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-sm">رصيد المحفظة</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">رصيدك: <span className="font-black text-gray-700">{user?.walletBalance || 0} <RiyalSign /></span></p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        {user ? (
+                          <>رصيدك: <span className="font-black text-gray-700">{walletBalance.toFixed(2)} <RiyalSign /></span></>
+                        ) : (
+                          <span>سجّل الدخول لعرض رصيدك واستخدامه</span>
+                        )}
+                        {isFetchingWallet && <span className="mr-2 text-gray-400">جارٍ التحديث</span>}
+                      </p>
+                      {user && (
+                        <p className={`mt-1 text-[10px] font-bold ${
+                          !walletPaymentEnabled || walletBalance <= 0 || walletBalance < finalTotal
+                            ? "text-amber-700"
+                            : "text-emerald-700"
+                        }`}>
+                          {!walletPaymentEnabled
+                            ? "الدفع بالمحفظة غير مفعّل حاليًا"
+                            : walletBalance <= 0
+                              ? "لا يوجد رصيد متاح؛ أضف رصيدًا من لوحة الإدارة"
+                              : walletBalance < finalTotal
+                                ? `الرصيد أقل من إجمالي الطلب (${finalTotal.toFixed(2)} ر.س)`
+                                : "الرصيد يكفي لدفع الطلب"}
+                        </p>
+                      )}
+                    </div>
+                </label>
+
+                {canPayWithCard ? (
+                  <label htmlFor="pay-card" data-testid="option-payment-card" className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === "tap" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}>
+                    <RadioGroupItem value="tap" id="pay-card" className="shrink-0" />
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${paymentMethod === "tap" ? "bg-primary/10" : "bg-gray-100"}`}>
+                      <CreditCard className={`h-5 w-5 ${paymentMethod === "tap" ? "text-primary" : "text-gray-500"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm">بطاقة بنكية</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">مدى · فيزا · ماستركارد عبر Paymob</p>
                     </div>
                   </label>
+                ) : (
+                  <div data-testid="option-payment-card-unavailable" role="status" className="relative flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-200 rounded-xl opacity-70">
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                    <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm text-gray-500">بطاقة بنكية عبر Paymob</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">غير متاحة حتى تكتمل إعدادات البوابة</p>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                      {paymobStatus ? "غير مهيأة" : "جارٍ التحقق"}
+                    </span>
+                  </div>
                 )}
-
-                {/* ── Card (coming soon) ── */}
-                <div data-testid="option-payment-card-soon" className="relative flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-200 rounded-xl opacity-50 cursor-not-allowed select-none">
-                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
-                  <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                    <CreditCard className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm text-gray-500">بطاقة بنكية</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">مدى · فيزا · ماستركارد</p>
-                  </div>
-                  <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200">قريباً</span>
-                </div>
 
                 {/* ── Apple Pay (coming soon, always visible) ── */}
                 <div data-testid="option-payment-apple-soon" className="relative flex items-center gap-3 p-3.5 rounded-2xl overflow-hidden opacity-50 cursor-not-allowed select-none border-2 border-dashed border-gray-700/30" style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}>
@@ -1197,6 +1656,12 @@ export default function Checkout() {
                   </div>
                   <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/20">قريباً</span>
                 </div>
+
+                {availablePaymentMethods.length === 0 && (
+                  <p role="alert" className="text-xs leading-5 text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    لا توجد طريقة دفع مفعّلة لهذا الحساب الآن. لا يمكن إرسال الطلب حتى يفعّل المتجر الدفع عند الاستلام أو تكتمل بوابة Paymob.
+                  </p>
+                )}
 
               </RadioGroup>
 
@@ -1225,7 +1690,20 @@ export default function Checkout() {
                 {items.map((item) => (
                   <div key={item.variantSku} className="flex gap-3 items-center">
                     <div className="w-13 h-13 w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
-                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                      <img
+                        src={optimizeCloudinaryImageUrl(item.image, 360)}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        onError={(event) => {
+                          const image = event.currentTarget;
+                          if (!image.dataset.fallback) {
+                            image.dataset.fallback = "1";
+                            image.src = "/myla-logo.png";
+                          } else {
+                            image.style.display = "none";
+                          }
+                        }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-xs leading-tight truncate">{item.title}</p>
@@ -1248,6 +1726,10 @@ export default function Checkout() {
                 <div className="flex justify-between text-gray-500">
                   {shippingMode === "pickup" ? (
                     <span className="text-emerald-600 font-black">مجاني</span>
+                  ) : isStorageXShipSelected && isLoadingStorageXShipQuote ? (
+                    <span className="flex items-center gap-1 text-gray-400"><Loader2 className="h-3 w-3 animate-spin" /> جاري الحساب...</span>
+                  ) : isStorageXShipSelected && (isStorageXShipQuoteError || !storageXShipQuote?.serviceable) ? (
+                    <span className="text-red-500 font-black">غير متاح</span>
                   ) : isLoadingRate && deliveryCity ? (
                     <span className="flex items-center gap-1 text-gray-400"><Loader2 className="h-3 w-3 animate-spin" /> جاري الحساب...</span>
                   ) : shippingCostValue === 0 && deliveryCity ? (

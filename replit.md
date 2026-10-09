@@ -8,14 +8,17 @@ An Arabic luxury perfume e-commerce platform offering a seamless shopping experi
 npm install       # Install dependencies (required after cloning/importing)
 npm run dev       # Development server on port 5000
 npm run build     # Production build → dist/
-npm run start     # Production server (runs dist/index.js)
+npm run start     # Production server (runs dist/index.cjs)
 ```
 
-**Replit setup (already done):**
-- `MONGODB_URI` — set in Replit env (shared), points to MongoDB Atlas
+**Replit setup:**
+- `MONGODB_URI` — set as a Replit Secret, points to the existing MongoDB database
 - `SESSION_SECRET` — set as a Replit Secret
+- `ADMIN_BOOTSTRAP_PASSWORD` — required Replit Secret (at least 12 characters), not yet provided; controls the seeded admin password on each start
 - `PORT` — set to `5000` in Replit env (shared)
-- Workflow `Start application` runs `npm run dev` on port 5000
+- Workflow `Start application` runs `npm run dev` on port 5000; currently paused until the admin secret is provided
+- Email uses QIROX when `QIROX_EMAIL_API_KEY` is configured, otherwise SMTP; messages with attachments still require SMTP.
+- The seeded admin password is reset from `ADMIN_BOOTSTRAP_PASSWORD` on every start. To change it, update the secret; changing it only through the site will be overwritten by a restart.
 
 **Required secrets (set via Replit Secrets, not .env):**
 
@@ -23,6 +26,7 @@ npm run start     # Production server (runs dist/index.js)
 |---|---|---|
 | `MONGODB_URI` | MongoDB Atlas connection | ✅ Core |
 | `SESSION_SECRET` | Session signing | ✅ Core |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Seeded admin password, reset on every start (minimum 12 characters) | ✅ Core |
 | `GOOGLE_CLIENT_ID` | Google OAuth login | For Google auth |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth token exchange | For Google auth |
 | `APPLE_CLIENT_ID` | Apple Sign-In | For Apple auth |
@@ -30,6 +34,11 @@ npm run start     # Production server (runs dist/index.js)
 | `KIMI_API_KEY` | Moonshot/Kimi AI (sole AI provider) | For AI features |
 | `INBOX_ENC_KEY` | Employee inbox encryption (falls back to SESSION_SECRET) | Optional |
 | `SMTP2GO_API_KEY` | Transactional email | For email |
+| `QIROX_EMAIL_API_KEY` | QIROX project email bearer key | For email |
+| `QIROX_WHATSAPP_API_KEY` | QIROX project WhatsApp bearer key | For OTP delivery |
+| `QIROX_PROJECT_ID` | QIROX project ID (defaults to the configured project) | Optional |
+| `QIROX_API_BASE_URL` | QIROX API root (defaults to `https://qiroxstudio.online/api/v1`) | Optional |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Durable media storage outside Replit | For Render uploads |
 | `VAPID_PUBLIC_KEY` | Web push notifications | For push |
 | `VAPID_PRIVATE_KEY` | Web push notifications signing | For push |
 | `STORAGE_STATION_API_KEY` | WooCommerce consumer key (storagestation.app) | For 3PL |
@@ -91,6 +100,7 @@ npm run start     # Production server (runs dist/index.js)
 -   AI perfume advisor and support chatbot with voice input and dynamic quick replies.
 -   Storage Station (storagestation.app) 3PL fulfillment integration — orders auto-pushed after payment confirmation via WooCommerce REST API v3 using SKU mapping.
 -   Shipox / 3rd Mile direct courier integration (`server/shipox.ts`) — auto-creates shipments on payment, supports 4 service types (STANDARD, RETURN, EXPRESS_SMSA, EXPRESS_JT), AWB label printing, live tracking, cancel, and return creation. Admin order detail panel has full Shipox controls.
+-   QIROX delivery APIs: transactional email uses QIROX when configured; customer OTPs prefer Myla's connected Baileys session and use QIROX only when Baileys is disconnected. Opening QIROX endpoints in a browser sends `GET` and returns `Cannot GET`; it is not an endpoint health check. The supplied docs do not describe email attachments or inbound WhatsApp conversations.
 -   Dynamic shipping rates fetched from Storage Station's WooCommerce Shipping Zones API at checkout based on customer's city (`GET /api/shipping/rate?city=X&total=Y`). Zones cached 10 min. Falls back to 30 SAR if no zone configured. Supports free shipping threshold from store settings.
 
 ## User preferences
@@ -102,7 +112,7 @@ npm run start     # Production server (runs dist/index.js)
 -   **AI Quota Management:** Be mindful of API quotas for Gemini and Groq. The system has built-in fallbacks and key rotation, but excessive usage might still lead to temporary limitations. Groq API keys may expire and need refreshing.
 -   **Paymob Integration:** The in-app Paymob checkout relies on polling the backend for order status. Ensure backend stability for a smooth user experience during payment.
 -   **Invoice Generation:** The ZATCA invoice generation is critical. Any issues here will affect customer records and compliance.
--   **Deployment run command:** Production build outputs to `dist/index.js` (ESM format). Run with `node ./dist/index.js`.
+-   **Deployment run command:** Production build outputs to `dist/index.cjs`. Run with `npm run start`.
 -   **Session cookies:** The auth layer auto-detects Replit environment (`REPL_ID`/`REPLIT_DEV_DOMAIN`) and sets `SameSite=None; Secure` cookies for proper cross-origin iframe behavior in the Replit preview.
 
 ## Pointers

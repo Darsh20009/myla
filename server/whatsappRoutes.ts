@@ -16,6 +16,7 @@ import {
   onWaEvent,
   invalidateBotSettingsCache,
 } from "./whatsapp";
+import { WaBotSettingsModel } from "./models";
 
 const router = Router();
 
@@ -100,17 +101,39 @@ router.post("/send-image", requireAdmin, async (req, res) => {
 // ─── Admin phone numbers ────────────────────────────────────────────────────────
 
 // GET /api/admin/whatsapp/admin-phones
-router.get("/admin-phones", requireAdmin, (_req, res) => {
-  res.json(getAdminPhones());
+router.get("/admin-phones", requireAdmin, async (_req, res) => {
+  try {
+    const settings: any = await WaBotSettingsModel.findOne().select("adminPhones").lean();
+    const phones = Array.isArray(settings?.adminPhones) ? settings.adminPhones : getAdminPhones();
+    setAdminPhones(phones);
+    res.json(phones);
+  } catch (e: any) {
+    res.status(500).json({ message: "تعذر تحميل أرقام تنبيهات الإدارة" });
+  }
 });
 
 // PUT /api/admin/whatsapp/admin-phones
 // body: { phones: string[] }
-router.put("/admin-phones", requireAdmin, (req, res) => {
+router.put("/admin-phones", requireAdmin, async (req, res) => {
   const { phones } = req.body;
   if (!Array.isArray(phones)) return res.status(400).json({ message: "phones يجب أن يكون مصفوفة" });
-  setAdminPhones(phones);
-  res.json({ ok: true, phones: getAdminPhones() });
+  const normalizedPhones = [...new Set(phones.map((phone: unknown) => String(phone || "").replace(/\D/g, "")))]
+    .filter((phone: string) => phone.length >= 8 && phone.length <= 15);
+  if (normalizedPhones.length !== phones.length) {
+    return res.status(400).json({ message: "تحقق من أرقام واتساب؛ استخدم رقمًا كاملًا مع مفتاح الدولة" });
+  }
+  try {
+    const settings: any = await WaBotSettingsModel.findOneAndUpdate(
+      {},
+      { $set: { adminPhones: normalizedPhones } },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+    ).lean();
+    const savedPhones = Array.isArray(settings?.adminPhones) ? settings.adminPhones : normalizedPhones;
+    setAdminPhones(savedPhones);
+    res.json({ ok: true, phones: savedPhones });
+  } catch (e: any) {
+    res.status(500).json({ message: "تعذر حفظ أرقام تنبيهات الإدارة" });
+  }
 });
 
 // ─── Bot settings ──────────────────────────────────────────────────────────────

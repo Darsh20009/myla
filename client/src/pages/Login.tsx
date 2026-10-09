@@ -29,6 +29,8 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"password" | "otp">("password");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [otp, setOtp] = useState("");
   const [otpPhone, setOtpPhone] = useState("");
@@ -58,8 +60,8 @@ export default function Login() {
   });
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
-    if (isStaff) {
-      // Staff: password login as before
+    if (isStaff && !(isAdmin && loginMethod === "otp")) {
+      // Non-admin staff and admins who choose it use password login.
       const password = data.password || "";
       login({ username: data.phone, password }, {
         onSuccess: (userData: any) => {
@@ -169,14 +171,41 @@ export default function Login() {
         const response = await fetch(`/api/auth/check-role/${phoneNum}`);
         if (response.ok) {
           const data = await response.json();
+          if (lastCheckedPhoneRef.current !== phoneNum) return;
           setIsStaff(!!data?.isStaff);
-        } else setIsStaff(false);
-      } catch { setIsStaff(false); }
+          setIsAdmin(data?.role === "admin");
+        } else {
+          if (lastCheckedPhoneRef.current === phoneNum) {
+            setIsStaff(false);
+            setIsAdmin(false);
+          }
+        }
+      } catch {
+        if (lastCheckedPhoneRef.current === phoneNum) {
+          setIsStaff(false);
+          setIsAdmin(false);
+        }
+      }
     };
-    if (val.length === 9 && val.startsWith("5")) checkIsStaff(val);
-    else if (val.length === 10 && val.startsWith("05")) checkIsStaff(val.substring(1));
-    else if (val.length === 12 && val.startsWith("966")) checkIsStaff(val.substring(3));
-    else setIsStaff(false);
+    const normalized = val.length === 9 && val.startsWith("5")
+      ? val
+      : val.length === 10 && val.startsWith("05")
+        ? val.substring(1)
+        : val.length === 12 && val.startsWith("966")
+          ? val.substring(3)
+          : "";
+    if (normalized && lastCheckedPhoneRef.current !== normalized) {
+      lastCheckedPhoneRef.current = normalized;
+      setIsStaff(false);
+      setIsAdmin(false);
+      setLoginMethod("password");
+      checkIsStaff(normalized);
+    } else if (!normalized) {
+      lastCheckedPhoneRef.current = null;
+      setIsStaff(false);
+      setIsAdmin(false);
+      setLoginMethod("password");
+    }
   }, [phoneValue]);
 
   useEffect(() => {
@@ -256,6 +285,19 @@ export default function Login() {
               >
                 تغيير رقم الهاتف
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setStep("phone");
+                    setOtp("");
+                    setLoginMethod("password");
+                  }}
+                  className="w-full text-center text-[10px] font-bold text-[#6B3F2A] hover:text-[#6B3F2A]"
+                  data-testid="button-admin-login-use-password"
+                >
+                  الدخول بكلمة المرور بدلاً من الرمز
+                </button>
+              )}
             </div>
           ) : (
             /* ── Phone Step ── */
@@ -323,7 +365,33 @@ export default function Login() {
                     )}
                   />
 
-                  {isStaff && (
+                  {isAdmin && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B3F2A]">طريقة الدخول</p>
+                      <div role="group" aria-label="طريقة دخول الأدمن" className="grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant={loginMethod === "password" ? "default" : "outline"}
+                          onClick={() => setLoginMethod("password")}
+                          className={loginMethod === "password" ? "bg-[#6B3F2A] text-white" : "text-[#6B3F2A]"}
+                          data-testid="button-admin-login-password"
+                        >
+                          كلمة المرور
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={loginMethod === "otp" ? "default" : "outline"}
+                          onClick={() => setLoginMethod("otp")}
+                          className={loginMethod === "otp" ? "bg-[#6B3F2A] text-white" : "text-[#6B3F2A]"}
+                          data-testid="button-admin-login-otp"
+                        >
+                          رمز واتساب
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {isStaff && (!isAdmin || loginMethod === "password") && (
                     <FormField
                       control={form.control}
                       name="password"
@@ -347,7 +415,7 @@ export default function Login() {
                     />
                   )}
 
-                  {!isStaff && (
+                  {(!isStaff || (isAdmin && loginMethod === "otp")) && (
                     <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-[11px] text-green-700 font-bold">
                       <MessageCircle className="h-4 w-4 shrink-0" />
                       سيُرسل رمز تحقق على واتساب
@@ -388,8 +456,8 @@ export default function Login() {
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full h-14 font-bold uppercase tracking-[0.3em] text-xs rounded-xl bg-[#2C1810] text-white hover:bg-[#3D2517] border-none transition-all duration-300 shadow-lg shadow-[#2C1810]/20" disabled={isLoggingIn || isSendingOtp}>
-                    {(isLoggingIn || isSendingOtp) ? <Loader2 className="animate-spin" /> : isStaff ? "تسجيل الدخول" : "إرسال رمز التحقق"}
+                  <Button type="submit" className="w-full h-14 font-bold uppercase tracking-[0.3em] text-xs rounded-xl bg-[#2C1810] text-white hover:bg-[#3D2517] border-none transition-all duration-300 shadow-lg shadow-[#2C1810]/20" disabled={isLoggingIn || isSendingOtp || (isStaff && (!isAdmin || loginMethod === "password") && !form.watch("password"))}>
+                    {(isLoggingIn || isSendingOtp) ? <Loader2 className="animate-spin" /> : isStaff && !(isAdmin && loginMethod === "otp") ? "تسجيل الدخول" : isAdmin && loginMethod === "otp" ? "إرسال رمز واتساب" : "إرسال رمز التحقق"}
                   </Button>
                 </form>
               </Form>

@@ -142,23 +142,11 @@ export function log(message: string, source = "express") {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      log(logLine);
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -198,6 +186,68 @@ process.on('uncaughtException', (err: any) => {
     console.log("[Migration] Store legal data updated");
   } catch (e: any) {
     console.warn("[Migration] Could not update store legal data:", e?.message);
+  }
+
+  // One-time user-approved activation of cash on delivery. A marker prevents
+  // later server restarts from overriding an admin's future payment settings.
+  try {
+    const { StoreSettingsModel } = await import("./models");
+    await StoreSettingsModel.updateOne(
+      { key: "main" },
+      {
+        $setOnInsert: {
+          key: "main",
+          paymentMethods: {
+            cod: true,
+            wallet: true,
+            tap: true,
+            stc_pay: true,
+            apple_pay: true,
+            bank_transfer: true,
+            tamara: true,
+            tabby: true,
+          },
+          codActivationMigrationVersion: 1,
+        },
+      },
+      { upsert: true },
+    );
+    await StoreSettingsModel.updateOne(
+      { key: "main", codActivationMigrationVersion: { $ne: 1 } },
+      {
+        $set: {
+          "paymentMethods.cod": true,
+          codActivationMigrationVersion: 1,
+        },
+      },
+    );
+    console.log("[Migration] COD enabled per store decision");
+  } catch (e: any) {
+    console.warn("[Migration] Could not enable COD:", e?.message);
+  }
+
+  // Save the merchant handoff code previously supplied by the store owner.
+  // Only fill an empty value once; do not overwrite a later admin change.
+  try {
+    const { StoreSettingsModel } = await import("./models");
+    const settings: any = await StoreSettingsModel.findOne({ key: "main" })
+      .select("+storageXMerchantRefMigrationVersion")
+      .lean();
+    if (Number(settings?.storageXMerchantRefMigrationVersion || 0) < 1) {
+      const update: Record<string, unknown> = {
+        storageXMerchantRefMigrationVersion: 1,
+      };
+      if (!String(settings?.storageXMerchantRef || "").trim()) {
+        update.storageXMerchantRef = "SXH-MDYUPYBWAZ";
+      }
+      await StoreSettingsModel.updateOne(
+        { key: "main", storageXMerchantRefMigrationVersion: { $ne: 1 } },
+        { $set: update },
+      );
+    }
+    console.log("[Migration] Storage X merchant reference checked");
+  } catch (e: any) {
+    console.warn("[Migration] Could not verify Storage X merchant reference:", e?.message);
   }
 
   // ─── Seed: Myla Riyadh pickup branch ──────────────────────────────────

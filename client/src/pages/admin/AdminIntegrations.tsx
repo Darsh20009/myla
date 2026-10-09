@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, XCircle, Key, RefreshCw, ExternalLink, AlertTriangle, MapPin, Save, Truck } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -141,6 +141,16 @@ const INTEGRATIONS: Integration[] = [
     ],
   },
   {
+    id: "storageXShip",
+    name: "Storage X Ship",
+    nameEn: "Storage X Ship",
+    category: "الشحن والخدمات اللوجستية",
+    logo: "🚛",
+    url: "https://shipping.3rdmile.net",
+    description: "شحن Storage X المباشر — إنشاء وتتبع الشحنات",
+    keys: [{ label: "STORAGE_X_API_KEY", key: "apiKey" }],
+  },
+  {
     id: "shipox",
     name: "Shipox — 3rd Mile",
     nameEn: "Shipox Courier",
@@ -220,13 +230,132 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
   const total = integration.keys.length;
   const allOk = configured === total;
   const noneOk = configured === 0;
+  const [connectionState, setConnectionState] = useState<"idle" | "checking" | "connected" | "failed">("idle");
+  const [connectionMessage, setConnectionMessage] = useState("");
+  const isStorageStation = integration.id === "storageStation";
+  const isStorageXShip = integration.id === "storageXShip";
+  const isShipox = integration.id === "shipox";
+  const requiresConnectionTest = isStorageStation || isStorageXShip || isShipox;
+  const ready = requiresConnectionTest ? connectionState === "connected" : allOk;
+  const statusColor = ready ? "emerald" : noneOk ? "red" : "amber";
   const catColor = CATEGORY_COLORS[integration.category] || "bg-slate-50 text-slate-700 border-slate-200";
+
+  const testStorageStation = async () => {
+    setConnectionState("checking");
+    setConnectionMessage("");
+    try {
+      const response = await fetch("/api/admin/storage-station/test-connection");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "تعذر الاتصال بـ Storage Station");
+      }
+      setConnectionState("connected");
+      setConnectionMessage(result.message || "الاتصال يعمل");
+    } catch (error: any) {
+      setConnectionState("failed");
+      setConnectionMessage(error?.message || "تعذر الاتصال بـ Storage Station");
+    }
+  };
+
+  const [pickupForm, setPickupForm] = useState({
+    pickupName: "", pickupPhone: "", pickupCity: "", pickupAddressLine: "",
+    pickupNationalAddress: "", merchantRef: "",
+  });
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupMessage, setSetupMessage] = useState("");
+  const [trackingLookup, setTrackingLookup] = useState("");
+  const [trackingLookupLoading, setTrackingLookupLoading] = useState(false);
+  const [trackingLookupMessage, setTrackingLookupMessage] = useState("");
+  const [trackingLookupResult, setTrackingLookupResult] = useState<{
+    trackingNumber: string;
+    status: string;
+    custody?: string | null;
+    updatedAt?: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isStorageXShip) return;
+    fetch("/api/admin/storage-x-ship/settings")
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("تعذر تحميل إعدادات Storage X")))
+      .then(s => setPickupForm({
+        pickupName: s.pickupName || "", pickupPhone: s.pickupPhone || "",
+        pickupCity: s.pickupCity || "", pickupAddressLine: s.pickupAddressLine || "",
+        pickupNationalAddress: s.pickupNationalAddress || "",
+        merchantRef: s.merchantRef || "",
+      }))
+      .catch(() => {});
+  }, [isStorageXShip]);
+
+  const saveStorageXSettings = async () => {
+    setSetupLoading(true); setSetupMessage("");
+    try {
+      const response = await fetch("/api/admin/storage-x-ship/settings", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pickupForm),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "تعذر حفظ إعدادات Storage X");
+      setSetupMessage("تم حفظ إعدادات الاستلام");
+    } catch (error: any) { setSetupMessage(error.message); }
+    finally { setSetupLoading(false); }
+  };
+
+  const testStorageXShip = async () => {
+    setConnectionState("checking"); setConnectionMessage("");
+    try {
+      const response = await fetch("/api/admin/storage-x-ship/test");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.message || "تعذر الاتصال بـ Storage X Ship");
+      setConnectionState("connected"); setConnectionMessage(result.message || "الاتصال يعمل");
+    } catch (error: any) {
+      setConnectionState("failed"); setConnectionMessage(error.message || "تعذر الاتصال بـ Storage X Ship");
+    }
+  };
+
+  const lookupStorageXShipment = async () => {
+    const trackingNumber = trackingLookup.trim();
+    if (!trackingNumber) {
+      setTrackingLookupResult(null);
+      setTrackingLookupMessage("أدخل رقم التتبع أولاً");
+      return;
+    }
+
+    setTrackingLookupLoading(true);
+    setTrackingLookupMessage("");
+    setTrackingLookupResult(null);
+    try {
+      const response = await fetch("/api/admin/storage-x-ship/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackingNumber }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "تعذر البحث عن الشحنة");
+      setTrackingLookupResult(result);
+    } catch (error: any) {
+      setTrackingLookupMessage(error?.message || "تعذر البحث عن الشحنة");
+    } finally {
+      setTrackingLookupLoading(false);
+    }
+  };
+
+  const testShipox = async () => {
+    setConnectionState("checking"); setConnectionMessage("");
+    try {
+      const response = await fetch("/api/admin/shipox/test");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.message || "تعذر الاتصال بـ Shipox");
+      setConnectionState("connected"); setConnectionMessage(result.message || "الاتصال يعمل");
+    } catch (error: any) {
+      setConnectionState("failed"); setConnectionMessage(error.message || "تعذر الاتصال بـ Shipox");
+    }
+  };
 
   return (
     <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${
-      allOk ? "border-emerald-100" : noneOk ? "border-red-100" : "border-amber-100"
+      statusColor === "emerald" ? "border-emerald-100" : statusColor === "red" ? "border-red-100" : "border-amber-100"
     }`}>
-      <div className={`h-1.5 ${allOk ? "bg-emerald-400" : noneOk ? "bg-red-400" : "bg-amber-400"}`} />
+      <div className={`h-1.5 ${statusColor === "emerald" ? "bg-emerald-400" : statusColor === "red" ? "bg-red-400" : "bg-amber-400"}`} />
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
@@ -268,11 +397,13 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
           ))}
         </div>
 
-        <div className={`mt-3 pt-3 border-t ${allOk ? "border-emerald-50" : noneOk ? "border-red-50" : "border-amber-50"}`}>
+        <div className={`mt-3 pt-3 border-t ${statusColor === "emerald" ? "border-emerald-50" : statusColor === "red" ? "border-red-50" : "border-amber-50"}`}>
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400">{configured}/{total} مفاتيح مُعدَّة</span>
-            {allOk
-              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> جاهز</span>
+            {ready
+              ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {requiresConnectionTest ? "متصل" : "جاهز"}</span>
+              : allOk && requiresConnectionTest
+              ? <span className="flex items-center gap-1 text-[10px] font-black text-amber-600"><AlertTriangle className="h-3 w-3" /> لم يُختبر الاتصال</span>
               : noneOk
               ? <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="h-3 w-3" /> غير مُفعَّل</span>
               : <span className="flex items-center gap-1 text-[10px] font-black text-amber-600"><AlertTriangle className="h-3 w-3" /> جزئي</span>
@@ -280,17 +411,108 @@ function IntegrationCard({ integration, status }: { integration: Integration; st
           </div>
           <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full ${allOk ? "bg-emerald-400" : noneOk ? "bg-red-400" : "bg-amber-400"}`}
+              className={`h-full rounded-full ${statusColor === "emerald" ? "bg-emerald-400" : statusColor === "red" ? "bg-red-400" : "bg-amber-400"}`}
               style={{ width: `${(configured / total) * 100}%`, transition: "width 1s ease" }}
             />
           </div>
         </div>
+        {requiresConnectionTest && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={isShipox ? testShipox : isStorageXShip ? testStorageXShip : testStorageStation}
+              disabled={!allOk || connectionState === "checking"}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-black text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {connectionState === "checking"
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                 : connectionState === "connected"
+                ? <CheckCircle2 className="h-3.5 w-3.5" />
+                 : <RefreshCw className="h-3.5 w-3.5" />}
+              اختبار الاتصال
+            </button>
+            {connectionMessage && (
+              <p className={`mt-2 text-[10px] font-bold ${connectionState === "connected" ? "text-emerald-600" : "text-red-500"}`}>
+                 {connectionMessage}
+              </p>
+            )}
+          </div>
+        )}
+        {isStorageXShip && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+            <p className="text-[10px] font-black text-slate-500">إعدادات عنوان الاستلام (لا تُخزّن مفاتيح API هنا)</p>
+            {([
+              ["pickupName", "اسم المرسل"], ["pickupPhone", "هاتف المرسل"],
+              ["pickupCity", "مدينة الاستلام"], ["pickupAddressLine", "عنوان الاستلام"],
+              ["pickupNationalAddress", "العنوان الوطني المختصر"],
+               ["merchantRef", "رمز merchantRef من Storage X (مطلوب للشحن)"],
+            ] as const).map(([key, label]) => (
+              <Input key={key} value={pickupForm[key]} placeholder={label}
+                onChange={e => setPickupForm(v => ({ ...v, [key]: e.target.value }))}
+                className="h-9 text-xs" />
+            ))}
+            <p className="text-[10px] font-bold text-slate-500">
+              أدخل رمز ربط التاجر الصادر من Storage X فقط (صيغة SXH-…). لن تُنشأ شحنات جديدة قبل حفظه. لا تضع مفتاح API في هذه الخانة.
+            </p>
+            <p className="rounded-lg bg-blue-50 px-3 py-2 text-[10px] font-bold text-blue-700">
+              وزن الشحنة يُحسب تلقائيًا: 1 كجم لكل قطعة في الطلب.
+            </p>
+            <button type="button" onClick={saveStorageXSettings} disabled={setupLoading}
+              className="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50">
+              {setupLoading ? "جاري الحفظ..." : "حفظ إعدادات الاستلام"}
+            </button>
+            {setupMessage && <p className="text-[10px] font-bold text-slate-500">{setupMessage}</p>}
+          </div>
+        )}
+        {isStorageXShip && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+            <p className="text-[10px] font-black text-slate-700">البحث عن شحنة برقم التتبع</p>
+            <p className="text-[10px] font-bold text-slate-500">
+              يعرض حالة الشحنة والحيازة فقط، ولا يغيّرها أو يلغيها.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={trackingLookup}
+                placeholder="رقم التتبع"
+                dir="ltr"
+                onChange={e => setTrackingLookup(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void lookupStorageXShipment();
+                  }
+                }}
+                className="h-9 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => void lookupStorageXShipment()}
+                disabled={trackingLookupLoading || !trackingLookup.trim()}
+                className="shrink-0 rounded-lg bg-blue-700 px-3 py-2 text-[11px] font-black text-white hover:bg-blue-800 disabled:opacity-50"
+              >
+                {trackingLookupLoading ? "جاري البحث..." : "بحث"}
+              </button>
+            </div>
+            {trackingLookupMessage && (
+              <p role="alert" className="text-[10px] font-bold text-red-600">{trackingLookupMessage}</p>
+            )}
+            {trackingLookupResult && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-[11px]">
+                <p className="font-mono font-black text-blue-800" dir="ltr">{trackingLookupResult.trackingNumber}</p>
+                <p className="mt-1 font-bold text-slate-700">الحالة: {trackingLookupResult.status || "غير متاحة"}</p>
+                {trackingLookupResult.custody && (
+                  <p className="mt-1 font-bold text-slate-600">الحيازة: {trackingLookupResult.custody}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default function AdminIntegrations() {
+export default function AdminIntegrations({ integrationIds }: { integrationIds?: string[] } = {}) {
   const { data, isLoading, refetch, isFetching } = useQuery<any>({
     queryKey: ["/api/admin/integrations-status"],
     queryFn: async () => {
@@ -306,8 +528,12 @@ export default function AdminIntegrations() {
     </div>
   );
 
-  const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
-  const totalConfigured = INTEGRATIONS.filter(intg => {
+  const visibleIntegrations = integrationIds?.length
+    ? INTEGRATIONS.filter(integration => integrationIds.includes(integration.id))
+    : INTEGRATIONS;
+  const focusedIntegration = integrationIds?.length === 1 ? visibleIntegrations[0] : undefined;
+  const categories = [...new Set(visibleIntegrations.map(i => i.category))];
+  const totalConfigured = visibleIntegrations.filter(intg => {
     const st = data?.[intg.id] || {};
     return intg.keys.every(k => st[k.key]);
   }).length;
@@ -321,9 +547,13 @@ export default function AdminIntegrations() {
             <div className="p-2 bg-blue-50 rounded-xl">
               <Key className="h-6 w-6 text-blue-600" />
             </div>
-            ربط الخدمات والمفاتيح
+            {focusedIntegration?.name || "ربط الخدمات والمفاتيح"}
           </h2>
-          <p className="text-sm text-slate-400 font-bold mt-1 pr-11">إدارة جميع مفاتيح API والخدمات المرتبطة بالنظام</p>
+          <p className="text-sm text-slate-400 font-bold mt-1 pr-11">
+            {focusedIntegration
+              ? "إعداد الشحن، اختبار الاتصال، والبحث عن شحنة برقم التتبع"
+              : "إدارة جميع مفاتيح API والخدمات المرتبطة بالنظام"}
+          </p>
         </div>
         <button
           onClick={() => refetch()}
@@ -336,14 +566,14 @@ export default function AdminIntegrations() {
       </div>
 
       {/* Summary bar */}
-      <div className="grid grid-cols-3 gap-4">
+      {!focusedIntegration && <div className="grid grid-cols-3 gap-4">
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-emerald-600">{totalConfigured}</p>
           <p className="text-[11px] font-bold text-emerald-500 mt-1">خدمة مُفعَّلة</p>
         </div>
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-amber-600">
-            {INTEGRATIONS.filter(intg => {
+            {visibleIntegrations.filter(intg => {
               const st = data?.[intg.id] || {};
               const c = intg.keys.filter(k => st[k.key]).length;
               return c > 0 && c < intg.keys.length;
@@ -353,17 +583,17 @@ export default function AdminIntegrations() {
         </div>
         <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-red-600">
-            {INTEGRATIONS.filter(intg => {
+            {visibleIntegrations.filter(intg => {
               const st = data?.[intg.id] || {};
               return intg.keys.every(k => !st[k.key]);
             }).length}
           </p>
           <p className="text-[11px] font-bold text-red-500 mt-1">غير مُفعَّلة</p>
         </div>
-      </div>
+      </div>}
 
       {/* Notice */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
+      {!focusedIntegration && <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
         <AlertTriangle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
         <div>
           <p className="text-xs font-black text-blue-800">لإضافة أو تعديل مفتاح</p>
@@ -371,11 +601,11 @@ export default function AdminIntegrations() {
             انتقل إلى <strong>إعدادات Replit ← Secrets</strong> وأضف المفتاح بالاسم الصحيح. تُطبَّق التغييرات بعد إعادة تشغيل الخادم.
           </p>
         </div>
-      </div>
+      </div>}
 
       {/* By category */}
       {categories.map(cat => {
-        const catIntgs = INTEGRATIONS.filter(i => i.category === cat);
+        const catIntgs = visibleIntegrations.filter(i => i.category === cat);
         return (
           <div key={cat}>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{cat}</h3>

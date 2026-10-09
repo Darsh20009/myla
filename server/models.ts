@@ -25,6 +25,7 @@ const userSchema = new Schema<User>(
       floor: String,
       apartment: String,
       phone: String,
+      nationalAddress: String,
       notes: String,
       lat: { type: Number, default: null },
       lng: { type: Number, default: null },
@@ -142,12 +143,16 @@ const orderSchema = new Schema<Order>(
       size: String,
       length: String,
       notes: String,
+      image: String,
     }],
     shippingMethod: { type: String, enum: ["pickup", "delivery"], required: true },
     shippingAddress: {
+      name: String,
+      phone: String,
       city: String,
       street: String,
       district: String,
+      nationalAddress: String,
       country: String,
       notes: String,
     },
@@ -181,6 +186,13 @@ const orderSchema = new Schema<Order>(
     installments: { type: Number },
     shippingProvider: { type: String },
     trackingNumber: { type: String },
+    storageXShipShipmentId: { type: String, default: null },
+    storageXShipTrackingNumber: { type: String, default: null },
+    storageXShipStatus: { type: String, default: null },
+    storageXShipCustody: { type: String, default: null },
+    storageXShipCreatedAt: { type: Date, default: null },
+    storageXShipError: { type: String, default: null },
+    storageXShipLabelUrl: { type: String, default: null },
     // ── Storage Station (3PL fulfillment) ────────────────────────────────────
     storageStationOrderId: { type: Number, default: null },
     storageStationOrderNumber: { type: String, default: null },
@@ -262,6 +274,8 @@ const walletTransactionSchema = new Schema<WalletTransaction>(
     amount: { type: Number, required: true },
     type: { type: String, enum: ["deposit", "withdrawal", "payment", "refund"], required: true },
     description: { type: String, required: true },
+    reference: String,
+    status: { type: String, default: "completed" },
   },
   { timestamps: true }
 );
@@ -704,6 +718,9 @@ const storeSettingsSchema = new Schema(
     storePhone: { type: String, default: "" },
     storeEmail: { type: String, default: "info@myla.sa" },
     storeAddress: { type: String, default: "" },
+    storeCity: { type: String, default: "" },
+    mylaAbayaCatalogSeedVersion: { type: Number, default: 0 },
+    codActivationMigrationVersion: { type: Number, default: 0, select: false },
     vatNumber: { type: String, default: "" },
     crNumber: { type: String, default: "" },
     nationalUnifiedNumber: { type: String, default: "" },
@@ -789,6 +806,15 @@ const storeSettingsSchema = new Schema(
     mapitPickupLng:      { type: Number, default: null },
     mapitWarehouseId:    { type: String, default: "" },
     mapitPickupPointId:  { type: String, default: "" },
+    // ── Storage X Ship sender configuration (admin-only API) ──
+    storageXMerchantRef: { type: String, default: "" },
+    storageXMerchantRefMigrationVersion: { type: Number, default: 0, select: false },
+    storageXPickupName: { type: String, default: "" },
+    storageXPickupPhone: { type: String, default: "" },
+    storageXPickupCity: { type: String, default: "" },
+    storageXPickupAddressLine: { type: String, default: "" },
+    storageXPickupNationalAddress: { type: String, default: "" },
+    storageXDefaultWeightGrams: { type: Number, default: 0 },
     // ── Store pickup / sender location (coordinates for shipment pickup) ──
     storeLat: { type: Number, default: null },
     storeLng: { type: Number, default: null },
@@ -1225,6 +1251,7 @@ const waBotSettingsSchema = new Schema({
   autoReplyDelaySeconds: { type: Number,  default: 60 },
   customSystemPrompt:    { type: String,  default: "" },
   customCommands:        [waBotCustomCommandSchema],
+  adminPhones:           { type: [String], default: [] },
 }, { timestamps: true });
 
 export const WaBotSettingsModel = mongoose.model("WaBotSettings", waBotSettingsSchema);

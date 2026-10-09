@@ -15,6 +15,7 @@ import path from "path";
 import QRCode from "qrcode";
 import { aiChat } from "./ai-provider";
 import { SITE } from "./site-config";
+import { isQiroxConfigured, sendQiroxWhatsAppOtp } from "./qirox";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -851,6 +852,45 @@ export async function sendWaMessage(chatId: string, text: string): Promise<void>
   addMessage(chatId, msg);
 }
 
+function normalizeWhatsAppPhone(phone: string): string {
+  const value = String(phone || "").trim();
+  let digits = value.replace(/\D/g, "");
+  if (value.startsWith("00")) digits = digits.replace(/^00/, "");
+  else if (!value.startsWith("+") && !digits.startsWith("966")) {
+    digits = `966${digits.replace(/^0+/, "")}`;
+  }
+  if (!/^\d{8,15}$/.test(digits)) {
+    throw new Error("رقم واتساب للإدارة غير صالح");
+  }
+  return digits;
+}
+
+/** Send an operational notification through the paired WhatsApp session. */
+export async function sendWhatsAppNotification(phone: string, text: string): Promise<void> {
+  if (!sock || waState !== "connected") throw new Error("WhatsApp غير متصل");
+  const jid = `${normalizeWhatsAppPhone(phone)}@s.whatsapp.net`;
+  await sock.sendMessage(jid, { text });
+}
+
+export async function sendWhatsAppDocument(
+  phone: string,
+  document: Buffer,
+  fileName: string,
+  caption?: string,
+): Promise<void> {
+  if (!sock || waState !== "connected") throw new Error("WhatsApp غير متصل");
+  if (!document.length || document.length > 15 * 1024 * 1024) {
+    throw new Error("ملف الفاتورة غير صالح أو أكبر من الحد المسموح");
+  }
+  const jid = `${normalizeWhatsAppPhone(phone)}@s.whatsapp.net`;
+  await sock.sendMessage(jid, {
+    document,
+    mimetype: "application/pdf",
+    fileName: fileName.replace(/[\\/:*?"<>|]/g, "-").slice(0, 120),
+    caption: caption || "",
+  });
+}
+
 export async function sendWaImage(
   chatId: string,
   imageBase64: string,
@@ -879,7 +919,19 @@ export async function sendWaImage(
 
 /** Send OTP verification code via WhatsApp */
 export async function sendWhatsAppOTP(phone: string, otp: string): Promise<boolean> {
-  if (!sock || waState !== "connected") return false;
+  // Prefer Myla's paired local WhatsApp session. QIROX is only a fallback
+  // when Baileys is not connected; a Baileys send error does not switch providers.
+  if (!sock || waState !== "connected") {
+    if (!isQiroxConfigured("whatsapp")) return false;
+    try {
+      await sendQiroxWhatsAppOtp(phone, otp);
+      return true;
+    } catch (e: any) {
+      console.error("[WhatsApp OTP] QIROX fallback failed:", e?.message || "unknown error");
+      return false;
+    }
+  }
+
   try {
     let digits = phone.replace(/\D/g, "");
     // Strip leading zeros, then prepend 966 if not already international

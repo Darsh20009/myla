@@ -1,11 +1,12 @@
 /**
  * Email Service — Myla
- * Powered by cPanel SMTP (nodemailer)
+ * Powered by QIROX transactional email with cPanel SMTP fallback
  * All templates are Arabic RTL with Myla branding
  */
 
 import nodemailer from "nodemailer";
 import { SITE, ASSETS } from "./site-config";
+import { emailBodyAsText, isQiroxConfigured, sendQiroxEmail } from "./qirox";
 
 // Use absolute HTTPS URLs for inline images. CID attachments cause many email
 // clients (Outlook, several Arabic webmails) to show the assets as separate
@@ -72,6 +73,30 @@ async function sendEmail(params: {
   attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }): Promise<{ success: boolean; error?: string }> {
   const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "465", 10);
+  const useQirox = isQiroxConfigured("email") && !params.attachments?.length;
+  if (useQirox) {
+    try {
+      await sendQiroxEmail({
+        to: params.to,
+        toName: params.toName,
+        subject: params.subject,
+        message: emailBodyAsText(params.html, params.text),
+      });
+      console.log(`[Email] Sent to ${params.to} via QIROX`);
+      return { success: true };
+    } catch (err: any) {
+      console.error("[Email] QIROX delivery failed:", err?.message || "unknown error");
+      return { success: false, error: err?.message || "QIROX email delivery failed" };
+    }
+  }
+
+  if (isQiroxConfigured("email") && params.attachments?.length && !getSmtpSettings().pass) {
+    return {
+      success: false,
+      error: "QIROX email API does not support attachments; configure SMTP for attachment emails.",
+    };
+  }
+
   try {
     const transporter = createTransporter();
     const smtpUser = getSmtpSettings().user;
@@ -124,6 +149,16 @@ async function sendEmail(params: {
 
 /** Verify the same SMTP transport used by every store email. */
 export async function verifyEmailConnection(): Promise<{ ok: boolean; error?: string }> {
+  if (isQiroxConfigured("email")) {
+    // The QIROX API provides no documented health-check endpoint. Actual delivery
+    // responses are checked for each POST request.
+    return { ok: true };
+  }
+
+  if (!getSmtpSettings().pass) {
+    return { ok: false, error: "No email provider credentials are configured" };
+  }
+
   const configuredPort = parseInt(process.env.CPANEL_SMTP_PORT || "465", 10);
   try {
     await createTransporter().verify();

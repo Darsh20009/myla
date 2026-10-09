@@ -8,6 +8,10 @@ export interface Coupon {
   minOrderAmount?: number;
   maxCashback?: number;
   isFirstOrderOnly?: boolean;
+  discountAmount?: number;
+  cashbackAmount?: number;
+  eligibleSubtotal?: number;
+  validatedSubtotal?: number;
 }
 
 interface CouponStore {
