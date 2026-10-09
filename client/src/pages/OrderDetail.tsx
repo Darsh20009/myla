@@ -366,15 +366,26 @@ export default function OrderDetail() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status: "cancelled" });
-      if (!res.ok) throw new Error("فشل الإلغاء");
-      return res.json();
+      const res = await apiRequest("POST", `/api/orders/${orderId}/cancel`, {
+        reason: "إلغاء من صفحة تفاصيل الطلب",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "تعذر إلغاء الطلب");
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders/my"] });
       setShowCancelConfirm(false);
-      toast({ title: "تم إلغاء الطلب", description: "سيتم استرداد مبلغك إن وُجد" });
+      toast({
+        title: "تم إلغاء الطلب",
+        description: result?.refundError
+          ? result.refundError
+          : Number(result?.refundAmount || 0) > 0
+            ? `تم رد ${Number(result.refundAmount).toFixed(2)} ر.س إلى المحفظة`
+            : "تم تطبيق سياسة الإلغاء على الطلب",
+        variant: result?.refundError ? "destructive" : "default",
+      });
     },
     onError: (e: any) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
   });

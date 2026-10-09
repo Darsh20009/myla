@@ -677,14 +677,29 @@ export default function PosSystem() {
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
-      return await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
+      const cancelling = status === "cancelled";
+      const response = await apiRequest(
+        cancelling ? "POST" : "PATCH",
+        cancelling ? `/api/orders/${orderId}/cancel` : `/api/orders/${orderId}/status`,
+        cancelling ? { reason: "إلغاء من نقطة البيع" } : { status },
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "تعذر تحديث الطلب");
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/live"] });
-      toast({ title: t('pos.update_success'), description: t('pos.order_updated') });
+      toast({
+        title: variables.status === "cancelled" ? "تم إلغاء الطلب" : t('pos.update_success'),
+        description: variables.status === "cancelled" ? "تم تطبيق سياسة الإلغاء" : t('pos.order_updated'),
+      });
     },
-    onError: () => {
-      toast({ variant: "destructive", title: t('pos.error'), description: t('pos.update_error') });
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: t('pos.error'),
+        description: error?.message || t('pos.update_error'),
+      });
     }
   });
 
