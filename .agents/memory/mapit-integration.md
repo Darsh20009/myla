@@ -79,6 +79,12 @@ description: Mapit shipping API (mapit.sa) wired into Myla; key gotchas for coor
 
 **How to apply:** Report the returned status/custody and never promise that create-then-cancel is free.
 
+**Order cancellation path:** Order cancellation must use `POST /api/orders/:id/cancel`; the generic `PATCH /api/orders/:id/status` deliberately rejects `cancelled` to protect refunds and stock. Admin cancellation of a carrier-bound order must cancel the carrier shipment first, persist its result, then apply local order/refund policy.
+
+**Why:** A detail screen used the rejected status-patch route, while another screen treated its 409 response as success. Carrier cancellation, local order cancellation, and payment refund are separate outcomes.
+
+**How to apply:** Every client cancellation must check `response.ok` and surface the returned error. Never show success until the correct cancellation route completes; do not assume a carrier cancellation refunds a paid order.
+
 **Webhook:** `POST /api/webhooks/mapit` — no auth required (IP filtering should be added later). Looks up order by `mapitOrderNumber`. Status mapping: `ORDER_COMPLETED` → `completed`, `ORDER_FAILED_TO_DROP_OFF` → `returned`, etc.
 
 **Mongoose $in typing:** When using `$in` with a `string[]` variable in Mongoose 9, cast with `as any[]` to satisfy strict enum types, e.g. `{ status: { $in: arr as any[] } }`.
