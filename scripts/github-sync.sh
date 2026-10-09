@@ -30,6 +30,16 @@ git remote set-url origin "$REPO_URL"
 
 echo "[github-sync] Started — checking for changes every 60 seconds"
 
+# Do not let the legacy main-branch sync upload credential-like values from
+# unpublished history. Use a sanitized branch and review it before merging.
+if git rev-parse --verify origin/main >/dev/null 2>&1 &&
+   git rev-parse --verify main >/dev/null 2>&1 &&
+   git log --binary -p origin/main..main |
+     grep -aEi 'sxs_[[:alnum:]_-]{8,}|Authorization:[[:space:]]*Bearer[[:space:]]+[[:alnum:]_.-]{24,}|gh[pousr]_[[:alnum:]]{20,}|github_pat_[[:alnum:]_]{20,}|sk_(live|test)_[[:alnum:]]{20,}|AKIA[0-9A-Z]{16}' >/dev/null; then
+  echo "[github-sync] Refusing to push main: outgoing history contains credential-like content. Use the sanitized branch." >&2
+  exit 0
+fi
+
 sync_to_github() {
   # Check if there are any source changes (tracked or untracked, excluding dist and node_modules)
   CHANGED=$(git status --porcelain | grep -v "^?? dist/" | grep -v "^?? node_modules/" | grep -v "^?? uploads/" | grep -v "^?? wa-auth/")
